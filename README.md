@@ -5,6 +5,9 @@ Aplication for managing your house plant automatized system made by Piotr Szerł
 
 Notion: https://www.notion.so/Re-planted-2b191ddb0b1180139f38d5eb8f4dd225
 
-Used:
+Stack:
+Embeded-Rust
+Front-Js React
+Back-?
 
 File structure:
