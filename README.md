@@ -11,3 +11,17 @@ Front-Js React
 Back-C#
 
 File structure:
+# Struktura Plików
+
+>apps
+ | >Server
+ |  | >src
+ | >Client
+ |  | >src
+ |  | >assets
+ | >IoT
+ |  | >src
+ | >Shared
+>env.
+>gitignore
+>README.md
