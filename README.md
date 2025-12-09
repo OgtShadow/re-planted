@@ -17,7 +17,7 @@ File structure:
  |  >Server
  |  |  >src
  |  >Client
- |  |  >src
+ |  |  >app
  |  |  >assets
  |  >IoTcentral
  |  |  >src
