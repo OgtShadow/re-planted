@@ -6,13 +6,13 @@ Aplication for managing your house plant automatized system made by Piotr Szerł
 Notion: https://www.notion.so/Re-planted-2b191ddb0b1180139f38d5eb8f4dd225
 
 Stack:
-Embeded-Rust
+Embeded-C
 Front-Js React
 Back-C#
 
 File structure:
 # Struktura Plików
-
+```
 >apps
  |  >Server
  |  |  >src
@@ -25,3 +25,4 @@ File structure:
 >env.
 >gitignore
 >README.md
+```
