@@ -5,7 +5,7 @@ function App() {
   const [test, setTest] = useState('')
 
   useEffect(() => {
-    fetch("http://localhost:5111/communication-test")
+    fetch("http://localhost:5000/communication-test")
       .then(r => r.text())
       .then(data => setTest(data))
   }, [])
