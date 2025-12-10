@@ -17,9 +17,9 @@ File structure:
  |  >Server
  |  |  >src
  |  >Client
- |  |  >app
+ |  |  >src
  |  |  >assets
- |  >IoTcentral
+ |  >IoT
  |  |  >src
  |  >IoT
  |  |  >src
@@ -28,3 +28,5 @@ File structure:
 >gitignore
 >README.md
 ```
+
+npm run . (w Cliencie)
