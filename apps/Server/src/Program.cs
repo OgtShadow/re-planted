@@ -10,6 +10,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddHttpClient<RePlanted.Server.Services.ConnectionManager>();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
