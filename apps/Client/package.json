@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     ".": "npm-run-all --parallel dev:frontend dev:backend",
-    "dev:backend": "cd ../Server/src && dotnet watch run",
+    "dev:backend": "cd ../Server && dotnet watch run",
     "dev:frontend": "vite"
   },
   "dependencies": {

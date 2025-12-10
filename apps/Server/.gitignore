@@ -1,39 +1,27 @@
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
+# Build outputs
+bin/
+obj/
+[Bb]uild/
 
-# Visual Studio cache/options
+# IDE
 .vs/
-
-# Visual Studio Code
 .vscode/
 *.code-workspace
-
-# Rider
 .idea/
-*.sln.iml
-*.iml
-
-# User-specific files
-*.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
 
-# Local environment files
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / config
 appsettings.Development.json
 appsettings.*.json
 !appsettings.json
@@ -43,18 +31,3 @@ appsettings.*.json
 *.nupkg
 *.snupkg
 .nuget/
-
-# Rider
-.idea/
-*.sln.iml
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-!.vscode/extensions.json
-
-# dotnet
-.dotnet/
