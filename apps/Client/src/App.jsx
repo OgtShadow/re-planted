@@ -1,19 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [test, setTest] = useState('')
+
+  useEffect(() => {
+    fetch("http://localhost:5111/communication-test")
+      .then(r => r.text())
+      .then(data => setTest(data))
+  }, [])
 
   return (
     <div>
-      <div>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
+      <h1>tekst to:{test}</h1>
     </div>
   )
 }
