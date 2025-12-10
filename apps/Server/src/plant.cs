@@ -9,6 +9,9 @@ public class Plant
 
     public Plant()
     {
+        Name = "placeholder plant name";
+        Species = "placeholder species";
+        HealthStatus = "Healthy";
     }
 
     public Plant(string name, string species, string location)
