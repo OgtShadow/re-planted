@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import connectionManager from './connectionManager'
 
 function App() {
   const [test, setTest] = useState('')
 
   useEffect(() => {
-    fetch("http://localhost:5000/communication-test")
-      .then(r => r.text())
+    connectionManager.getText('/communication-test')
       .then(data => setTest(data))
+      .catch(error => console.error('Failed to fetch:', error))
   }, [])
 
   return (
