@@ -1,6 +1,6 @@
-# Build outputs
-bin/
-obj/
+# Build outputs (any depth)
+**/bin/
+**/obj/
 [Bb]uild/
 
 # IDE
