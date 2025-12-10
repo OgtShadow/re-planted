@@ -1,3 +1,5 @@
+using RePlanted.Server.Models;
+
 public class Plant
 {
     public int Id { get; set; }
@@ -6,20 +8,32 @@ public class Plant
     public DateTime PlantedDate { get; set; }
     public string HealthStatus { get; set; }
     public DateTime LastWatered { get; set; }
+    public Parameters Parameters { get; set; }
 
     public Plant()
     {
         Name = "placeholder plant name";
         Species = "placeholder species";
         HealthStatus = "Healthy";
+        Parameters = new Parameters();
     }
 
-    public Plant(string name, string species, string location)
+    public Plant(string name, string species)
     {
         Name = name;
         Species = species;
         PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
+        Parameters = new Parameters(species);
+    }
+
+    public Plant(string name, Parameters parameters)
+    {
+        Name = name;
+        Species = "custom species";
+        PlantedDate = DateTime.Now;
+        HealthStatus = "Healthy";
+        Parameters = parameters;
     }
 
     public void Water()
@@ -27,8 +41,8 @@ public class Plant
         LastWatered = DateTime.Now;
     }
 
-    public bool NeedsWater(int daysBetweenWatering = 3)
+    public bool NeedsWater()
     {
-        return (DateTime.Now - LastWatered).TotalDays >= daysBetweenWatering;
+        return (DateTime.Now - LastWatered).TotalDays >= Parameters.WateringIntervalDays;
     }
 }
