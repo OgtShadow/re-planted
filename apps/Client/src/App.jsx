@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import connectionManager from './connectionManager'
+import MessageSender from './MessageSender'
 
 function App() {
   const [test, setTest] = useState('')
@@ -14,6 +15,7 @@ function App() {
   return (
     <div>
       <h1>tekst to:{test}</h1>
+      <MessageSender />
     </div>
   )
 }

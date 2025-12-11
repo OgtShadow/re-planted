@@ -24,7 +24,7 @@ public class Plant
         this.Species = Species;
         this.PlantedDate = PlantedDate;
         HealthStatus = "Healthy";
-        Parameters = new Parameters(species);
+        Parameters = new Parameters(Species);
     }
 
     public Plant(string Name, Parameters Parameters)
