@@ -26,11 +26,11 @@ public class Parameters
         Temperature = new Range(15, 25);
     }
 
-    public Parameters(int wateringDays, Range humidity, int lightHours, Range temperature)
+    public Parameters(int WateringIntervalDays, Range Humidity, int LightHoursPerDay, Range Temperature)
     {
-        WateringIntervalDays = wateringDays;
-        Humidity = humidity;
-        LightHoursPerDay = lightHours;
-        Temperature = temperature;
+        this.WateringIntervalDays = WateringIntervalDays;
+        this.Humidity = Humidity;
+        this.LightHoursPerDay = LightHoursPerDay;
+        this.Temperature = Temperature;
     }
 }

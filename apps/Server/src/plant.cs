@@ -20,9 +20,9 @@ public class Plant
 
     public Plant(string name, string species)
     {
-        Name = name;
-        Species = species;
-        PlantedDate = DateTime.Now;
+        Name = Name;
+        Species = Species;
+        this.PlantedDate = PlantedDate;
         HealthStatus = "Healthy";
         Parameters = new Parameters(species);
     }

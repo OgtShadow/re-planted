@@ -4,28 +4,28 @@ namespace RePlanted.Server.Services;
 
 public class ConnectionManager
 {
-    private readonly HttpClient _httpClient;
-    private readonly string _clientBaseUrl;
-    private readonly ILogger<ConnectionManager> _logger;
+    private readonly HttpClient httpClient;
+    private readonly string clientBaseUrl;
+    private readonly ILogger<ConnectionManager> logger;
 
     public ConnectionManager(HttpClient httpClient, IConfiguration configuration, ILogger<ConnectionManager> logger)
     {
-        _httpClient = httpClient;
-        _clientBaseUrl = configuration["ClientBaseUrl"] ?? "http://localhost:5173";
-        _logger = logger;
+        this.httpClient = httpClient;
+        this.clientBaseUrl = configuration["ClientBaseUrl"] ?? "http://localhost:5173";
+        this.logger = logger;
     }
 
     public async Task<T?> GetAsync<T>(string endpoint)
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{_clientBaseUrl}{endpoint}");
+            var response = await httpClient.GetAsync($"{clientBaseUrl}{endpoint}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"GET request failed: {ex.Message}");
+            logger.LogError($"GET request failed: {ex.Message}");
             throw;
         }
     }
@@ -34,13 +34,13 @@ public class ConnectionManager
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{_clientBaseUrl}{endpoint}");
+            var response = await httpClient.GetAsync($"{clientBaseUrl}{endpoint}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"GET text request failed: {ex.Message}");
+            logger.LogError($"GET text request failed: {ex.Message}");
             throw;
         }
     }
@@ -49,13 +49,13 @@ public class ConnectionManager
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync($"{_clientBaseUrl}{endpoint}", data);
+            var response = await httpClient.PostAsJsonAsync($"{clientBaseUrl}{endpoint}", data);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"POST request failed: {ex.Message}");
+            logger.LogError($"POST request failed: {ex.Message}");
             throw;
         }
     }
@@ -64,13 +64,13 @@ public class ConnectionManager
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{_clientBaseUrl}{endpoint}", data);
+            var response = await httpClient.PutAsJsonAsync($"{clientBaseUrl}{endpoint}", data);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"PUT request failed: {ex.Message}");
+            logger.LogError($"PUT request failed: {ex.Message}");
             throw;
         }
     }
@@ -79,13 +79,13 @@ public class ConnectionManager
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"{_clientBaseUrl}{endpoint}");
+            var response = await httpClient.DeleteAsync($"{clientBaseUrl}{endpoint}");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"DELETE request failed: {ex.Message}");
+            logger.LogError($"DELETE request failed: {ex.Message}");
             throw;
         }
     }
