@@ -18,22 +18,22 @@ public class Plant
         Parameters = new Parameters();
     }
 
-    public Plant(string name, string species)
+    public Plant(string Name, string Species)
     {
-        Name = Name;
-        Species = Species;
+        this.Name = Name;
+        this.Species = Species;
         this.PlantedDate = PlantedDate;
         HealthStatus = "Healthy";
         Parameters = new Parameters(species);
     }
 
-    public Plant(string name, Parameters parameters)
+    public Plant(string Name, Parameters Parameters)
     {
-        Name = name;
+        this.Name = Name;
         Species = "custom species";
-        PlantedDate = DateTime.Now;
+        this.PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
-        Parameters = parameters;
+        this.Parameters = Parameters;
     }
 
     public void Water()
