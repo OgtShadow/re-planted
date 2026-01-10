@@ -1,5 +1,7 @@
 using RePlanted.Server.Models;
 
+namespace RePlanted.Server;
+
 public class Plant
 {
     public int Id { get; set; }
@@ -14,6 +16,7 @@ public class Plant
     {
         Name = "placeholder plant name";
         Species = "placeholder species";
+        PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
         Parameters = new Parameters();
     }
@@ -22,7 +25,7 @@ public class Plant
     {
         this.Name = Name;
         this.Species = Species;
-        this.PlantedDate = PlantedDate;
+        this.PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
         Parameters = new Parameters(Species);
     }

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import connectionManager from './connectionManager'
 import MessageSender from './MessageSender'
+import PlantCreator from './PlantCreator'
+import PlantList from './PlantList'
 
 function App() {
   const [test, setTest] = useState('')
@@ -16,6 +18,8 @@ function App() {
     <div>
       <h1>tekst to:{test}</h1>
       <MessageSender />
+      <PlantCreator />
+      <PlantList />
     </div>
   )
 }
