@@ -4,6 +4,7 @@ public record Range(int Min, int Max);
 
 public class Parameters
 {
+    public int Id { get; set; } // Primary Key
     public int WateringIntervalDays { get; set; }
     public Range Humidity { get; set; }
     public int LightHoursPerDay { get; set; }

@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using RePlanted.Server.Data;
+using RePlanted.Server;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
@@ -12,16 +16,19 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient<RePlanted.Server.Services.ConnectionManager>();
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
 
 var receivedMessages = new List<string>();
-var plantsList = new List<RePlanted.Server.Plant>();
 
-app.MapGet("/", () => { 
+app.MapGet("/", async (AppDbContext db) => { 
+    var plants = await db.Plants.ToListAsync();
     return $"Server in fact działa!\n\nOtrzymane wiadomości:\n{string.Join("\n", receivedMessages)}\n\n" +
-     $"Dodane obecnie rośliny:\n{string.Join("\n", plantsList.Select(p => $"{p.Name}, {p.Species}, {p.PlantedDate}, {p.HealthStatus}"))}";
+     $"Dodane obecnie rośliny:\n{string.Join("\n", plants.Select(p => $"{p.Name}, {p.Species}, {p.PlantedDate}, {p.HealthStatus}"))}";
     });
 
 app.MapGet("/communication-test", () => "Communication with Client works!");
@@ -34,14 +41,14 @@ app.MapPost("/api/post", (ExampleData data) => {
     return Results.Ok(new { Response = message });
 });
 
-app.MapGet("/api/plants", () => plantsList);
+app.MapGet("/api/plants", async (AppDbContext db) => await db.Plants.Include(p => p.Parameters).ToListAsync());
 
-app.MapPost("/api/plants", (RePlanted.Server.Plant newPlant) => {
-    plantsList.Add(newPlant);
+app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db) => {
+    db.Plants.Add(newPlant);
+    await db.SaveChangesAsync();
     Console.WriteLine($"Dodano roślinę: {newPlant.Name}, {newPlant.Species}");
     return Results.Ok(new { Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}" });
 });
-
 
 app.Run();
 
