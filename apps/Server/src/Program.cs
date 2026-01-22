@@ -1,8 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Data;
 using RePlanted.Server;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load env vars from .env
+Env.Load();
+
+// Configuration builder will automatically load Environment Variables
+// We just need to make sure DotNetEnv loads them into the process first (which Env.Load() does)
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddCors(options =>
 {
