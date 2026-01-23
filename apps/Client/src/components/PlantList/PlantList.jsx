@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PlantProfile from "../PlantProfile/PlantProfile";
 import connectionManager from "../../connectionManager";
+import './PlantList.css'
 
 function PlantList() {
     const [plants, setPlants] = useState([]);
@@ -18,7 +19,7 @@ function PlantList() {
   }, []);
 
 return (
-    <div>
+    <div className="plant-list">
         {plants.map((plant) => (
             <PlantProfile plant={plant} />
         ))}

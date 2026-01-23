@@ -1,0 +1,29 @@
+@import '../../colors.css';
+
+div .plant-profile {
+    max-width: 200px;
+    background-color: var(--dark-color);
+    padding: 2px 20px 15px 20px;
+    border-radius: 10px;
+    margin: 20px;
+}
+
+.plant-profile h2 {
+    color: var(--background-color);
+    margin-bottom: 10px;
+}
+
+.plant-profile p {
+    color: var(--dark-background-color);
+    margin: 5px 0;
+}
+
+.plant-profile button {
+    background-color: var(--dark-color);
+    color: var(--dark-background-color);
+}
+
+.plant-profile button:hover {
+    background-color: var(--light-color);
+    color: var(--light-text-color);
+}
