@@ -19,15 +19,17 @@ public class Plant
         PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
         Parameters = new Parameters();
+        LastWatered = DateTime.Now;
     }
 
     public Plant(string Name, string Species)
     {
         this.Name = Name;
         this.Species = Species;
-        this.PlantedDate = DateTime.Now;
+        PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
         Parameters = new Parameters(Species);
+        LastWatered = DateTime.Now;
     }
 
     public Plant(string Name, Parameters Parameters)
@@ -37,6 +39,7 @@ public class Plant
         this.PlantedDate = DateTime.Now;
         HealthStatus = "Healthy";
         this.Parameters = Parameters;
+        LastWatered = DateTime.Now;
     }
 
     public void Water()
@@ -48,4 +51,4 @@ public class Plant
     {
         return (DateTime.Now - LastWatered).TotalDays >= Parameters.WateringIntervalDays;
     }
-}
+} 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import connectionManager from "./connectionManager";
+import connectionManager from "../../connectionManager";
 
 function PlantList() {
     const [plants, setPlants] = useState([]);

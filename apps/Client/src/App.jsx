@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import connectionManager from './connectionManager'
-import MessageSender from './MessageSender'
-import PlantCreator from './PlantCreator'
-import PlantList from './PlantList'
+import MessageSender from './components/MessageSender/MessageSender'
+import PlantCreator from './components/PlantCreator/PlantCreator'
+import PlantList from './components/PlantList/PlantList'
 
 function App() {
   const [test, setTest] = useState('')

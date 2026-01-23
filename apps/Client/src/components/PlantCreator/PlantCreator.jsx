@@ -1,5 +1,5 @@
 import { useState } from "react";
-import connectionManager from "./connectionManager";
+import connectionManager from "../../connectionManager";
 
 function PlantCreator() {
   const [name, setName] = useState("");
