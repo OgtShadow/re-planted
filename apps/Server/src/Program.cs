@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Data;
 using RePlanted.Server;
 using DotNetEnv;
+using Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,13 +14,16 @@ Env.Load();
 // We just need to make sure DotNetEnv loads them into the process first (which Env.Load() does)
 builder.Configuration.AddEnvironmentVariables();
 
+builder.Services.AddSignalR();
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowClient", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true) 
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -29,7 +34,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+app.UseCors("AllowClient");
+app.MapHub<PlantHub>("/plantHub");
 
 var receivedMessages = new List<string>();
 
@@ -51,10 +57,14 @@ app.MapPost("/api/post", (ExampleData data) => {
 
 app.MapGet("/api/plants", async (AppDbContext db) => await db.Plants.Include(p => p.Parameters).ToListAsync());
 
-app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db) => {
+app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db, IHubContext<PlantHub> hubContext) => {
     db.Plants.Add(newPlant);
     await db.SaveChangesAsync();
     Console.WriteLine($"Dodano roślinę: {newPlant.Name}, {newPlant.Species}");
+    
+    // Powiadom wszystkich klientów o zmianie
+    await hubContext.Clients.All.SendAsync("PlantsUpdated");
+    
     return Results.Ok(new { Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}" });
 });
 
