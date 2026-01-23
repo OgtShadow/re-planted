@@ -1,26 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import PlantProfile from "../PlantProfile/PlantProfile";
 import connectionManager from "../../connectionManager";
 
 function PlantList() {
     const [plants, setPlants] = useState([]);
 
-    const fetchPlants = async () => {
-    try {
-      const result = await connectionManager.get("/api/plants");
-      setPlants(result);
-    } catch (error) {
-      console.error("Failed to fetch plants:", error);
-    }
-  };
+    useEffect(() => {
+      const fetchPlants = async () => {
+        try {
+          const result = await connectionManager.get("/api/plants");
+          setPlants(result);
+        } catch (error) {
+          console.error("Failed to fetch plants:", error);
+        }
+      };
+    fetchPlants();
+  }, []);
 
 return (
     <div>
-        <button onClick={fetchPlants}>Pobierz listę roślin</button>
-        <ul>
-          {plants.map((plant, index) => (
-            <li key={index}>{plant.name} - {plant.species} - {plant.healthStatus}</li>
-          ))}
-        </ul>
+        {plants.map((plant) => (
+            <PlantProfile plant={plant} />
+        ))}
     </div>
   );
 }
