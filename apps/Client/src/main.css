@@ -1,0 +1,54 @@
+@import './colors.css';
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background-color: var(--background-color);
+  color: var(--light-text-color);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--accent-color-dark);
+}
+a:hover {
+  color: var(--accent-color-light);
+}
+
+h1 {
+  font-size: 3.2em;
+  color: var(--text-color);
+}
+
+button,input,textarea {
+  outline: none;
+  font-size: 0.8em;
+  padding:  6px 12px;
+  margin: 2px;
+  font-family: inherit;
+  color: var(--light-text-color);
+  border-radius: 8px;
+  background-color: var(--background-color);
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.05s;
+}
+button:hover {
+  background-color: var(--dark-background-color);
+}
+
+input, textarea {
+  border: 2px solid var(--dark-background-color);
+  cursor: text;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--light-primary-color);
+  background-color: var(--dark-background-color);
+}

@@ -31,3 +31,4 @@ appsettings.*.json
 *.nupkg
 *.snupkg
 .nuget/
+.env

@@ -1,0 +1,22 @@
+:root {
+    --background-color: #EEE;
+    --dark-background-color: #CCC;
+    --primary-color: #1C352D;
+    --light-primary-color: #c8d8a4;
+    --accent-color-dark: #291305;
+    --accent-color-light: #F5C9B0;
+    --text-color: #222;
+    --light-text-color: #555;
+}
+
+/* Dark Mode */
+.dark-mode {
+    --background-color: #222;
+    --dark-background-color: #555;
+    --primary-color: #1C352D;
+    --light-primary-color: #c8d8a4;
+    --accent-color-dark: #F5C9B0;
+    --accent-color-light: #291305;
+    --text-color: #EEE;
+    --light-text-color: #CCC;
+}
