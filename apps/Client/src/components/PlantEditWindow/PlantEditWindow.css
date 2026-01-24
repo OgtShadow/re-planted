@@ -1,0 +1,51 @@
+.plant-edit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.plant-edit-window {
+    width: 80%;
+    max-width: 600px;
+    background-color: var(--background-color);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    color: var(--text-color);
+}
+
+.plant-edit-window h2 {
+    margin-top: 0;
+    color: var(--text-color);
+}
+
+.plant-edit-window form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.plant-edit-window label {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    color: var(--light-text-color);
+}
+
+.plant-edit-window input {
+    margin-top: 5px;
+    width: 100%;
+    box-sizing: border-box; /* Ensures padding doesn't overflow width */
+}
+
+.plant-edit-window button {
+    margin-top: 10px;
+    width: 100%;
+}

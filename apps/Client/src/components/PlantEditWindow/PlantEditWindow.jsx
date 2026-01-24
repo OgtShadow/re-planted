@@ -39,28 +39,32 @@ function PlantEditWindow({ plant, onClose }) {
   }
 
   return (
-    <div className="plant-edit-window">
-      <h2>Edit Plant Details</h2>
-        <form onSubmit={handleSaveChanges}>
-            <label>
-                Name:
-                <input
-                    type="text"
-                    value={editedPlant.name}
-                    onChange={(e) => setEditedPlant({ ...editedPlant, name: e.target.value })}
-                />
-            </label>
-            <label>
-                Species:
-                <input
-                    type="text"
-                    value={editedPlant.species}
-                    onChange={(e) => setEditedPlant({ ...editedPlant, species: e.target.value })}
-                />
-            </label>
-            <button type="submit">Save Changes</button>
-            <button className="delete" onClick={handleDeletePlant}>Delete Plant</button>
-        </form>
+    <div className="plant-edit-overlay" onClick={() => onClose && onClose()}>
+        <div className="plant-edit-window" onClick={(e) => e.stopPropagation()}>
+          <h2>Edit Plant Details</h2>
+            <form onSubmit={handleSaveChanges}>
+                <label>
+                    Name:
+                    <input
+                        type="text"
+                        value={editedPlant.name}
+                        onChange={(e) => setEditedPlant({ ...editedPlant, name: e.target.value })}
+                    />
+                </label>
+                <label>
+                    Species:
+                    <input
+                        type="text"
+                        value={editedPlant.species}
+                        onChange={(e) => setEditedPlant({ ...editedPlant, species: e.target.value })}
+                    />
+                </label>
+                <div className="button-group">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" className="delete" onClick={handleDeletePlant}>Delete Plant</button>
+                </div>
+            </form>
+        </div>
     </div>
   );
 }
