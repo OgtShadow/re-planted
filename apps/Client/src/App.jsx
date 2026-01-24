@@ -4,6 +4,7 @@ import connectionManager from './connectionManager'
 import MessageSender from './components/MessageSender/MessageSender'
 import PlantCreator from './components/PlantCreator/PlantCreator'
 import PlantList from './components/PlantList/PlantList'
+import StatusDot from './components/StatusDot/StatusDot'
 
 function App() {
   const [test, setTest] = useState('')
@@ -16,7 +17,7 @@ function App() {
 
   return (
     <div>
-      <h1>tekst to:{test}</h1>
+      <h1>RE-PLANTED {test === "Communication with Client works!" ? <StatusDot status="green" size="big" /> : <StatusDot status="red" size="big" />}</h1>
       <MessageSender />
       <PlantCreator />
       <PlantList />

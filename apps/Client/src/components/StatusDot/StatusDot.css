@@ -1,0 +1,48 @@
+.status-dot {
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.size-small {
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid;
+}
+
+.size-medium {
+    width: 15px;
+    height: 15px;
+    border: 2px solid;
+}
+
+.size-big {
+    width: 25px;
+    height: 25px;
+    border: 3px solid;
+}
+
+.status-red {
+    background-color: #ff0019;
+    border-color: color-mix(in srgb, #ff0019, black 30%);
+}
+
+.status-green {
+    background-color: #28a745;
+    border-color: color-mix(in srgb, #28a745, black 30%);
+}
+
+.status-orange {
+    background-color: #ff8800;
+    border-color: color-mix(in srgb, #ff8800, black 30%);
+}
+
+.status-gray {
+    background-color: #888888;
+    border-color: color-mix(in srgb, #888888, black 30%);
+}
+
+.status-error {
+    background-color: #d635dc;
+    border-color: color-mix(in srgb, #d635dc, black 30%);
+}
