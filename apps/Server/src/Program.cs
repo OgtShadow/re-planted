@@ -64,6 +64,12 @@ app.MapPost("/api/post", (ExampleData data) => {
 
 app.MapGet("/api/plants", async (AppDbContext db) => await db.Plants.Include(p => p.Parameters).ToListAsync());
 
+app.MapGet("/api/plants/{id}", async (int id, AppDbContext db) => 
+{
+    var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
+    return plant is not null ? Results.Ok(plant) : Results.NotFound();
+});
+
 app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db, IHubContext<PlantHub> hubContext) => {
     db.Plants.Add(newPlant);
     await db.SaveChangesAsync();

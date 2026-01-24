@@ -42,7 +42,7 @@
 .plant-edit-window input {
     margin-top: 5px;
     width: 100%;
-    box-sizing: border-box; /* Ensures padding doesn't overflow width */
+    box-sizing: border-box;
 }
 
 .plant-edit-window button {

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 import connectionManager from './connectionManager'
 import MessageSender from './components/MessageSender/MessageSender'
 import PlantCreator from './components/PlantCreator/PlantCreator'
 import PlantList from './components/PlantList/PlantList'
 import StatusDot from './components/StatusDot/StatusDot'
+import PlantDetails from './components/PlantDetails/PlantDetails'
+import Header from './components/Header/Header'
 
 function App() {
   const [test, setTest] = useState('')
@@ -16,12 +19,20 @@ function App() {
   }, [])
 
   return (
-    <div>
-      <h1>RE-PLANTED {test === "Communication with Client works!" ? <StatusDot status="green" size="big" /> : <StatusDot status="red" size="big" />}</h1>
-      <MessageSender />
-      <PlantCreator />
-      <PlantList />
-    </div>
+    <BrowserRouter>
+        <Header test={test} />
+        <Routes>
+          <Route path="/" element={
+            <>
+              <MessageSender />
+              <PlantCreator />
+              <PlantList />
+            </>
+          } />
+          <Route path="/plant/:id" element={<PlantDetails />} />
+        </Routes>
+      
+    </BrowserRouter>
   )
 }
 

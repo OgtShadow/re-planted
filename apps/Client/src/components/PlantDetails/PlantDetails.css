@@ -1,0 +1,71 @@
+.plant-details-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    color: var(--text-color);
+}
+
+.back-button {
+    background: none;
+    border: none;
+    color: var(--accent-color-dark);
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+    text-align: left;
+    display: block;
+    padding: 0;
+}
+
+.plant-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.plant-details-header h1 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+.plant-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.info-item {
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-item .label {
+    color: var(--dark-background-color);
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+.info-item .value {
+    color: var(--background-color);
+    font-size: 1.1em;
+}
+
+.edit-button {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    background-color: var(--accent-color-dark);
+    color: white;
+}
+
+.edit-button:hover {
+    background-color: var(--accent-color-light);
+    color: var(--accent-color-dark);
+}
