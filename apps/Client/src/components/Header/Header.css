@@ -17,21 +17,3 @@
     color: var(--background-color);
 }
 
-.nav ul {
-    list-style: none;
-    display: flex;
-    gap: 20px;
-}
-
-.nav a {
-    text-decoration: none;
-    background-color: var(--dark-color);
-    color: var(--background-color);
-    font-weight: bold;
-    font-size: 1.1em;
-}
-
-.nav a:hover {
-    background-color: var(--light-color);
-    color: var(--text-color);
-}

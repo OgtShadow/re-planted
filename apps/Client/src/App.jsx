@@ -24,7 +24,6 @@ function App() {
         <Routes>
           <Route path="/" element={
             <>
-              <MessageSender />
               <PlantCreator />
               <PlantList />
             </>
