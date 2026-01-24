@@ -1,5 +1,10 @@
 @import './colors.css';
 
+body {
+  margin: 0;
+  padding: 0;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -28,7 +33,7 @@ h2 {
   color: var(--text-color);
 }
 
-button,input,textarea {
+button,input,textarea,a {
   outline: none;
   font-size: 0.8em;
   padding: 10px 15px;
@@ -39,12 +44,12 @@ button,input,textarea {
   background-color: var(--background-color);
 }
 
-button {
+button,a {
   border: none;
   cursor: pointer;
   transition: background-color 0.05s;
 }
-button:hover {
+button:hover,a:hover {
   background-color: var(--dark-background-color);
 }
 
