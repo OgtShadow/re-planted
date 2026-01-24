@@ -68,6 +68,21 @@ app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db, IHubContext<P
     return Results.Ok(new { Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}" });
 });
 
+app.MapPut("/api/plants/{id}", async (int id, Plant updatedPlant, AppDbContext db, IHubContext<PlantHub> hubContext) => {
+    var plant = await db.Plants.FindAsync(id);
+    if (plant is null) return Results.NotFound();
+
+    plant.Name = updatedPlant.Name;
+    plant.Species = updatedPlant.Species;
+    
+    await db.SaveChangesAsync();
+
+    // Powiadom wszystkich klientów o zmianie
+    await hubContext.Clients.All.SendAsync("PlantsUpdated");
+
+    return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}" });
+});
+
 app.Run();
 
 public record ExampleData(string Message);
