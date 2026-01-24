@@ -59,7 +59,7 @@ function PlantEditWindow({ plant, onClose }) {
                 />
             </label>
             <button type="submit">Save Changes</button>
-            <button type="button" onClick={handleDeletePlant}>Delete Plant</button>
+            <button className="delete" onClick={handleDeletePlant}>Delete Plant</button>
         </form>
     </div>
   );

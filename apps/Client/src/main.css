@@ -43,6 +43,15 @@ button:hover {
   background-color: var(--dark-background-color);
 }
 
+button.delete {
+  background-color: var(--error-color);
+}
+
+button.delete:hover {
+  background-color: color-mix(in srgb, var(--error-color), black 50%);
+  color: var(--dark-background-color);
+}
+
 input, textarea {
   border: 2px solid var(--dark-background-color);
   cursor: text;

@@ -7,6 +7,7 @@
     --accent-color-light: #F5C9B0;
     --text-color: #222;
     --light-text-color: #555;
+    --error-color: #ff3333;
 }
 
 /* Dark Mode */
@@ -19,4 +20,5 @@
     --accent-color-light: #291305;
     --text-color: #EEE;
     --light-text-color: #CCC;
+    --error-color: #ff4444;
 }
