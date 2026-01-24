@@ -4,6 +4,8 @@ using RePlanted.Server;
 using DotNetEnv;
 using Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,11 @@ Env.Load();
 // Configuration builder will automatically load Environment Variables
 // We just need to make sure DotNetEnv loads them into the process first (which Env.Load() does)
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 builder.Services.AddSignalR();
 
@@ -77,10 +84,21 @@ app.MapPut("/api/plants/{id}", async (int id, Plant updatedPlant, AppDbContext d
     
     await db.SaveChangesAsync();
 
-    // Powiadom wszystkich klientów o zmianie
     await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
     return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}" });
+});
+
+app.MapDelete("/api/plants/{id}", async (int id, AppDbContext db, IHubContext<PlantHub> hubContext) => {
+    var plant = await db.Plants.FindAsync(id);
+    if (plant is null) return Results.NotFound();
+
+    db.Plants.Remove(plant);
+    await db.SaveChangesAsync();
+
+    await hubContext.Clients.All.SendAsync("PlantsUpdated");
+
+    return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}" });
 });
 
 app.Run();

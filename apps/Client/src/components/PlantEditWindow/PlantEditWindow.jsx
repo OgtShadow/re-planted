@@ -10,7 +10,6 @@ function PlantEditWindow({ plant, onClose }) {
     try {
           const result = await connectionManager.put(`/api/plants/${plant.id}`, editedPlant);
           const resultMessage = JSON.stringify(result);
-          console.log("Plant updated successfully:", resultMessage);
           if (onClose) {
             onClose(resultMessage);
           }
@@ -21,6 +20,22 @@ function PlantEditWindow({ plant, onClose }) {
             onClose(errorMessage);
            }
         }
+  }
+
+  const handleDeletePlant = async () => {
+    try {
+        const result = await connectionManager.delete(`/api/plants/${plant.id}`);
+        const resultMessage = JSON.stringify(result);
+        if (onClose) {
+            onClose(resultMessage);
+        }
+    } catch (error) {
+        const errorMessage = "Error: " + error.message;
+        console.error("Failed to delete plant:", error);
+        if (onClose) {
+            onClose(errorMessage);
+        }
+    }
   }
 
   return (
@@ -44,6 +59,7 @@ function PlantEditWindow({ plant, onClose }) {
                 />
             </label>
             <button type="submit">Save Changes</button>
+            <button type="button" onClick={handleDeletePlant}>Delete Plant</button>
         </form>
     </div>
   );

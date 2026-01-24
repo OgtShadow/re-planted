@@ -50,7 +50,7 @@ function PlantList() {
 return (
     <div className="plant-list">
         {plants.map((plant) => (
-            <PlantProfile plant={plant} />
+            <PlantProfile key={plant.id} plant={plant} />
         ))}
     </div>
   );
