@@ -8,6 +8,7 @@ import PlantList from './components/PlantList/PlantList'
 import StatusDot from './components/StatusDot/StatusDot'
 import PlantDetails from './components/PlantDetails/PlantDetails'
 import Header from './components/Header/Header'
+import PlantAdd from './components/PlantAdd/PlantAdd'
 
 function App() {
   const [test, setTest] = useState('')
@@ -23,12 +24,16 @@ function App() {
         <Header test={test} />
         <Routes>
           <Route path="/" element={
-            <>
-              <PlantCreator />
               <PlantList />
-            </>
           } />
-          <Route path="/plant/:id" element={<PlantDetails />} />
+
+          <Route path="/plant/:id" element={
+            <PlantDetails/> 
+          } />
+
+          <Route path="/plant/add" element={
+            <PlantAdd/> 
+          } />
         </Routes>
       
     </BrowserRouter>

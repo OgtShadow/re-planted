@@ -6,7 +6,10 @@ import Nav from '../Nav/Nav';
 export const Header = ({ test }) => {
     return (
         <header className="header">
-        <h1>RE-PLANTED {test === "Communication with Client works!" ? <StatusDot status="green" size="medium" /> : <StatusDot status="red" size="medium" />}</h1>
+            <div className="header-left">
+                <a className='logo' href="/">RE-PLANTED</a> 
+                {test === "Communication with Client works!" ? <StatusDot status="green" size="medium" /> : <StatusDot status="red" size="medium" />}
+            </div>
             <Nav/>
         </header>
     );
