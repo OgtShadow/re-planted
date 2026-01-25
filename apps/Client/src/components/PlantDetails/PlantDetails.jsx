@@ -32,7 +32,8 @@ function PlantDetails() {
         if (response) {
             try {
                  const parsed = JSON.parse(response);
-                 if (parsed && typeof parsed === 'object' && parsed.Response && parsed.Response.includes("Usunięto")) {
+                 const responseText = parsed.Response || parsed.response;
+                 if (parsed && typeof parsed === 'object' && responseText && responseText.includes("Usunięto")) {
                      navigate("/");
                      return;
                  }
