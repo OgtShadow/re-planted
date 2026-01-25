@@ -82,12 +82,24 @@ app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db, IHubContext<P
 });
 
 app.MapPut("/api/plants/{id}", async (int id, Plant updatedPlant, AppDbContext db, IHubContext<PlantHub> hubContext) => {
-    var plant = await db.Plants.FindAsync(id);
+    var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
     if (plant is null) return Results.NotFound();
 
     plant.Name = updatedPlant.Name;
     plant.Species = updatedPlant.Species;
     
+    if (plant.Parameters != null && updatedPlant.Parameters != null)
+    {
+        plant.Parameters.Temperature = updatedPlant.Parameters.Temperature;
+        plant.Parameters.Humidity = updatedPlant.Parameters.Humidity;
+        plant.Parameters.WateringIntervalDays = updatedPlant.Parameters.WateringIntervalDays;
+        plant.Parameters.LightHoursPerDay = updatedPlant.Parameters.LightHoursPerDay;
+    }
+    else if (updatedPlant.Parameters != null)
+    {
+        plant.Parameters = updatedPlant.Parameters;
+    }
+
     await db.SaveChangesAsync();
 
     await hubContext.Clients.All.SendAsync("PlantsUpdated");
