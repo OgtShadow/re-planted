@@ -5,7 +5,7 @@ function valuetext(value) {
   return `${value}`;
 }
 
-function RangeSlider({ text, value, onChange, min, max }) {
+function Slider2({ text, value, onChange, min, max }) {
 
   const handleChange = (event, newValue) => {
     if (onChange) {
@@ -29,4 +29,4 @@ function RangeSlider({ text, value, onChange, min, max }) {
   );
 }
 
-export default RangeSlider;
+export default Slider2;
