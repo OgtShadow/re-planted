@@ -16,7 +16,7 @@ tests {
   });
   
   test("plants response is JSON", function () {
-    const type = (res.getHeader && (res.getHeader('content-type') || res.getHeader('Content-Type'))) || "";
+    const type = res.getHeader('content-type') || "";
     expect(type.toLowerCase()).to.include("application/json");
   });
 }
