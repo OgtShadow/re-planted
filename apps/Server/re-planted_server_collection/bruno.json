@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Re-Planted_Server_Collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Server conection test
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:5000
+  body: none
+  auth: none
+}
+
+tests {
+  test("Server is working", function () {
+    const data = res.getBody() || "";
+    expect(data).to.include("Server in fact działa!");
+  });
+}

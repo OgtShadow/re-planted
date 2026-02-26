@@ -1,0 +1,26 @@
+meta {
+  name: Post message req
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:5000/api/post
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"Message":"Test z Bruno"}
+}
+
+tests {
+  test("valid message response", function () {
+    const data = res.getBody() || "";
+    expect(data.response).to.equal("Otrzymano wiadomość: Test z Bruno");
+  });
+}

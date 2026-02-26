@@ -1,0 +1,22 @@
+meta {
+  name: Get plants req
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:5000/api/plants
+  body: none
+  auth: none
+}
+
+tests {
+  test("geting plants res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("plants response is JSON", function () {
+    const type = (res.getHeader && (res.getHeader('content-type') || res.getHeader('Content-Type'))) || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+}
