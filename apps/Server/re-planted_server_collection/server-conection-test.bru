@@ -11,7 +11,7 @@ get {
 }
 
 tests {
-  test("Server is working", function () {
+  test("Server works", function () {
     const data = res.getBody() || "";
     expect(data).to.include("Server in fact działa!");
   });
