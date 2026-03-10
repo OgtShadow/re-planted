@@ -1,5 +1,6 @@
 import { useState } from "react";
 import connectionManager from "../../connectionManager";
+import "./PlantAdd.css";
 
 function PlantAdd() {
   const [name, setName] = useState("");
@@ -19,23 +20,32 @@ function PlantAdd() {
     }
   };
 
-  return (
-    <div>
+  return ( 
+<div className="plant-details-container">
+  <h1> Create Plant</h1>
+  <div className="plant-info-grid">
+    <div className="info-item">
       <input
         type="text"
         placeholder="Nazwa rośliny"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+    </div>
+    <div className="info-item">
       <input
         type="text"
         placeholder="Gatunek rośliny"
         value={species}
         onChange={(e) => setSpecies(e.target.value)}
       />
-      <button onClick={handleCreatePlant}>Dodaj roślinę</button>
-      <p>{response}</p>
     </div>
+  </div>
+  <button className="add-button" onClick={handleCreatePlant}>
+    Dodaj roślinę
+  </button>
+  <p>{response}</p>
+</div>      
   );
 }
 
