@@ -1,6 +1,4 @@
-using RePlanted.Server.Models;
-
-namespace RePlanted.Server;
+namespace RePlanted.Server.Models;
 
 public class Plant
 {
@@ -22,23 +20,23 @@ public class Plant
         LastWatered = DateTime.UtcNow;
     }
 
-    public Plant(string Name, string Species)
+    public Plant(string name, string species)
     {
-        this.Name = Name;
-        this.Species = Species;
+        Name = name;
+        Species = species;
         PlantedDate = DateTime.UtcNow;
         HealthStatus = "Healthy";
-        Parameters = new Parameters(Species);
+        Parameters = new Parameters(species);
         LastWatered = DateTime.UtcNow;
     }
 
-    public Plant(string Name, Parameters Parameters)
+    public Plant(string name, Parameters parameters)
     {
-        this.Name = Name;
+        Name = name;
         Species = "custom species";
-        this.PlantedDate = DateTime.UtcNow;
+        PlantedDate = DateTime.UtcNow;
         HealthStatus = "Healthy";
-        this.Parameters = Parameters;
+        Parameters = parameters;
         LastWatered = DateTime.UtcNow;
     }
 
@@ -49,6 +47,6 @@ public class Plant
 
     public bool NeedsWater()
     {
-        return (DateTime.Now - LastWatered).TotalDays >= Parameters.WateringIntervalDays;
+        return (DateTime.UtcNow - LastWatered).TotalDays >= Parameters.WateringIntervalDays;
     }
-} 
+}

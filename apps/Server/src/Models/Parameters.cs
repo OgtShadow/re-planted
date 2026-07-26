@@ -4,7 +4,7 @@ public record Range(int Min, int Max);
 
 public class Parameters
 {
-    public int Id { get; set; } // Primary Key
+    public int Id { get; set; }
     public int WateringIntervalDays { get; set; }
     public Range Humidity { get; set; }
     public int LightHoursPerDay { get; set; }
@@ -20,18 +20,17 @@ public class Parameters
 
     public Parameters(string species)
     {
-        // Placeholder: In a real application, parameters would be fetched based on species
         WateringIntervalDays = 3;
         Humidity = new Range(30, 70);
         LightHoursPerDay = 6;
         Temperature = new Range(15, 25);
     }
 
-    public Parameters(int WateringIntervalDays, Range Humidity, int LightHoursPerDay, Range Temperature)
+    public Parameters(int wateringIntervalDays, Range humidity, int lightHoursPerDay, Range temperature)
     {
-        this.WateringIntervalDays = WateringIntervalDays;
-        this.Humidity = Humidity;
-        this.LightHoursPerDay = LightHoursPerDay;
-        this.Temperature = Temperature;
+        WateringIntervalDays = wateringIntervalDays;
+        Humidity = humidity;
+        LightHoursPerDay = lightHoursPerDay;
+        Temperature = temperature;
     }
 }

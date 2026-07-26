@@ -1,4 +1,3 @@
-using RePlanted.Server;
 using DotNetEnv;
 using Server.Hubs;
 using RePlanted.Server.Extensions;
@@ -16,6 +15,7 @@ builder.Services.AddServerServices(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseServerSwagger();
 app.UseCors(ServiceCollectionExtensions.AllowClientPolicy);
 app.MapHub<PlantHub>("/plantHub");
 app.MapServerEndpoints();

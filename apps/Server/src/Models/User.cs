@@ -8,6 +8,5 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation property
-    public List<RePlanted.Server.Plant> Plants { get; set; } = new List<RePlanted.Server.Plant>();
+    public List<Plant> Plants { get; set; } = new();
 }

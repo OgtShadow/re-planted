@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using RePlanted.Server;
+using RePlanted.Server.Contracts.Plants;
 using RePlanted.Server.Data;
+using RePlanted.Server.Models;
 using Server.Hubs;
 
 namespace RePlanted.Server.Endpoints;
@@ -10,19 +11,27 @@ public static class PlantEndpoints
 {
     public static IEndpointRouteBuilder MapPlantEndpoints(this IEndpointRouteBuilder app)
     {
-        var plants = app.MapGroup("/api/plants");
+        var plants = app.MapGroup("/api/plants").WithTags("Plants");
 
         plants.MapGet("", async (AppDbContext db) =>
-            await db.Plants.Include(p => p.Parameters).ToListAsync());
+            await db.Plants.Include(p => p.Parameters).ToListAsync())
+            .WithSummary("Get all plants")
+            .WithDescription("Returns all plants with their parameter settings.")
+            .Produces<List<Plant>>(StatusCodes.Status200OK);
 
         plants.MapGet("/{id:int}", async (int id, AppDbContext db) =>
         {
             var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
             return plant is not null ? Results.Ok(plant) : Results.NotFound();
-        });
+        })
+            .WithSummary("Get plant by ID")
+            .WithDescription("Returns a single plant when it exists.")
+            .Produces<Plant>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapPost("", async (Plant newPlant, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPost("", async (UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
+            var newPlant = MapToPlant(request);
             NormalizePlantDates(newPlant);
             db.Plants.Add(newPlant);
             await db.SaveChangesAsync();
@@ -31,13 +40,18 @@ public static class PlantEndpoints
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
             return Results.Ok(new { Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}" });
-        });
+        })
+            .WithSummary("Create plant")
+            .WithDescription("Creates a new plant and broadcasts PlantsUpdated to SignalR clients.")
+            .Accepts<UpsertPlantRequest>("application/json")
+            .Produces(StatusCodes.Status200OK);
 
-        plants.MapPut("/{id:int}", async (int id, Plant updatedPlant, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPut("/{id:int}", async (int id, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
             var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
             if (plant is null) return Results.NotFound();
 
+            var updatedPlant = MapToPlant(request);
             NormalizePlantDates(updatedPlant);
 
             plant.Name = updatedPlant.Name;
@@ -61,7 +75,12 @@ public static class PlantEndpoints
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
             return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}" });
-        });
+        })
+            .WithSummary("Update plant")
+            .WithDescription("Updates existing plant data and broadcasts PlantsUpdated.")
+            .Accepts<UpsertPlantRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
         plants.MapDelete("/{id:int}", async (int id, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
@@ -73,9 +92,26 @@ public static class PlantEndpoints
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
             return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}" });
-        });
+        })
+            .WithSummary("Delete plant")
+            .WithDescription("Deletes a plant and broadcasts PlantsUpdated.")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
         return app;
+    }
+
+    private static Plant MapToPlant(UpsertPlantRequest request)
+    {
+        return new Plant
+        {
+            Name = request.Name,
+            Species = request.Species,
+            PlantedDate = request.PlantedDate,
+            HealthStatus = request.HealthStatus,
+            LastWatered = request.LastWatered,
+            Parameters = request.Parameters
+        };
     }
 
     private static void NormalizePlantDates(Plant plant)
