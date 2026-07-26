@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialPostgres : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,14 +16,14 @@ namespace Server.Migrations
                 name: "Parameters",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "NUMBER(10)", nullable: false)
-                        .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    WateringIntervalDays = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    Humidity_Min = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    Humidity_Max = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    LightHoursPerDay = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    Temperature_Min = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    Temperature_Max = table.Column<int>(type: "NUMBER(10)", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WateringIntervalDays = table.Column<int>(type: "integer", nullable: false),
+                    Humidity_Min = table.Column<int>(type: "integer", nullable: false),
+                    Humidity_Max = table.Column<int>(type: "integer", nullable: false),
+                    LightHoursPerDay = table.Column<int>(type: "integer", nullable: false),
+                    Temperature_Min = table.Column<int>(type: "integer", nullable: false),
+                    Temperature_Max = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -33,12 +34,12 @@ namespace Server.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "NUMBER(10)", nullable: false)
-                        .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    Username = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    Email = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Username = table.Column<string>(type: "text", nullable: false),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -49,15 +50,15 @@ namespace Server.Migrations
                 name: "Plants",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "NUMBER(10)", nullable: false)
-                        .Annotation("Oracle:Identity", "START WITH 1 INCREMENT BY 1"),
-                    Name = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    Species = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    PlantedDate = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    HealthStatus = table.Column<string>(type: "NVARCHAR2(2000)", nullable: false),
-                    LastWatered = table.Column<DateTime>(type: "TIMESTAMP(7)", nullable: false),
-                    ParametersId = table.Column<int>(type: "NUMBER(10)", nullable: false),
-                    UserId = table.Column<int>(type: "NUMBER(10)", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Species = table.Column<string>(type: "text", nullable: false),
+                    PlantedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    HealthStatus = table.Column<string>(type: "text", nullable: false),
+                    LastWatered = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ParametersId = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {

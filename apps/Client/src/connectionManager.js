@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:5000";
 
 class ConnectionManager {
   constructor(baseUrl = API_BASE_URL) {
@@ -87,3 +88,4 @@ class ConnectionManager {
 
 export const connectionManager = new ConnectionManager();
 export default connectionManager;
+export { API_BASE_URL };

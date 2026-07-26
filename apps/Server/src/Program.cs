@@ -9,11 +9,12 @@ using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load env vars from .env
-Env.Load();
 
-// Configuration builder will automatically load Environment Variables
-// We just need to make sure DotNetEnv loads them into the process first (which Env.Load() does)
+if (File.Exists(".env"))
+{
+    Env.Load();
+}
+
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<JsonOptions>(options =>
@@ -37,7 +38,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpClient<RePlanted.Server.Services.ConnectionManager>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -71,6 +72,7 @@ app.MapGet("/api/plants/{id}", async (int id, AppDbContext db) =>
 });
 
 app.MapPost("/api/plants", async (Plant newPlant, AppDbContext db, IHubContext<PlantHub> hubContext) => {
+    NormalizePlantDates(newPlant);
     db.Plants.Add(newPlant);
     await db.SaveChangesAsync();
     Console.WriteLine($"Dodano roślinę: {newPlant.Name}, {newPlant.Species}");
@@ -85,8 +87,12 @@ app.MapPut("/api/plants/{id}", async (int id, Plant updatedPlant, AppDbContext d
     var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
     if (plant is null) return Results.NotFound();
 
+    NormalizePlantDates(updatedPlant);
+
     plant.Name = updatedPlant.Name;
     plant.Species = updatedPlant.Species;
+    plant.PlantedDate = updatedPlant.PlantedDate;
+    plant.LastWatered = updatedPlant.LastWatered;
     
     if (plant.Parameters != null && updatedPlant.Parameters != null)
     {
@@ -118,6 +124,28 @@ app.MapDelete("/api/plants/{id}", async (int id, AppDbContext db, IHubContext<Pl
 
     return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}" });
 });
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
+
+static void NormalizePlantDates(Plant plant)
+{
+    plant.PlantedDate = EnsureUtc(plant.PlantedDate);
+    plant.LastWatered = EnsureUtc(plant.LastWatered);
+}
+
+static DateTime EnsureUtc(DateTime value)
+{
+    return value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
+}
 
 app.Run();
 

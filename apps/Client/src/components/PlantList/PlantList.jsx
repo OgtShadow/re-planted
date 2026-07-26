@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PlantProfile from "../PlantProfile/PlantProfile";
-import connectionManager from "../../connectionManager";
+import connectionManager, { API_BASE_URL } from "../../connectionManager";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import './PlantList.css'
 
@@ -25,7 +25,7 @@ function PlantList() {
 
       // 2. Skonfiguruj SignalR
       const connection = new HubConnectionBuilder()
-          .withUrl("http://localhost:5000/plantHub")
+          .withUrl(`${API_BASE_URL}/plantHub`)
           .withAutomaticReconnect()
           .build();
 
