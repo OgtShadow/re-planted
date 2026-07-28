@@ -32,3 +32,4 @@ appsettings.*.json
 *.snupkg
 .nuget/
 .env
+re-planted_server_collection/environments/*
