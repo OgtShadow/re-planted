@@ -103,14 +103,16 @@ public static class PlantEndpoints
 
     private static Plant MapToPlant(UpsertPlantRequest request)
     {
+        var species = string.IsNullOrWhiteSpace(request.Species) ? "Unknown species" : request.Species.Trim();
+
         return new Plant
         {
-            Name = request.Name,
-            Species = request.Species,
-            PlantedDate = request.PlantedDate,
-            HealthStatus = request.HealthStatus,
-            LastWatered = request.LastWatered,
-            Parameters = request.Parameters
+            Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed plant" : request.Name.Trim(),
+            Species = species,
+            PlantedDate = request.PlantedDate ?? DateTime.UtcNow,
+            HealthStatus = string.IsNullOrWhiteSpace(request.HealthStatus) ? "Healthy" : request.HealthStatus.Trim(),
+            LastWatered = request.LastWatered ?? DateTime.UtcNow,
+            Parameters = request.Parameters ?? new Parameters(species)
         };
     }
 
