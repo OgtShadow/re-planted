@@ -1,0 +1,37 @@
+meta {
+  name: users get
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:{{server}}/api/users
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      bru.runner.setNextRequest('user put');
+  }
+}
+
+tests {
+  test("geting users res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("users response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+  test("store last user id", function () {
+    const users = res.getBody() || [];
+    expect(users).to.be.an("array");
+    expect(users.length).to.be.greaterThan(0);
+    const lastUser = users[users.length - 1];
+    expect(lastUser).to.have.property("id");
+    bru.setVar("user", lastUser.id);
+  });
+}

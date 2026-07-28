@@ -1,0 +1,33 @@
+meta {
+  name: users delete
+  type: http
+  seq: 1
+}
+
+delete {
+  url: http://localhost:{{server}}/api/users/{{user}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("geting users res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("users response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+   test("valid delete response", function () {
+      const data = res.getBody() || {};
+      expect(data.response).to.include("Usunięto użytkownika:");
+      expect(data.id).to.equal(Number(bru.getVar("user")));
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
