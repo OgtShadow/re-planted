@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import connectionManager, { setActiveUserId, userLoginEndpoint } from '../../connectionManager';
+import connectionManager, { setActiveUserId, setAuthToken, userLoginEndpoint } from '../../connectionManager';
 import './Login.css';
 
 export default function Login({ onLoginSuccess }) {
@@ -25,6 +25,7 @@ export default function Login({ onLoginSuccess }) {
       });
 
       setActiveUserId(user.id);
+      setAuthToken(user.token);
       setError('');
 
       if (onLoginSuccess) {

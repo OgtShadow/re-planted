@@ -1,0 +1,60 @@
+meta {
+  name: login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "login": "{{login}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("user", data.id);
+    }
+    if (data.token) {
+      bru.setVar("token", data.token);
+    }
+
+    const nextRequest = bru.getVar('after_login_next');
+    if (nextRequest) {
+      bru.setVar('after_login_next', '');
+      bru.runner.setNextRequest(nextRequest);
+    }
+  }
+}
+
+tests {
+  test("login res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("login response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+  test("store token", function () {
+    const login = res.getBody() || {};
+    expect(login).to.have.property("token");
+    expect(login).to.have.property("id");
+    bru.setVar("token", login.token);
+    bru.setVar("user", login.id);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

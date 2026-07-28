@@ -10,6 +10,10 @@ delete {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{token}}
+}
+
 tests {
   test("geting plants res 200", function () {
     expect(res.getStatus()).to.equal(200);

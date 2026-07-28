@@ -1,9 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
 using Server.Hubs;
 using RePlanted.Server.Contracts.Users;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace RePlanted.Server.Endpoints;
 
@@ -13,7 +18,7 @@ public static class UserEndpoints
     {
         var users = app.MapGroup("/api/users").WithTags("Users");
 
-        users.MapPost("/login", async (LoginUserRequest request, AppDbContext db) =>
+        users.MapPost("/login", async (LoginUserRequest request, AppDbContext db, IConfiguration configuration) =>
         {
             var login = request.Login?.Trim();
             if (string.IsNullOrWhiteSpace(login))
@@ -37,7 +42,8 @@ public static class UserEndpoints
             {
                 Id = user.Id,
                 Username = user.Username,
-                Email = user.Email
+                Email = user.Email,
+                Token = GenerateJwtToken(user, configuration)
             });
         })
             .WithSummary("Login user")
@@ -47,14 +53,27 @@ public static class UserEndpoints
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized);
 
-        users.MapGet("", async (AppDbContext db) =>
-            await db.Users.ToListAsync())
+        users.MapGet("", [Authorize] async (ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!TryGetUserId(principal, out var callerUserId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == callerUserId);
+            return user is not null ? Results.Ok(new List<User> { user }) : Results.NotFound();
+        })
             .WithSummary("Get all users")
-            .WithDescription("Returns all users.")
+            .WithDescription("Returns currently authenticated user.")
             .Produces<List<User>>(StatusCodes.Status200OK);
 
-        users.MapGet("/{id:int}", async (int id, AppDbContext db) =>
+        users.MapGet("/{id:int}", [Authorize] async (int id, ClaimsPrincipal principal, AppDbContext db) =>
         {
+            if (!TryGetUserId(principal, out var callerUserId) || callerUserId != id)
+            {
+                return Results.Forbid();
+            }
+
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id);
             return user is not null ? Results.Ok(user) : Results.NotFound();
         })
@@ -102,8 +121,13 @@ public static class UserEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest);
 
-        users.MapPut("/{id:int}", async (int id, User updatedUser, AppDbContext db, IHubContext<UserHub> hubContext) =>
+        users.MapPut("/{id:int}", [Authorize] async (int id, User updatedUser, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
+            if (!TryGetUserId(principal, out var callerUserId) || callerUserId != id)
+            {
+                return Results.Forbid();
+            }
+
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null) return Results.NotFound();
             user.Username = updatedUser.Username;
@@ -119,8 +143,13 @@ public static class UserEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        users.MapDelete("/{id:int}", async (int id, AppDbContext db, IHubContext<UserHub> hubContext) =>
+        users.MapDelete("/{id:int}", [Authorize] async (int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
+            if (!TryGetUserId(principal, out var callerUserId) || callerUserId != id)
+            {
+                return Results.Forbid();
+            }
+
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null) return Results.NotFound();
             db.Users.Remove(user);
@@ -135,5 +164,43 @@ public static class UserEndpoints
             .Produces(StatusCodes.Status404NotFound);
 
         return app;
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal principal, out int userId)
+    {
+        userId = 0;
+        var raw = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        return int.TryParse(raw, out userId);
+    }
+
+    private static string GenerateJwtToken(User user, IConfiguration configuration)
+    {
+        var key = configuration["Jwt:Key"] ?? throw new InvalidOperationException("Missing Jwt:Key configuration");
+        var issuer = configuration["Jwt:Issuer"] ?? "re-planted-server";
+        var audience = configuration["Jwt:Audience"] ?? "re-planted-client";
+        var expiresMinutes = int.TryParse(configuration["Jwt:ExpiresMinutes"], out var parsedMinutes)
+            ? parsedMinutes
+            : 120;
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, user.Username),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+        };
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expiresMinutes),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

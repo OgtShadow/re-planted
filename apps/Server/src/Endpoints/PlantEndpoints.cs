@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Contracts.Plants;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
 using Server.Hubs;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace RePlanted.Server.Endpoints;
 
@@ -11,19 +14,33 @@ public static class PlantEndpoints
 {
     public static IEndpointRouteBuilder MapPlantEndpoints(this IEndpointRouteBuilder app)
     {
-        var plants = app.MapGroup("/api/users/{userId:int}/plants").WithTags("Plants");
+        var plants = app.MapGroup("/api/users/{userId:int}/plants")
+            .WithTags("Plants")
+            .RequireAuthorization();
 
-        plants.MapGet("", async (int userId, AppDbContext db) =>
-            await db.Plants
+        plants.MapGet("", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            return Results.Ok(await db.Plants
                 .Include(p => p.Parameters)
                 .Where(p => p.UserId == userId)
-                .ToListAsync())
+                .ToListAsync());
+        })
             .WithSummary("Get all plants for user")
             .WithDescription("Returns all plants assigned to the specified user.")
             .Produces<List<Plant>>(StatusCodes.Status200OK);
 
-        plants.MapGet("/{id:int}", async (int userId, int id, AppDbContext db) =>
+        plants.MapGet("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db) =>
         {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
             var plant = await db.Plants
                 .Include(p => p.Parameters)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
@@ -34,8 +51,13 @@ public static class PlantEndpoints
             .Produces<Plant>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapPost("", async (int userId, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPost("", async (int userId, UpsertPlantRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
             var userExists = await db.Users.AnyAsync(u => u.Id == userId);
             if (!userExists)
             {
@@ -64,8 +86,13 @@ public static class PlantEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapPut("/{id:int}", async (int userId, int id, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPut("/{id:int}", async (int userId, int id, UpsertPlantRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
             var plant = await db.Plants
                 .Include(p => p.Parameters)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
@@ -102,8 +129,13 @@ public static class PlantEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapDelete("/{id:int}", async (int userId, int id, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
             var plant = await db.Plants.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
             if (plant is null) return Results.NotFound();
 
@@ -119,6 +151,14 @@ public static class PlantEndpoints
             .Produces(StatusCodes.Status404NotFound);
 
         return app;
+    }
+
+    private static bool IsRequestUserAuthorized(ClaimsPrincipal principal, int routeUserId)
+    {
+        var claimValue = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        return int.TryParse(claimValue, out var claimUserId) && claimUserId == routeUserId;
     }
 
     private static Plant MapToPlant(UpsertPlantRequest request)

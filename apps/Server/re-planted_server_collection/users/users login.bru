@@ -1,0 +1,40 @@
+meta {
+  name: users login
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {"login":"{{login}}", "password":"{{password}}"}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      const data = res.getBody() || {};
+      if (data.token) {
+          bru.setVar("token", data.token);
+      }
+      if (data.id) {
+          bru.setVar("user", data.id);
+      }
+      bru.runner.setNextRequest('users get');
+  }
+}
+
+tests {
+  test("login status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("login response has token", function () {
+    const data = res.getBody() || {};
+    expect(data.token).to.be.a("string");
+    expect(data.token.length).to.be.greaterThan(20);
+  });
+}

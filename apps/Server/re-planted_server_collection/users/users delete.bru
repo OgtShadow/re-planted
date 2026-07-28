@@ -10,6 +10,10 @@ delete {
   auth: inherit
 }
 
+headers {
+  Authorization: Bearer {{token}}
+}
+
 tests {
   test("geting users res 200", function () {
     expect(res.getStatus()).to.equal(200);

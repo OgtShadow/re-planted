@@ -10,6 +10,10 @@ put {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{token}}
+}
+
 body:json {
   {"username":"test-user-edited"}
 }

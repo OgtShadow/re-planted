@@ -1,6 +1,7 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:5000";
 const ACTIVE_USER_ID_KEY = "replanted.activeUserId";
+const AUTH_TOKEN_KEY = "replanted.authToken";
 
 const getActiveUserId = () => {
   try {
@@ -34,6 +35,32 @@ const clearActiveUserId = () => {
   }
 };
 
+const getAuthToken = () => {
+  try {
+    return window.localStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const setAuthToken = (token) => {
+  if (!token) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  } catch {
+  }
+};
+
+const clearAuthToken = () => {
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+  }
+};
+
 const userPlantsEndpoint = (suffix = "", userId = getActiveUserId()) => {
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new Error("No active user session");
@@ -57,9 +84,22 @@ class ConnectionManager {
     this.baseUrl = baseUrl;
   }
 
+  getAuthHeaders(extraHeaders = {}) {
+    const token = getAuthToken();
+    const headers = { ...extraHeaders };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
   async get(endpoint) {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`);
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -72,7 +112,9 @@ class ConnectionManager {
 
   async getText(endpoint) {
     try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`);
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        headers: this.getAuthHeaders(),
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -87,9 +129,9 @@ class ConnectionManager {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'POST',
-        headers: {
+        headers: this.getAuthHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -106,9 +148,9 @@ class ConnectionManager {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'PUT',
-        headers: {
+        headers: this.getAuthHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -125,6 +167,7 @@ class ConnectionManager {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'DELETE',
+        headers: this.getAuthHeaders(),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -144,6 +187,9 @@ export {
   getActiveUserId,
   setActiveUserId,
   clearActiveUserId,
+  getAuthToken,
+  setAuthToken,
+  clearAuthToken,
   userPlantsEndpoint,
   userLoginEndpoint,
   userByIdEndpoint,

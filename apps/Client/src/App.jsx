@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import connectionManager, { clearActiveUserId, getActiveUserId, userByIdEndpoint } from './connectionManager'
+import connectionManager, { clearActiveUserId, clearAuthToken, getActiveUserId, getAuthToken, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
 import PlantDetails from './components/PlantDetails/PlantDetails'
 import Header from './components/Header/Header'
@@ -22,7 +22,9 @@ function App() {
   useEffect(() => {
     const restoreSession = async () => {
       const sessionUserId = getActiveUserId()
-      if (!sessionUserId) {
+      const token = getAuthToken()
+
+      if (!sessionUserId || !token) {
         setActiveUser(null)
         setIsSessionChecked(true)
         return
@@ -33,6 +35,7 @@ function App() {
         setActiveUser(user)
       } catch {
         clearActiveUserId()
+        clearAuthToken()
         setActiveUser(null)
       } finally {
         setIsSessionChecked(true)
@@ -48,6 +51,7 @@ function App() {
 
   const handleLogout = () => {
     clearActiveUserId()
+    clearAuthToken()
     setActiveUser(null)
   }
 
