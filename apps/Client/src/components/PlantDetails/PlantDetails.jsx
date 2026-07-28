@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import connectionManager from '../../connectionManager';
+import connectionManager, { userPlantsEndpoint } from '../../connectionManager';
 import StatusDot from '../StatusDot/StatusDot';
 import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
 import './PlantDetails.css';
@@ -15,7 +15,7 @@ function PlantDetails() {
     useEffect(() => {
         const fetchPlant = async () => {
             try {
-                const result = await connectionManager.get(`/api/plants/${id}`);
+                const result = await connectionManager.get(userPlantsEndpoint(`/${id}`));
                 setPlant(result);
             } catch (error) {
                 console.error("Failed to fetch plant details:", error);
@@ -40,7 +40,7 @@ function PlantDetails() {
             } catch (error) { 
                 console.error("Failed to parse response:", error);
             }
-            connectionManager.get(`/api/plants/${id}`).then(setPlant);
+            connectionManager.get(userPlantsEndpoint(`/${id}`)).then(setPlant);
         }
     };
 

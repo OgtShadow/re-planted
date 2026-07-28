@@ -1,5 +1,5 @@
 import { useState } from "react";
-import connectionManager from "../../connectionManager";
+import connectionManager, { userPlantsEndpoint } from "../../connectionManager";
 
 function PlantCreator() {
   const [name, setName] = useState("");
@@ -8,7 +8,7 @@ function PlantCreator() {
 
     const handleCreatePlant = async () => {
     try {
-      const result = await connectionManager.post("/api/plants", {
+      const result = await connectionManager.post(userPlantsEndpoint(), {
         name,
         species
       });

@@ -1,5 +1,56 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:5000";
+const ACTIVE_USER_ID_KEY = "replanted.activeUserId";
+
+const getActiveUserId = () => {
+  try {
+    const stored = window.localStorage.getItem(ACTIVE_USER_ID_KEY);
+    const parsed = Number(stored);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  } catch {
+  }
+
+  return null;
+};
+
+const setActiveUserId = (userId) => {
+  const parsed = Number(userId);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(ACTIVE_USER_ID_KEY, String(parsed));
+  } catch {
+  }
+};
+
+const clearActiveUserId = () => {
+  try {
+    window.localStorage.removeItem(ACTIVE_USER_ID_KEY);
+  } catch {
+  }
+};
+
+const userPlantsEndpoint = (suffix = "", userId = getActiveUserId()) => {
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error("No active user session");
+  }
+
+  return `/api/users/${userId}/plants${suffix}`;
+};
+
+const userLoginEndpoint = "/api/users/login";
+
+const userByIdEndpoint = (userId = getActiveUserId()) => {
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error("No active user session");
+  }
+
+  return `/api/users/${userId}`;
+};
 
 class ConnectionManager {
   constructor(baseUrl = API_BASE_URL) {
@@ -88,4 +139,12 @@ class ConnectionManager {
 
 export const connectionManager = new ConnectionManager();
 export default connectionManager;
-export { API_BASE_URL };
+export {
+  API_BASE_URL,
+  getActiveUserId,
+  setActiveUserId,
+  clearActiveUserId,
+  userPlantsEndpoint,
+  userLoginEndpoint,
+  userByIdEndpoint,
+};

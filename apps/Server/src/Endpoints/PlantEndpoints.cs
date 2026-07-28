@@ -11,44 +11,64 @@ public static class PlantEndpoints
 {
     public static IEndpointRouteBuilder MapPlantEndpoints(this IEndpointRouteBuilder app)
     {
-        var plants = app.MapGroup("/api/plants").WithTags("Plants");
+        var plants = app.MapGroup("/api/users/{userId:int}/plants").WithTags("Plants");
 
-        plants.MapGet("", async (AppDbContext db) =>
-            await db.Plants.Include(p => p.Parameters).ToListAsync())
-            .WithSummary("Get all plants")
-            .WithDescription("Returns all plants with their parameter settings.")
+        plants.MapGet("", async (int userId, AppDbContext db) =>
+            await db.Plants
+                .Include(p => p.Parameters)
+                .Where(p => p.UserId == userId)
+                .ToListAsync())
+            .WithSummary("Get all plants for user")
+            .WithDescription("Returns all plants assigned to the specified user.")
             .Produces<List<Plant>>(StatusCodes.Status200OK);
 
-        plants.MapGet("/{id:int}", async (int id, AppDbContext db) =>
+        plants.MapGet("/{id:int}", async (int userId, int id, AppDbContext db) =>
         {
-            var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
+            var plant = await db.Plants
+                .Include(p => p.Parameters)
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
             return plant is not null ? Results.Ok(plant) : Results.NotFound();
         })
-            .WithSummary("Get plant by ID")
-            .WithDescription("Returns a single plant when it exists.")
+            .WithSummary("Get user plant by ID")
+            .WithDescription("Returns a plant only when it belongs to the specified user.")
             .Produces<Plant>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapPost("", async (UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPost("", async (int userId, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
+            var userExists = await db.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Results.NotFound(new { Response = $"Nie znaleziono użytkownika o id={userId}" });
+            }
+
             var newPlant = MapToPlant(request);
             NormalizePlantDates(newPlant);
+            newPlant.UserId = userId;
             db.Plants.Add(newPlant);
             await db.SaveChangesAsync();
             Console.WriteLine($"Dodano roślinę: {newPlant.Name}, {newPlant.Species}");
 
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
-            return Results.Ok(new { Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}" });
+            return Results.Ok(new
+            {
+                Response = $"Dodano roślinę: {newPlant.Name}, {newPlant.Species}",
+                Id = newPlant.Id,
+                UserId = newPlant.UserId
+            });
         })
-            .WithSummary("Create plant")
-            .WithDescription("Creates a new plant and broadcasts PlantsUpdated to SignalR clients.")
+            .WithSummary("Create plant for user")
+            .WithDescription("Creates a new plant for a specific user and broadcasts PlantsUpdated to SignalR clients.")
             .Accepts<UpsertPlantRequest>("application/json")
-            .Produces(StatusCodes.Status200OK);
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapPut("/{id:int}", async (int id, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapPut("/{id:int}", async (int userId, int id, UpsertPlantRequest request, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
-            var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == id);
+            var plant = await db.Plants
+                .Include(p => p.Parameters)
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
             if (plant is null) return Results.NotFound();
 
             var updatedPlant = MapToPlant(request);
@@ -74,27 +94,27 @@ public static class PlantEndpoints
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
-            return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}" });
+            return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}", Id = plant.Id, UserId = plant.UserId });
         })
-            .WithSummary("Update plant")
-            .WithDescription("Updates existing plant data and broadcasts PlantsUpdated.")
+            .WithSummary("Update user plant")
+            .WithDescription("Updates plant data only when the plant belongs to the specified user.")
             .Accepts<UpsertPlantRequest>("application/json")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        plants.MapDelete("/{id:int}", async (int id, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        plants.MapDelete("/{id:int}", async (int userId, int id, AppDbContext db, IHubContext<PlantHub> hubContext) =>
         {
-            var plant = await db.Plants.FindAsync(id);
+            var plant = await db.Plants.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
             if (plant is null) return Results.NotFound();
 
             db.Plants.Remove(plant);
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
-            return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}", Id = plant.Id });
+            return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}", Id = plant.Id, UserId = userId });
         })
-            .WithSummary("Delete plant")
-            .WithDescription("Deletes a plant and broadcasts PlantsUpdated.")
+            .WithSummary("Delete user plant")
+            .WithDescription("Deletes a plant only when it belongs to the specified user and broadcasts PlantsUpdated.")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 

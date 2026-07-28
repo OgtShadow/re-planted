@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PlantProfile from "../PlantProfile/PlantProfile";
-import connectionManager, { API_BASE_URL } from "../../connectionManager";
+import connectionManager, { API_BASE_URL, userPlantsEndpoint } from "../../connectionManager";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import './PlantList.css'
 
@@ -10,7 +10,7 @@ function PlantList() {
     useEffect(() => {
       const fetchPlants = async () => {
         try {
-          const result = await connectionManager.get("/api/plants");
+          const result = await connectionManager.get(userPlantsEndpoint());
           // React sam sprawdzi czy dane są inne, ale warto upewnić się, że endpoint zwraca zawsze tablicę
           if (result) {
              setPlants(result);

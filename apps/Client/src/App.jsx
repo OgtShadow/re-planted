@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import connectionManager from './connectionManager'
-import PlantCreator from './components/PlantCreator/PlantCreator'
+import connectionManager, { clearActiveUserId, getActiveUserId, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
-import StatusDot from './components/StatusDot/StatusDot'
 import PlantDetails from './components/PlantDetails/PlantDetails'
 import Header from './components/Header/Header'
 import PlantAdd from './components/PlantAdd/PlantAdd'
+import Login from './components/login/Login'
 
 function App() {
   const [test, setTest] = useState('')
+  const [activeUser, setActiveUser] = useState(null)
+  const [isSessionChecked, setIsSessionChecked] = useState(false)
 
   useEffect(() => {
     connectionManager.getText('/communication-test')
@@ -18,9 +19,49 @@ function App() {
       .catch(error => console.error('Failed to fetch:', error))
   }, [])
 
+  useEffect(() => {
+    const restoreSession = async () => {
+      const sessionUserId = getActiveUserId()
+      if (!sessionUserId) {
+        setActiveUser(null)
+        setIsSessionChecked(true)
+        return
+      }
+
+      try {
+        const user = await connectionManager.get(userByIdEndpoint(sessionUserId))
+        setActiveUser(user)
+      } catch {
+        clearActiveUserId()
+        setActiveUser(null)
+      } finally {
+        setIsSessionChecked(true)
+      }
+    }
+
+    restoreSession()
+  }, [])
+
+  const handleLoginSuccess = (user) => {
+    setActiveUser(user)
+  }
+
+  const handleLogout = () => {
+    clearActiveUserId()
+    setActiveUser(null)
+  }
+
+  if (!isSessionChecked) {
+    return <div className="auth-loading">Ładowanie sesji...</div>
+  }
+
+  if (!activeUser) {
+    return <Login onLoginSuccess={handleLoginSuccess} />
+  }
+
   return (
     <BrowserRouter>
-        <Header test={test} />
+        <Header test={test} activeUser={activeUser} onLogout={handleLogout} />
         <Routes>
           <Route path="/" element={
               <PlantList />

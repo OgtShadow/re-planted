@@ -12,7 +12,7 @@ get {
 
 script:post-response {
   if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('user put');
+      bru.runner.setNextRequest('users put');
   }
 }
 

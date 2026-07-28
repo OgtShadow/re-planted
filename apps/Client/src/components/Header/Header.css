@@ -26,3 +26,33 @@
     display: flex;
     align-items: center;
 }
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-session {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--background-color);
+}
+
+.logout-button {
+    background-color: var(--dark-color);
+    border: 1px solid var(--background-color);
+    color: var(--background-color);
+    font-size: 0.8rem;
+}
+
+.logout-button:hover {
+    background-color: var(--light-color);
+    color: var(--text-color);
+}

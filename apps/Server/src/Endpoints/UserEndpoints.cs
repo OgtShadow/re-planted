@@ -13,6 +13,40 @@ public static class UserEndpoints
     {
         var users = app.MapGroup("/api/users").WithTags("Users");
 
+        users.MapPost("/login", async (LoginUserRequest request, AppDbContext db) =>
+        {
+            var login = request.Login?.Trim();
+            if (string.IsNullOrWhiteSpace(login))
+            {
+                return Results.BadRequest(new { Response = "Login jest wymagany." });
+            }
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == login || u.Username == login);
+            if (user is null)
+            {
+                return Results.Unauthorized();
+            }
+
+            var requiresPassword = !string.IsNullOrWhiteSpace(user.PasswordHash);
+            if (requiresPassword && user.PasswordHash != (request.Password ?? string.Empty))
+            {
+                return Results.Unauthorized();
+            }
+
+            return Results.Ok(new
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email
+            });
+        })
+            .WithSummary("Login user")
+            .WithDescription("Authenticates user by username/email and password.")
+            .Accepts<LoginUserRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized);
+
         users.MapGet("", async (AppDbContext db) =>
             await db.Users.ToListAsync())
             .WithSummary("Get all users")
@@ -29,8 +63,33 @@ public static class UserEndpoints
             .Produces<User>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        users.MapPost("", async (User user, AppDbContext db, IHubContext<UserHub> hubContext) =>
+        users.MapPost("", async (UpsertUserRequest request, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
+            var email = request.Email?.Trim();
+            var password = request.Password ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Results.BadRequest(new { Response = "Email jest wymagany." });
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                return Results.BadRequest(new { Response = "Hasło jest wymagane." });
+            }
+
+            var username = string.IsNullOrWhiteSpace(request.Username)
+                ? email.Split('@')[0]
+                : request.Username.Trim();
+
+            var user = new User
+            {
+                Username = username,
+                Email = email,
+                PasswordHash = password,
+                CreatedAt = request.CreatedAt ?? DateTime.UtcNow,
+            };
+
             db.Users.Add(user);
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("UsersUpdated");
@@ -39,8 +98,9 @@ public static class UserEndpoints
         })
             .WithSummary("Create user")
             .WithDescription("Creates a new user and broadcasts UsersUpdated to SignalR clients.")
-            .Accepts<User>("application/json")
-            .Produces(StatusCodes.Status200OK);
+            .Accepts<UpsertUserRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status400BadRequest);
 
         users.MapPut("/{id:int}", async (int id, User updatedUser, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
@@ -67,7 +127,7 @@ public static class UserEndpoints
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("UsersUpdated");
 
-            return Results.Ok(new { Response = $"Deleted user1: {user.Username}", Id = user.Id });
+            return Results.Ok(new { Response = $"Deleted user: {user.Username}", Id = user.Id });
         })
             .WithSummary("Delete user")
             .WithDescription("Deletes an existing user and broadcasts UsersUpdated to SignalR clients.")

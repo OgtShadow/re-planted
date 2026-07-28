@@ -5,14 +5,14 @@ meta {
 }
 
 get {
-  url: http://localhost:{{server}}/api/plants
+  url: http://localhost:{{server}}/api/users/{{user}}/plants
   body: none
   auth: none
 }
 
 script:post-response {
   if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('plant put');
+      bru.runner.setNextRequest('plants put');
   }
 }
 

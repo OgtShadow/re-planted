@@ -1,5 +1,5 @@
 import './PlantEditWindow.css';
-import connectionManager from '../../connectionManager';
+import connectionManager, { userPlantsEndpoint } from '../../connectionManager';
 import React, { useState } from 'react';
 import ParametersSeter from '../ParametersSeter/ParametersSeter';
 
@@ -9,7 +9,7 @@ function PlantEditWindow({ plant, onClose }) {
   const handleSaveChanges = async (e) => {
     e.preventDefault();
     try {
-          const result = await connectionManager.put(`/api/plants/${plant.id}`, editedPlant);
+          const result = await connectionManager.put(userPlantsEndpoint(`/${plant.id}`), editedPlant);
           const resultMessage = JSON.stringify(result);
           if (onClose) {
             onClose(resultMessage);
@@ -25,7 +25,7 @@ function PlantEditWindow({ plant, onClose }) {
 
   const handleDeletePlant = async () => {
     try {
-        const result = await connectionManager.delete(`/api/plants/${plant.id}`);
+        const result = await connectionManager.delete(userPlantsEndpoint(`/${plant.id}`));
         const resultMessage = JSON.stringify(result);
         if (onClose) {
             onClose(resultMessage);

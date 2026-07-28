@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: http://localhost:{{server}}/api/plants
+  url: http://localhost:{{server}}/api/users/{{user}}/plants
   body: json
   auth: none
 }
@@ -16,7 +16,7 @@ body:json {
 
 script:post-response {
   if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('plant get');
+      bru.runner.setNextRequest('plants get');
   }
 }
 
