@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
 using Server.Hubs;
-using Replanted.Server.Contracts.Users;
+using RePlanted.Server.Contracts.Users;
 
 namespace RePlanted.Server.Endpoints;
 
@@ -66,7 +66,8 @@ public static class UserEndpoints
             db.Users.Remove(user);
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("UsersUpdated");
-            return Results.Ok(new { Response = $"Deleted user: {user.Username}" });
+
+            return Results.Ok(new { Response = $"Deleted user1: {user.Username}", Id = user.Id });
         })
             .WithSummary("Delete user")
             .WithDescription("Deletes an existing user and broadcasts UsersUpdated to SignalR clients.")

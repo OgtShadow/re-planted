@@ -32,6 +32,6 @@ tests {
   
   test("valid response", function () {
     const data = res.getBody() || "";
-    expect(data.response).to.include("Zaktualizowano użytkowwnika");
+    expect(data.response).to.include("Updated user: test-user-edited");
   });
 }

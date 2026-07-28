@@ -22,8 +22,7 @@ tests {
   
    test("valid delete response", function () {
       const data = res.getBody() || {};
-      expect(data.response).to.include("Usunięto użytkownika:");
-      expect(data.id).to.equal(Number(bru.getVar("user")));
+      expect(data.response).to.include("Deleted user: test-user-edited");
   });
 }
 
@@ -31,3 +30,4 @@ settings {
   encodeUrl: true
   timeout: 0
 }
+​

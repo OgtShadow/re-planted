@@ -32,6 +32,6 @@ tests {
   
   test("valid response", function () {
     const data = res.getBody() || "";
-    expect(data.response).to.equal("Dodano użytkownika: test-user");
+    expect(data.response).to.equal("Added user: Test-user");
   });
 }

@@ -18,6 +18,7 @@ var app = builder.Build();
 app.UseServerSwagger();
 app.UseCors(ServiceCollectionExtensions.AllowClientPolicy);
 app.MapHub<PlantHub>("/plantHub");
+app.MapHub<UserHub>("/userHub");
 app.MapServerEndpoints();
 app.ApplyDatabaseMigrations();
 

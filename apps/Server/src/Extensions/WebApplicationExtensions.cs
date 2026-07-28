@@ -23,6 +23,7 @@ public static class WebApplicationExtensions
     {
         app.MapDiagnosticsEndpoints();
         app.MapPlantEndpoints();
+        app.MapUserEndpoints();
         return app;
     }
 
