@@ -1,0 +1,29 @@
+meta {
+  name: plants delete
+  type: http
+  seq: 3
+}
+
+delete {
+  url: http://localhost:{{server}}/api/plants/{{plant}}
+  body: json
+  auth: none
+}
+
+tests {
+  test("geting plants res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("plants response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+   test("valid delete response", function () {
+      const data = res.getBody() || {};
+      expect(data.response).to.include("Usunięto roślinę:");
+      expect(data.id).to.equal(Number(bru.getVar("plant")));
+  });
+}
+​

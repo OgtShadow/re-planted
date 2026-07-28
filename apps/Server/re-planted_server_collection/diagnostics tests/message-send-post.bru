@@ -1,0 +1,38 @@
+meta {
+  name: message-send-post
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:{{server}}/api/post
+  body: json
+  auth: inherit
+}
+
+body:json {
+   {
+      "message": "Test z Bruno"
+    }
+}
+
+tests {
+    test("status 200", function () {
+      expect(res.getStatus()).to.equal(200);
+    });
+  
+    test("response is JSON", function () {
+      const type = res.getHeader('content-type') || "";
+      expect(type.toLowerCase()).to.include("application/json");
+    });
+  
+    test("valid message response", function () {
+      const data = res.getBody() || {};
+      expect(data.response).to.equal("Otrzymano wiadomość: Test z Bruno");
+    });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

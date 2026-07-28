@@ -1,0 +1,37 @@
+meta {
+  name: plants get
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:{{server}}/api/plants
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      bru.runner.setNextRequest('plant put');
+  }
+}
+
+tests {
+  test("geting plants res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("plants response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+  test("store last plant id", function () {
+    const plants = res.getBody() || [];
+    expect(plants).to.be.an("array");
+    expect(plants.length).to.be.greaterThan(0);
+    const lastPlant = plants[plants.length - 1];
+    expect(lastPlant).to.have.property("id");
+    bru.setVar("plant", lastPlant.id);
+  });
+}

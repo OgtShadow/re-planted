@@ -1,0 +1,33 @@
+meta {
+  name: message-send-get
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:{{server}}/api/post
+  body: json
+  auth: inherit
+}
+
+body:json {
+   {
+      "message": "Test z Bruno"
+    }
+}
+
+tests {
+    test("status 200", function () {
+      expect(res.getStatus()).to.equal(200);
+    });
+  
+    test("response is txt", function () {
+      const type = res.getHeader('content-type') || "";
+      expect(type.toLowerCase()).to.include("text/plain; charset=utf-8");
+    });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

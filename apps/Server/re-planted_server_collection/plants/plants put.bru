@@ -1,0 +1,37 @@
+meta {
+  name: plants put
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:{{server}}/api/plants/{{plant}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {"name":"Mint-edited","species":"Mentha"}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      bru.runner.setNextRequest('plants delete');
+  }
+}
+
+tests {
+  test("geting plants res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("plants response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+  test("valid response", function () {
+    const data = res.getBody() || "";
+    expect(data.response).to.equal("Zaktualizowano roślinę: Mint-edited");
+  });
+}

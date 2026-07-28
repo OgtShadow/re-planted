@@ -91,7 +91,7 @@ public static class PlantEndpoints
             await db.SaveChangesAsync();
             await hubContext.Clients.All.SendAsync("PlantsUpdated");
 
-            return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}" });
+            return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}", Id = plant.Id });
         })
             .WithSummary("Delete plant")
             .WithDescription("Deletes a plant and broadcasts PlantsUpdated.")
