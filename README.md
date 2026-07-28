@@ -189,11 +189,11 @@ Frontend odczytuje API URL z `VITE_API_BASE_URL`, a jeśli go nie ma, domyślnie
 
 ### 9.2 Endpointy roślin
 
-- `GET /api/plants` - lista roślin
-- `GET /api/plants/{id}` - szczegóły rośliny
-- `POST /api/plants` - dodanie rośliny
-- `PUT /api/plants/{id}` - aktualizacja rośliny
-- `DELETE /api/plants/{id}` - usunięcie rośliny
+- `GET /api/users/{userId}/plants` - lista roślin użytkownika
+- `GET /api/users/{userId}/plants/{id}` - szczegóły rośliny użytkownika
+- `POST /api/users/{userId}/plants` - dodanie rośliny dla użytkownika
+- `PUT /api/users/{userId}/plants/{id}` - aktualizacja rośliny użytkownika
+- `DELETE /api/users/{userId}/plants/{id}` - usunięcie rośliny użytkownika
 
 ### 9.3 SignalR
 
