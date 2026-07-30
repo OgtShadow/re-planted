@@ -30,18 +30,18 @@ services:
       postgres_db:
         condition: service_healthy
 
-  app_Client:
-    build:
-      context: ./apps/ClientServer
-      dockerfile: Dockerfile
-    container_name: replanted_app_client
-    ports:
-      - "${APP_CLIENT_PORT}:8082"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-    depends_on:
-      postgres_db:
-        condition: service_healthy
+  # app_client:
+  #   build:
+  #     context: ./apps/ClientServer
+  #     dockerfile: Dockerfile
+  #   container_name: replanted_app_client
+  #   ports:
+  #     - "${APP_CLIENT_PORT}:8082"
+  #   environment:
+  #     - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+  #   depends_on:
+  #     postgres_db:
+  #       condition: service_healthy
 
   client:
     build:
@@ -59,7 +59,7 @@ services:
   sensor-mock:
     build:
       context: ./apps/ArtificialEsp
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     container_name: replanted-sensor-mock
     ports:
       - "${SENSOR_MOCK_PORT}:8085"

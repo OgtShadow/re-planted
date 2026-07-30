@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Re-Planted IoT Sensor Mock API
+  version: 1.2.0
+  description: Specyfikacja interfejsu testowego mocka kontrolera IoT dla systemu Re-Planted.
+paths:
+  /sensors:
+    get:
+      summary: Pobieranie aktualnych odczytów z czujników
+      responses:
+        '200':
+          description: Sukces - zwrócono dane telemetryczne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SensorData'
+  /command/pump:
+    post:
+      summary: Sterowanie pompą wody
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandPayload'
+      responses:
+        '200':
+          description: Wykonano polecenie
+        '400':
+          description: Nieprawidłowy format JSON
+        '409':
+          description: Blokada sprzętowa - krytycznie niski poziom wody
+  /command/light:
+    post:
+      summary: Sterowanie lampą doświetlającą
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandPayload'
+      responses:
+        '200':
+          description: Wykonano polecenie
+        '400':
+          description: Nieprawidłowy format JSON
+  /simulate/water-tank:
+    post:
+      summary: Symulacja poziomu wody w zbiorniku
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaterSimulationPayload'
+      responses:
+        '200':
+          description: Zaktualizowano symulowany poziom wody
+        '400':
+          description: Nieprawidłowy format JSON
+components:
+  schemas:
+    CommandPayload:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: boolean
+    WaterSimulationPayload:
+      type: object
+      required:
+        - levelCm
+      properties:
+        levelCm:
+          type: integer
+    SensorData:
+      type: object
+      properties:
+        deviceId:
+          type: string
+        lightIsDark:
+          type: boolean
+        soilMoistureAnalog:
+          type: integer
+        temperature:
+          type: integer
+        humidity:
+          type: integer
+        waterLevelCm:
+          type: integer
+        pumpState:
+          type: boolean
+        lampState:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time

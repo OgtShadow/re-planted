@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,30 @@ import (
 	"sync"
 	"time"
 )
+
+//go:embed swagger.yaml
+var swaggerSpec []byte
+
+const swaggerUIHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Swagger UI - Re-Planted Mock</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: '/swagger.yaml',
+        dom_id: '#swagger-ui',
+      });
+    };
+  </script>
+</body>
+</html>`
 
 type DeviceState struct {
 	sync.RWMutex
@@ -172,8 +197,19 @@ func main() {
 	http.HandleFunc("/command/light", handler.handleLight)
 	http.HandleFunc("/simulate/water-tank", handler.handleWaterSimulation)
 
+	http.HandleFunc("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-yaml")
+		w.Write(swaggerSpec)
+	})
+
+	http.HandleFunc("/swagger/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(swaggerUIHTML))
+	})
+
 	port := ":8085"
 	fmt.Printf("[INFO] Uruchamianie serwera testowego IoT na porcie %s...\n", port)
+	fmt.Printf("[INFO] Dokumentacja Swagger UI dostępna pod adresem: http://localhost%s/swagger/\n", port)
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatalf("[BŁĄD KRYTYCZNY] Serwer zatrzymany: %v", err)
 	}
