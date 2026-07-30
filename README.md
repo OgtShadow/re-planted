@@ -73,10 +73,11 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=super_tajne_haslo_123
 
 POSTGRES_PORT=5432
-APP_PORT=8080
-CLIENT_PORT=3000
+APP_PORT=8081
+CLIENT_PORT=8080
+SENSOR_MOCK_PORT=8085
 
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_BASE_URL=http://localhost:8081
 ```
 
 Uwagi:
@@ -121,10 +122,11 @@ docker compose down
 
 Domyślne adresy po starcie:
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080
-- Swagger UI: http://localhost:8080/swagger
-- OpenAPI JSON: http://localhost:8080/swagger/v1/swagger.json
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:8081
+- Swagger UI: http://localhost:8081/swagger
+- OpenAPI JSON: http://localhost:8081/swagger/v1/swagger.json
+- Sensor mock: http://localhost:8085/sensors
 - PostgreSQL: localhost:5432
 
 ## 7. Uruchamianie lokalne (bez Docker Compose)
