@@ -1,0 +1,37 @@
+meta {
+  name: Client-Server-communication
+  type: http
+  seq: 6
+}
+
+get {
+  url: http://localhost:{{client_server}}/api/client-server/server-check
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("geting res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("response is JSON", function () {
+    const type = res.getHeader('content-type') || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+  
+  test("server communication", function () {
+    const data = res.getBody().message || [];
+    expect(data).to.equal("Polaczenie z glownym serwerem dziala");
+  });
+  
+  test("client communication", function () {
+    const data = res.getBody().responseBody || [];
+    expect(data).to.equal("Communication with Client works!");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
