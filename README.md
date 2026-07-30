@@ -272,3 +272,33 @@ curl http://localhost:8080/api/plants
 
 - Notion projektu: https://www.notion.so/Re-planted-2b191ddb0b1180139f38d5eb8f4dd225
 
+## 15. Mock Sensor System
+
+system stworzony na potrzeby symulowania zwrotu z sensorów na potrzeby procesu pisania i testowania systemu Server Kilenta
+
+### 15.1 Build
+Powinien zachpodzić razem z resztą ponieważ posioada własny kontener lub bez docker:
+```
+cd apps/ArtificialEsp
+go run main.go
+```
+
+### 15.2 Endpointy
+
+- `GET /sensors` - przykładowe zamockowane odczyty z sensorów
+- `GET /swagger` - pełna dokumentacja endpointów
+- `POST /command/pump` - włączanie/wyłączanie pompy
+- `POST /command/light` - włączanie/wyłączanie światła
+- `POST /simulate/water-tank` - symulacja poziomu wody w zbiorniku
+
+### 15.3 Dodatkowe informacje
+
+Zdarzały się błędy budowania dockera gdzie miał problem z cache aplikacji i nie wczytywał nowych zmian więc watch out i jak
+```
+docker compose up -d --build --force-recreate --no-deps sensor-mock
+```
+nie przejdzie i dalej wyglądało na cache:
+```
+docker compose build --no-cache sensor-mock
+docker compose up -d --force-recreate --no-deps sensor-mock
+```
