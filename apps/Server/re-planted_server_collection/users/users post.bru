@@ -11,12 +11,13 @@ post {
 }
 
 body:json {
-  {"Username":"Test-user"}
+  {"username":"pszer", "email":"{{login}}", "password":"{{password}}"}
 }
 
 script:post-response {
   if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('users get');
+      bru.setVar('after_login_next', 'users get');
+      bru.runner.setNextRequest('login');
   }
 }
 
@@ -25,7 +26,7 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
   
-  test("userss response is JSON", function () {
+  test("users response is JSON", function () {
     const type = res.getHeader('content-type') || "";
     expect(type.toLowerCase()).to.include("application/json");
   });
