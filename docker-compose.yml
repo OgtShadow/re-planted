@@ -30,18 +30,22 @@ services:
       postgres_db:
         condition: service_healthy
 
-  # app_client:
-  #   build:
-  #     context: ./apps/ClientServer
-  #     dockerfile: Dockerfile
-  #   container_name: replanted_app_client
-  #   ports:
-  #     - "${APP_CLIENT_PORT}:8082"
-  #   environment:
-  #     - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-  #   depends_on:
-  #     postgres_db:
-  #       condition: service_healthy
+  app_client:
+    build:
+      context: ./apps/ClientServer
+      dockerfile: Dockerfile
+    container_name: replanted_app_client
+    ports:
+      - "${APP_CLIENT_PORT}:8080"
+    environment:
+      - ServerApi__BaseUrl=http://app:8080
+      - ServerApi__CommunicationPath=/communication-test
+    depends_on:
+      app:
+        condition: service_started
+      postgres_db:
+        condition: service_healthy
+    restart: unless-stopped
 
   client:
     build:

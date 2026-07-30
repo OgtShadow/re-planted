@@ -8,6 +8,7 @@ re-planted składa się z:
 
 - aplikacji frontendowej (React + Vite),
 - API backendowego (ASP.NET Core Minimal API),
+- dodatkowego serwisu `ClientServer` do logiki komunikacji klient-serwer,
 - bazy PostgreSQL,
 - komunikacji realtime przez SignalR.
 
@@ -32,6 +33,12 @@ Najważniejsze katalogi i pliki:
 │   │   ├── src/
 │   │   ├── Dockerfile
 │   │   └── nginx.conf
+│   ├── ClientServer/              # Osobny serwis ASP.NET Core do logiki klient-serwer
+│   │   ├── Controllers/
+│   │   ├── Contracts/
+│   │   ├── Services/
+│   │   ├── Dockerfile
+│   │   └── ClientServer.csproj
 │   └── Server/                    # Backend (.NET 8)
 │       ├── src/
 │       │   ├── Contracts/         # DTO i kontrakty API
@@ -76,15 +83,17 @@ POSTGRES_PORT=5432
 APP_PORT=8081
 CLIENT_PORT=8080
 SENSOR_MOCK_PORT=8085
+APP_CLIENT_PORT=8082
 
 VITE_API_BASE_URL=http://localhost:8081
 ```
 
 Uwagi:
 
-- `APP_PORT` i `CLIENT_PORT` są używane przez Docker Compose.
+- `APP_PORT`, `CLIENT_PORT`, `SENSOR_MOCK_PORT` i `APP_CLIENT_PORT` są używane przez Docker Compose.
 - `VITE_API_BASE_URL` przekazywane jest jako build-arg do obrazu frontendu Docker.
 - Backend w kontenerze nasłuchuje na porcie `8080`.
+- Serwis `ClientServer` w kontenerze nasłuchuje na porcie `8080`, a host mapuje go na `APP_CLIENT_PORT`.
 
 ## 6. Szybki start (Docker Compose)
 
@@ -114,7 +123,13 @@ docker compose ps
 docker compose logs app -f
 ```
 
-5. Zatrzymanie usług:
+5. Logi serwisu ClientServer:
+
+```
+docker compose logs app_client -f
+```
+
+6. Zatrzymanie usług:
 
 ```
 docker compose down
@@ -124,8 +139,12 @@ Domyślne adresy po starcie:
 
 - Frontend: http://localhost:8080
 - Backend API: http://localhost:8081
+- ClientServer: http://localhost:8082
 - Swagger UI: http://localhost:8081/swagger
 - OpenAPI JSON: http://localhost:8081/swagger/v1/swagger.json
+- ClientServer Swagger: http://localhost:8082/swagger
+- ClientServer health: http://localhost:8082/api/client-server/health
+- ClientServer server-check: http://localhost:8082/api/client-server/server-check
 - Sensor mock: http://localhost:8085/sensors
 - PostgreSQL: localhost:5432
 
@@ -207,6 +226,21 @@ Wysyłane zdarzenie po zmianach w roślinach:
 
 - `PlantsUpdated`
 
+### 9.4 ClientServer
+
+Serwis `ClientServer` to osobny kontener ASP.NET Core, przygotowany pod logikę pośredniczącą między frontendem a głównym backendem.
+
+Dostępne endpointy:
+
+- `GET /` - prosty status serwisu i link do dokumentacji
+- `GET /api/client-server/health` - health check serwisu
+- `GET /api/client-server/server-check` - test połączenia z głównym serwerem
+
+Serwis korzysta z konfiguracji:
+
+- `ServerApi__BaseUrl=http://app:8080`
+- `ServerApi__CommunicationPath=/communication-test`
+
 ## 10. Swagger / OpenAPI
 
 Dokumentacja API jest włączona i dostępna pod:
@@ -232,6 +266,7 @@ Endpointy mają przypisane:
 
 - Upewnij się, że frontend i backend używają zgodnego URL API (`VITE_API_BASE_URL`).
 - W Docker Compose backend działa na porcie 8080.
+- Serwis `ClientServer` jest dostępny pod `http://localhost:8082`.
 
 ### Błąd połączenia z bazą przy starcie
 
