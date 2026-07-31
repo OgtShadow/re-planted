@@ -58,6 +58,8 @@ services:
       - app
     ports:
       - "${CLIENT_PORT}:80"
+    volumes:
+      - ./apps/Client/src:/app/src
     restart: unless-stopped
 
   sensor-mock:

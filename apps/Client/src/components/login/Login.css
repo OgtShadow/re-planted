@@ -9,8 +9,8 @@
 .login-box {
   width: 100%;
   max-width: 420px;
-  background: color-mix(in srgb, var(--dark-background-color), black 12%);
-  border: 1px solid color-mix(in srgb, var(--light-primary-color), black 40%);
+  background: var(--light-color);
+  border: var(--dark-color);
   border-radius: 14px;
   padding: 24px;
   box-sizing: border-box;
@@ -37,12 +37,18 @@
   width: 100%;
   margin-top: 8px;
   font-weight: 600;
+  background-color: var(--dark-color);
+  color: var(--background-color);
+}
+
+.login-button :hover {
+  background-color: var(--light-color);
+  color: var(--accent-color);
 }
 
 .error-message {
-  background-color: color-mix(in srgb, var(--error-color), black 35%);
-  border: 1px solid var(--error-color);
-  color: var(--light-text-color);
+  background-color:var(--error-color);
+  color: var(--background-color);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 14px;
@@ -57,8 +63,9 @@
 .login-footer a {
   color: var(--accent-color-light);
   text-decoration: none;
+  background-color: var(--light-color);
 }
 
 .login-footer a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
