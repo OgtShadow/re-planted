@@ -1,0 +1,33 @@
+meta {
+  name: pump true
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:{{sensor_mock}}/device-state
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "state": true
+  }
+}
+
+tests {
+  test("geting res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("off chceck", function () {
+    const data = res.getBody() || 1;
+    expect(data.pumpOn).to.equal(true);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

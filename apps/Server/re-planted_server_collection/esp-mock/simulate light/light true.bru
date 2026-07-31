@@ -1,11 +1,11 @@
 meta {
-  name: command pump
+  name: light true
   type: http
-  seq: 2
+  seq: 4
 }
 
-post {
-  url: http://localhost:{{sensor_mock}}/command/pump
+get {
+  url: http://localhost:{{sensor_mock}}/device-state
   body: json
   auth: inherit
 }
@@ -19,6 +19,11 @@ body:json {
 tests {
   test("geting res 200", function () {
     expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("off chceck", function () {
+    const data = res.getBody() || 1;
+    expect(data.lightOn).to.equal(true);
   });
 }
 

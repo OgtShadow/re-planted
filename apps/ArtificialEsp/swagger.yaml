@@ -14,6 +14,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SensorData'
+  /device-state:
+    get:
+      summary: Pobierz aktualny stan elementów wykonawczych
+      responses:
+        '200':
+          description: Stan pompy, oświetlenia i poziomu wody
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pumpOn:
+                    type: boolean
+                  lightOn:
+                    type: boolean
+                  waterLevelCm:
+                    type: integer
   /command/pump:
     post:
       summary: Sterowanie pompą wody
