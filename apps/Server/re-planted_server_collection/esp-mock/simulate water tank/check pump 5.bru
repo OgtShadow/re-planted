@@ -1,0 +1,27 @@
+meta {
+  name: check pump 5
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:{{sensor_mock}}/sensors
+  body: json
+  auth: inherit
+}
+
+tests {
+  test("geting res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("0 lvl chceck", function () {
+    const data = res.getBody() || 1;
+    expect(data.waterLevelCm).to.equal(5);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

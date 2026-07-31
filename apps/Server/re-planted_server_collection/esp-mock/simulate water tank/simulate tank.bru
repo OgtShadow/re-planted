@@ -1,0 +1,28 @@
+meta {
+  name: simulate tank
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:{{sensor_mock}}/simulate/water-tank
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "levelCm": 5
+  }
+}
+
+tests {
+  test("geting res 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
