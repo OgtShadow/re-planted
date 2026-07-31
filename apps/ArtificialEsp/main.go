@@ -75,6 +75,28 @@ func NewDeviceHandler() *DeviceHandler {
 	}
 }
 
+func (h *DeviceHandler) handleDeviceState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
+		return
+	}
+
+	h.state.RLock()
+	defer h.state.RUnlock()
+
+	state := map[string]interface{}{
+		"pumpOn":       h.state.PumpOn,
+		"lightOn":      h.state.LightOn,
+		"waterLevelCm": h.state.WaterLevelCm,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(state); err != nil {
+		log.Printf("[BŁĄD] Kodowanie JSON: %v", err)
+	}
+}
+
 func (h *DeviceHandler) handleSensors(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
@@ -196,6 +218,7 @@ func main() {
 	http.HandleFunc("/command/pump", handler.handlePump)
 	http.HandleFunc("/command/light", handler.handleLight)
 	http.HandleFunc("/simulate/water-tank", handler.handleWaterSimulation)
+	http.HandleFunc("/device-state", handler.handleDeviceState)
 
 	http.HandleFunc("/swagger.yaml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/x-yaml")
