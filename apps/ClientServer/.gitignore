@@ -1,0 +1,35 @@
+# Build outputs (any depth)
+*/bin/
+*/obj/
+[Bb]uild/
+
+# IDE
+.vs/
+.vscode/
+*.code-workspace
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / config
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+.env
+re-planted_server_collection/environments/*
