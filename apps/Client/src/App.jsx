@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import DeviceList from './components/DeviceList/DeviceList' 
 import './App.css'
 import connectionManager, { clearActiveUserId, clearAuthToken, getActiveUserId, getAuthToken, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
@@ -69,7 +70,10 @@ function App() {
         <Header test={test} activeUser={activeUser} onLogout={handleLogout} />
         <Routes>
           <Route path="/" element={
-              <PlantList />
+              <>
+                <PlantList />
+                <DeviceList/>
+              </>
           } />
 
           <Route path="/plant/:id" element={

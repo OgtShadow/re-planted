@@ -1,0 +1,41 @@
+@import '../../colors.css';
+
+div .device-profile-card {
+    width: 200px;
+    background-color: var(--dark-color);
+    padding: 2px 20px 8px 20px;
+    border-radius: 10px;
+    margin: 20px;
+}
+
+div .device-profile-card-header {
+    align-items: baseline;
+    display: inline-flex;
+    width: 200px;
+    justify-content: space-between;
+}
+
+.device-profile-card h3 {
+    color: var(--background-color);
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.device-profile-card p {
+    color: var(--dark-background-color);
+    margin: 5px 0;
+}
+
+.device-profile-card button {
+    background-color: var(--dark-color);
+    color: var(--dark-background-color);
+    margin-top: 10px;
+    width: 100%;
+}
+
+.device-profile-card button:hover {
+    background-color: var(--light-color);
+    color: var(--light-text-color);
+}
