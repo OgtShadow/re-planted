@@ -52,18 +52,6 @@ namespace Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("GoCommand")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GoCommandPath")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GoStateField")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 

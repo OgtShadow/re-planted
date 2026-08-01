@@ -10,19 +10,13 @@ namespace RePlanted.Server.Endpoints;
 
 public static class ActuatorDeviceEndpoints
 {
-    private static readonly HashSet<string> SupportedGoCommands = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "pump",
-        "light"
-    };
-
     private static readonly HashSet<string> SupportedTargetParameters = new(StringComparer.OrdinalIgnoreCase)
     {
-        "soilMoistureAnalog",
-        "lightIsDark",
+        "soilMoisture",
+        "light",
         "temperature",
         "humidity",
-        "waterLevelCm"
+        "waterLevel"
     };
 
     public static IEndpointRouteBuilder MapActuatorDeviceEndpoints(this IEndpointRouteBuilder app)
@@ -40,33 +34,60 @@ public static class ActuatorDeviceEndpoints
 
             return Results.Ok(new
             {
-                commands = new[]
+                targetParameters = new[]
                 {
                     new
                     {
-                        key = "pump",
-                        commandPath = "/command/pump",
-                        stateField = "pumpState",
-                        defaultTargetParameter = "soilMoistureAnalog",
-                        suggestedEffectType = "increase",
-                        supportedTargetParameters = new[] { "soilMoistureAnalog", "waterLevelCm", "humidity" }
+                        key = "soilMoisture",
+                        sensorField = "soilMoistureAnalog",
+                        defaultCommand = "pump",
+                        defaultCommandPath = "/command/pump",
+                        defaultStateField = "pumpState",
+                        suggestedEffectType = "increase"
                     },
                     new
                     {
                         key = "light",
-                        commandPath = "/command/light",
-                        stateField = "lampState",
-                        defaultTargetParameter = "lightIsDark",
-                        suggestedEffectType = "set",
-                        supportedTargetParameters = new[] { "lightIsDark" }
+                        sensorField = "lightIsDark",
+                        defaultCommand = "light",
+                        defaultCommandPath = "/command/light",
+                        defaultStateField = "lampState",
+                        suggestedEffectType = "set"
+                    },
+                    new
+                    {
+                        key = "temperature",
+                        sensorField = "temperature",
+                        defaultCommand = "light",
+                        defaultCommandPath = "/command/light",
+                        defaultStateField = "lampState",
+                        suggestedEffectType = "set"
+                    },
+                    new
+                    {
+                        key = "humidity",
+                        sensorField = "humidity",
+                        defaultCommand = "pump",
+                        defaultCommandPath = "/command/pump",
+                        defaultStateField = "pumpState",
+                        suggestedEffectType = "increase"
+                    },
+                    new
+                    {
+                        key = "waterLevel",
+                        sensorField = "waterLevelCm",
+                        defaultCommand = "pump",
+                        defaultCommandPath = "/command/pump",
+                        defaultStateField = "pumpState",
+                        suggestedEffectType = "increase"
                     }
                 },
-                sensorFields = SupportedTargetParameters.ToArray(),
+                sensorFields = new[] { "soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm" },
                 supportedEffectTypes = new[] { "increase", "decrease", "set" }
             });
         })
             .WithSummary("Get Go device catalog")
-            .WithDescription("Returns supported actuator commands and sensor fields based on the Go mock service.")
+            .WithDescription("Returns supported target parameters (all sensors) and default handler mapping for Go mock service.")
             .Produces(StatusCodes.Status200OK);
 
         devices.MapGet("", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
@@ -281,74 +302,61 @@ public static class ActuatorDeviceEndpoints
 
     private static ActuatorDevice MapToDevice(UpsertActuatorDeviceRequest request)
     {
-        var goCommand = NormalizeGoCommand(request.GoCommand);
-        var defaultTargetParameter = GetDefaultTargetParameter(goCommand);
+        var targetParameter = NormalizeTargetParameter(request.TargetParameter);
+        var profile = ResolveControlProfile(targetParameter);
 
         return new ActuatorDevice
         {
             Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed device" : request.Name.Trim(),
-            GoCommand = goCommand,
-            GoCommandPath = $"/command/{goCommand}",
-            GoStateField = GetStateField(goCommand),
-            TargetParameter = NormalizeTargetParameter(request.TargetParameter, defaultTargetParameter),
-            EffectType = NormalizeEffectType(request.EffectType, goCommand),
+            TargetParameter = targetParameter,
+            EffectType = NormalizeEffectType(request.EffectType, profile.SuggestedEffectType),
             EffectStrength = request.EffectStrength is null or 0 ? 1 : request.EffectStrength.Value,
             IsEnabled = request.IsEnabled ?? true
         };
     }
 
-    private static string NormalizeGoCommand(string? value)
+    private static string NormalizeTargetParameter(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return "pump";
-        }
-
-        var normalized = value.Trim().ToLowerInvariant();
-        return SupportedGoCommands.Contains(normalized) ? normalized : "pump";
-    }
-
-    private static string NormalizeTargetParameter(string? value, string fallback)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return fallback;
+            return "soilMoisture";
         }
 
         var normalized = value.Trim();
-        return SupportedTargetParameters.Contains(normalized) ? normalized : fallback;
+        return normalized.ToLowerInvariant() switch
+        {
+            "soilmoisture" or "soilmoistureanalog" => "soilMoisture",
+            "light" or "lightisdark" => "light",
+            "temperature" => "temperature",
+            "humidity" => "humidity",
+            "waterlevel" or "waterlevelcm" => "waterLevel",
+            _ => SupportedTargetParameters.Contains(normalized) ? normalized : "soilMoisture"
+        };
     }
 
-    private static string NormalizeEffectType(string? value, string goCommand)
+    private static string NormalizeEffectType(string? value, string defaultValue)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return goCommand == "light" ? "set" : "increase";
+            return defaultValue;
         }
 
         var normalized = value.Trim().ToLowerInvariant();
         return normalized switch
         {
             "increase" or "decrease" or "set" => normalized,
-            _ => goCommand == "light" ? "set" : "increase"
+            _ => defaultValue
         };
     }
 
-    private static string GetDefaultTargetParameter(string goCommand)
+    private static ControlProfile ResolveControlProfile(string targetParameter)
     {
-        return goCommand switch
+        return targetParameter switch
         {
-            "light" => "lightIsDark",
-            _ => "soilMoistureAnalog"
+            "light" or "temperature" => new ControlProfile("light", "/command/light", "lampState", "set"),
+            _ => new ControlProfile("pump", "/command/pump", "pumpState", "increase")
         };
     }
 
-    private static string GetStateField(string goCommand)
-    {
-        return goCommand switch
-        {
-            "light" => "lampState",
-            _ => "pumpState"
-        };
-    }
+    private sealed record ControlProfile(string Command, string CommandPath, string StateField, string SuggestedEffectType);
 }

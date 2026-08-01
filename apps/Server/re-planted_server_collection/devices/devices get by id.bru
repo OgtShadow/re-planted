@@ -30,11 +30,9 @@ tests {
     expect(type.toLowerCase()).to.include("application/json");
   });
 
-  test("device mapping fields aligned with Go", function () {
+  test("device target parameter aligned with Go sensors", function () {
     const data = res.getBody() || {};
-    expect(data.goCommand).to.equal("light");
-    expect(data.goCommandPath).to.equal("/command/light");
-    expect(data.goStateField).to.equal("lampState");
+    expect(data.targetParameter).to.equal("light");
   });
 
   test("device is assigned to many plants", function () {

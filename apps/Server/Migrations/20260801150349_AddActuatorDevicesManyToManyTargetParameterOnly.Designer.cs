@@ -12,8 +12,8 @@ using RePlanted.Server.Data;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260801115949_AddActuatorDevicesManyToManyGoMapped")]
-    partial class AddActuatorDevicesManyToManyGoMapped
+    [Migration("20260801150349_AddActuatorDevicesManyToManyTargetParameterOnly")]
+    partial class AddActuatorDevicesManyToManyTargetParameterOnly
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,18 +52,6 @@ namespace Server.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<string>("EffectType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GoCommand")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GoCommandPath")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("GoStateField")
                         .IsRequired()
                         .HasColumnType("text");
 

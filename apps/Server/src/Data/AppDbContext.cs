@@ -23,9 +23,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ActuatorDevice>(entity =>
         {
             entity.Property(d => d.Name).IsRequired();
-            entity.Property(d => d.GoCommand).IsRequired();
-            entity.Property(d => d.GoCommandPath).IsRequired();
-            entity.Property(d => d.GoStateField).IsRequired();
             entity.Property(d => d.TargetParameter).IsRequired();
             entity.Property(d => d.EffectType).IsRequired();
 
