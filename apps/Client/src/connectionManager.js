@@ -69,6 +69,14 @@ const userPlantsEndpoint = (suffix = "", userId = getActiveUserId()) => {
   return `/api/users/${userId}/plants${suffix}`;
 };
 
+const userDevicesEndpoint = (suffix = "", userId = getActiveUserId()) => {
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error("No active user session");
+  }
+
+  return `/api/users/${userId}/devices${suffix}`;
+};
+
 const userLoginEndpoint = "/api/users/login";
 
 const userByIdEndpoint = (userId = getActiveUserId()) => {
@@ -191,6 +199,7 @@ export {
   setAuthToken,
   clearAuthToken,
   userPlantsEndpoint,
+  userDevicesEndpoint,
   userLoginEndpoint,
   userByIdEndpoint,
 };

@@ -7,6 +7,7 @@ import PlantDetails from './components/PlantDetails/PlantDetails'
 import Header from './components/Header/Header'
 import PlantAdd from './components/PlantAdd/PlantAdd'
 import Login from './components/login/Login'
+import DeviceAdd from './components/DeviceAdd/DeviceAdd'
 
 function App() {
   const [test, setTest] = useState('')
@@ -77,6 +78,10 @@ function App() {
 
           <Route path="/plant/add" element={
             <PlantAdd/> 
+          } />
+
+          <Route path="/device/add" element={
+            <DeviceAdd/>
           } />
         </Routes>
       

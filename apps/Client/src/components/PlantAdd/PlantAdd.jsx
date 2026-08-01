@@ -41,9 +41,14 @@ function PlantAdd() {
       />
     </div>
   </div>
-  <button className="add-button" onClick={handleCreatePlant}>
-    Dodaj roślinę
-  </button>
+  <div className="add-actions">
+    <button className="add-button" onClick={handleCreatePlant}>
+      Dodaj roślinę
+    </button>
+    <a className="secondary-button" href="/device/add">
+      Dodaj urządzenie
+    </a>
+  </div>
   <p>{response}</p>
 </div>      
   );
