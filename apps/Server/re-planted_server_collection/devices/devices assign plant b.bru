@@ -1,0 +1,43 @@
+meta {
+  name: devices assign plant b
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices/{{device}}/plants/{{plantB}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("devices get by id");
+  }
+}
+
+tests {
+  test("assign device to plant B status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("assign device to plant B response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("assign device to plant B ids", function () {
+    const data = res.getBody() || {};
+    expect(data.deviceId).to.equal(Number(bru.getVar("device")));
+    expect(data.plantId).to.equal(Number(bru.getVar("plantB")));
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

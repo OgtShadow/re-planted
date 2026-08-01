@@ -1,0 +1,53 @@
+meta {
+  name: devices plants post 1
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/{{user}}/plants
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "name": "DeviceTestPlantA",
+    "species": "Mentha"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("plantA", data.id);
+    }
+    bru.runner.setNextRequest("devices plants post 2");
+  }
+}
+
+tests {
+  test("create plant A status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("create plant A response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("create plant A has id", function () {
+    const data = res.getBody() || {};
+    expect(data).to.have.property("id");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

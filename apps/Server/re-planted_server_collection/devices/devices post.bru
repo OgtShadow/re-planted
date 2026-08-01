@@ -1,0 +1,57 @@
+meta {
+  name: devices post
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "name": "Room Light",
+    "goCommand": "light",
+    "targetParameter": "lightIsDark",
+    "effectType": "set",
+    "effectStrength": 1,
+    "isEnabled": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("device", data.id);
+    }
+    bru.runner.setNextRequest("devices assign plant a");
+  }
+}
+
+tests {
+  test("create device status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("create device response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("create device has id", function () {
+    const data = res.getBody() || {};
+    expect(data).to.have.property("id");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

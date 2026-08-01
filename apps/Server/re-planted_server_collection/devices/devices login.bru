@@ -1,0 +1,48 @@
+meta {
+  name: devices login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "login": "{{login}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("user", data.id);
+    }
+    if (data.token) {
+      bru.setVar("token", data.token);
+    }
+    bru.runner.setNextRequest("devices plants post 1");
+  }
+}
+
+tests {
+  test("devices login status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devices login response has token", function () {
+    const data = res.getBody() || {};
+    expect(data.token).to.be.a("string");
+    expect(data.token.length).to.be.greaterThan(20);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

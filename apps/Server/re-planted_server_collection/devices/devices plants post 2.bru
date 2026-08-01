@@ -1,0 +1,53 @@
+meta {
+  name: devices plants post 2
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/{{user}}/plants
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "name": "DeviceTestPlantB",
+    "species": "Ocimum basilicum"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("plantB", data.id);
+    }
+    bru.runner.setNextRequest("devices post");
+  }
+}
+
+tests {
+  test("create plant B status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("create plant B response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("create plant B has id", function () {
+    const data = res.getBody() || {};
+    expect(data).to.have.property("id");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

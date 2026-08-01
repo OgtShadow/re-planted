@@ -1,0 +1,50 @@
+meta {
+  name: devices get by id
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices/{{device}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("devices unassign plant b");
+  }
+}
+
+tests {
+  test("device get by id status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("device get by id response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("device mapping fields aligned with Go", function () {
+    const data = res.getBody() || {};
+    expect(data.goCommand).to.equal("light");
+    expect(data.goCommandPath).to.equal("/command/light");
+    expect(data.goStateField).to.equal("lampState");
+  });
+
+  test("device is assigned to many plants", function () {
+    const data = res.getBody() || {};
+    expect(data.plants).to.be.an("array");
+    expect(data.plants.length).to.be.greaterThan(1);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
