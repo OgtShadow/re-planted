@@ -1,7 +1,7 @@
 meta {
   name: users get
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
@@ -36,6 +36,8 @@ tests {
     expect(users.length).to.be.greaterThan(0);
     const lastUser = users[users.length - 1];
     expect(lastUser).to.have.property("id");
-    bru.setVar("user", lastUser.id);
+    expect(true).to.equal(lastUser.id != 1)
+    if (lastUser.id != 1) 
+      bru.setVar("usertest", lastUser.id);
   });
 }

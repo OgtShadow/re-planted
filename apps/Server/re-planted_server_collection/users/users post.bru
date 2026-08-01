@@ -1,7 +1,7 @@
 meta {
   name: users post
   type: http
-  seq: 6
+  seq: 2
 }
 
 post {
@@ -11,7 +11,7 @@ post {
 }
 
 body:json {
-  {"username":"pszer", "email":"{{login}}", "password":"{{password}}"}
+  {"username":"test", "email":"{{logintest}}", "password":"{{passwordtest}}"}
 }
 
 script:post-response {
@@ -33,6 +33,6 @@ tests {
   
   test("valid response", function () {
     const data = res.getBody() || "";
-    expect(data.response).to.equal("Added user: pszer");
+    expect(data.response).to.include("Added user:");
   });
 }

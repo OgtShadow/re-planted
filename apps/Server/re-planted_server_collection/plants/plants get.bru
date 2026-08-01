@@ -14,12 +14,6 @@ headers {
   Authorization: Bearer {{token}}
 }
 
-script:post-response {
-  if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('plants put');
-  }
-}
-
 tests {
   test("geting plants res 200", function () {
     expect(res.getStatus()).to.equal(200);
