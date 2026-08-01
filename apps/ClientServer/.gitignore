@@ -1,7 +1,5 @@
 # Build outputs (any depth)
-*/bin/
-*/obj/
-[Bb]uild/
+# Keep obj/bin content visible to Git for this project.
 
 # IDE
 .vs/
