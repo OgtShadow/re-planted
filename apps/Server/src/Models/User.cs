@@ -9,4 +9,5 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<Plant> Plants { get; set; } = new();
+    public List<ActuatorDevice> Devices { get; set; } = new();
 }

@@ -27,6 +27,7 @@ public static class PlantEndpoints
 
             return Results.Ok(await db.Plants
                 .Include(p => p.Parameters)
+                .Include(p => p.Devices)
                 .Where(p => p.UserId == userId)
                 .ToListAsync());
         })
@@ -43,6 +44,7 @@ public static class PlantEndpoints
 
             var plant = await db.Plants
                 .Include(p => p.Parameters)
+                .Include(p => p.Devices)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
             return plant is not null ? Results.Ok(plant) : Results.NotFound();
         })

@@ -5,6 +5,7 @@ public class Plant
     public int Id { get; set; }
     public int? UserId { get; set; }
     public User? User { get; set; }
+    public List<ActuatorDevice> Devices { get; set; }
     public string Name { get; set; }
     public string Species { get; set; }
     public DateTime PlantedDate { get; set; }
@@ -14,6 +15,7 @@ public class Plant
 
     public Plant()
     {
+        Devices = new List<ActuatorDevice>();
         Name = "placeholder plant name";
         Species = "placeholder species";
         PlantedDate = DateTime.UtcNow;
@@ -24,6 +26,7 @@ public class Plant
 
     public Plant(string name, string species)
     {
+        Devices = new List<ActuatorDevice>();
         Name = name;
         Species = species;
         PlantedDate = DateTime.UtcNow;
@@ -34,6 +37,7 @@ public class Plant
 
     public Plant(string name, Parameters parameters)
     {
+        Devices = new List<ActuatorDevice>();
         Name = name;
         Species = "custom species";
         PlantedDate = DateTime.UtcNow;
