@@ -87,6 +87,14 @@ const userByIdEndpoint = (userId = getActiveUserId()) => {
   return `/api/users/${userId}`;
 };
 
+const userTelemetryEndpoint = (suffix = "", userId = getActiveUserId()) => {
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new Error("No active user session");
+  }
+
+  return `/api/users/${userId}/telemetry${suffix}`;
+};
+
 class ConnectionManager {
   constructor(baseUrl = API_BASE_URL) {
     this.baseUrl = baseUrl;
@@ -202,4 +210,5 @@ export {
   userDevicesEndpoint,
   userLoginEndpoint,
   userByIdEndpoint,
+  userTelemetryEndpoint,
 };

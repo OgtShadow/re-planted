@@ -10,8 +10,8 @@
 - [✅] Zaimplementowanie endpointów CRUD dla zarządzania urządzeniami (ESP32) i regułami automatyzacji (wraz z automatyczną dokumentacją w Swaggerze).
 - [✅] Wdrożenie mechanizmów autoryzacji i uwierzytelniania użytkowników (JWT).
 - [ ] Integracja klienta MQTT w aplikacji .NET do subskrybowania tematów i nasłuchiwania telemetrii od IoT Controllera.
-- [ ] Utworzenie usługi `BackgroundService` w C# do asynchronicznego zapisywania przetworzonych danych telemetrycznych w PostgreSQL.
-- [ ] Skonfigurowanie Huba SignalR do bezpiecznej, dwukierunkowej komunikacji Web <-> Serwer w czasie rzeczywistym.
+- [✅] Utworzenie usługi `BackgroundService` w C# do asynchronicznego zapisywania przetworzonych danych telemetrycznych w PostgreSQL.
+- [✅] Skonfigurowanie Huba SignalR do bezpiecznej, dwukierunkowej komunikacji Web <-> Serwer w czasie rzeczywistym.
 - [ ] Implementacja centralnego Silnika Reguł (Rule Engine) ewaluującego logikę IF-THEN na podstawie napływającej telemetrii z zabezpieczeniem przed kolizjami stanów.
 - [ ] hashowanie haseł.
 
@@ -39,9 +39,9 @@
 - [✅] Zestawienie i walidacja połączenia klienta SignalR w React dla nasłuchu zdarzeń z serwera na żywo.
 - [✅] Utworzenie dynamicznego Dashboardu z kafelkami reprezentującymi status poszczególnych roślin i parametry środowiskowe.
 - [✅] Opracowanie graficznego interfejsu (formularzy) do budowania i parametryzowania logiki automatyzacji przez użytkownika.
-- [ ] Zaimplementowanie wykresów trendów dla historycznych danych telemetrycznych.
+- [✅] Zaimplementowanie wykresów trendów dla historycznych danych telemetrycznych.
 - [ ] Wdrożenie powiadomień typu "Toast/Alert" informujących o zdarzeniach krytycznych (np. niski poziom wody, awaria zasilania pompy).
-- [ ] Zaprojektowanie modułu sterowania ręcznego (Override) z przyciskami natychmiastowego wymuszenia akcji (włącz/wyłącz pompę lub światło) z wizualną sygnalizacją asynchronicznego potwierdzenia zwrotnego z ESP32.
+- [✅] Zaprojektowanie modułu sterowania ręcznego (Override) z przyciskami natychmiastowego wymuszenia akcji (włącz/wyłącz pompę lub światło) z wizualną sygnalizacją asynchronicznego potwierdzenia zwrotnego z ESP32.
 
 ### Faza 6: Walidacja Systemu i Prace Badawcze (Dokumentacja)
 - [ ] Wykonanie testów obciążeniowych i pomiar opóźnień (latency) pełnej pętli komunikacyjnej: Interfejs Webowy -> API -> MQTT -> ESP32 -> Przekaźnik.

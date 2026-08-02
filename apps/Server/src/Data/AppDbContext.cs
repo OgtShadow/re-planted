@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Plant> Plants { get; set; }
     public DbSet<Parameters> Parameters { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<TelemetryBucket> TelemetryBuckets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,15 @@ public class AppDbContext : DbContext
                         join.HasKey("PlantId", "ActuatorDeviceId");
                         join.ToTable("PlantActuatorDevices");
                     });
+        });
+
+        modelBuilder.Entity<TelemetryBucket>(entity =>
+        {
+            entity.Property(x => x.DeviceId).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.BucketStartUtc).IsRequired();
+
+            entity.HasIndex(x => new { x.DeviceId, x.BucketStartUtc }).IsUnique();
+            entity.HasIndex(x => x.BucketStartUtc);
         });
     }
 }

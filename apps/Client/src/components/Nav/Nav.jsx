@@ -6,6 +6,7 @@ export const Nav = () => {
         <nav className="nav">
                     <ul>
                         <li><a href="/">Home</a></li>
+                        <li><a href="/stats">Stats</a></li>
                         <li><a href="/plant/add">Add Plant</a></li>
                         <li><a href="/device/add">Add Device</a></li>
                         <li><a href="/contact">Contact</a></li>

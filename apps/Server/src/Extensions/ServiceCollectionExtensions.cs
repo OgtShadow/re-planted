@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RePlanted.Server.Data;
+using RePlanted.Server.Services;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.IdentityModel.Tokens;
@@ -74,6 +75,11 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddHttpClient<RePlanted.Server.Services.ConnectionManager>();
+
+        services.Configure<TelemetryCollectorOptions>(
+            configuration.GetSection(TelemetryCollectorOptions.SectionName));
+        services.AddHttpClient(nameof(TelemetryCollectorBackgroundService));
+        services.AddHostedService<TelemetryCollectorBackgroundService>();
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
