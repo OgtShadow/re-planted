@@ -4,7 +4,7 @@
 - [✅] Skonfigurowanie pliku `docker-compose.yml` (PostgreSQL 16, Nginx, .NET 8 Backend, React Frontend).
 - [ ] Zdefiniowanie zewnętrznego brokera wiadomości MQTT w infrastrukturze.
 - [✅] Zaprojektowanie relacyjnego schematu bazy danych (tabele m.in.: `Users`, `Devices`, `Telemetry`, `AutomationRules`).
-- [ ] Utworzenie i uruchomienie migracji Entity Framework Core w .NET 8.
+- [✅] Utworzenie i uruchomienie migracji Entity Framework Core w .NET 8.
 
 ### Faza 2: Serwer Główny (C# / .NET 8 Minimal API)
 - [✅] Zaimplementowanie endpointów CRUD dla zarządzania urządzeniami (ESP32) i regułami automatyzacji (wraz z automatyczną dokumentacją w Swaggerze).
@@ -36,9 +36,9 @@
 - [ ] Wdrożenie najniższego poziomu Trybu Offline na Client Server – utrzymanie cykli dobowych rośliny wyłącznie na podstawie wewnętrznej pamięci stanu w przypadku utraty pingu do lokalnego brokera.
 
 ### Faza 5: Frontend i Kokpit Użytkownika (React 19, Vite, MUI)
-- [ ] Zestawienie i walidacja połączenia klienta SignalR w React dla nasłuchu zdarzeń z serwera na żywo.
+- [✅] Zestawienie i walidacja połączenia klienta SignalR w React dla nasłuchu zdarzeń z serwera na żywo.
 - [✅] Utworzenie dynamicznego Dashboardu z kafelkami reprezentującymi status poszczególnych roślin i parametry środowiskowe.
-- [ ] Opracowanie graficznego interfejsu (formularzy) do budowania i parametryzowania logiki automatyzacji przez użytkownika.
+- [✅] Opracowanie graficznego interfejsu (formularzy) do budowania i parametryzowania logiki automatyzacji przez użytkownika.
 - [ ] Zaimplementowanie wykresów trendów dla historycznych danych telemetrycznych.
 - [ ] Wdrożenie powiadomień typu "Toast/Alert" informujących o zdarzeniach krytycznych (np. niski poziom wody, awaria zasilania pompy).
 - [ ] Zaprojektowanie modułu sterowania ręcznego (Override) z przyciskami natychmiastowego wymuszenia akcji (włącz/wyłącz pompę lub światło) z wizualną sygnalizacją asynchronicznego potwierdzenia zwrotnego z ESP32.

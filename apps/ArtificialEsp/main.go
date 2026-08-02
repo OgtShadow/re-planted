@@ -54,7 +54,8 @@ type SensorData struct {
 }
 
 type CommandPayload struct {
-	State bool `json:"state"`
+	State           bool `json:"state"`
+	DurationSeconds int  `json:"durationSeconds"`
 }
 
 type WaterSimulationPayload struct {
@@ -75,7 +76,20 @@ func NewDeviceHandler() *DeviceHandler {
 	}
 }
 
+func addCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+}
+
 func (h *DeviceHandler) handleDeviceState(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
 		return
@@ -98,6 +112,13 @@ func (h *DeviceHandler) handleDeviceState(w http.ResponseWriter, r *http.Request
 }
 
 func (h *DeviceHandler) handleSensors(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
 		return
@@ -129,6 +150,13 @@ func (h *DeviceHandler) handleSensors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DeviceHandler) handlePump(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
 		return
@@ -137,6 +165,11 @@ func (h *DeviceHandler) handlePump(w http.ResponseWriter, r *http.Request) {
 	var cmd CommandPayload
 	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
 		http.Error(w, "Nieprawidłowy format JSON", http.StatusBadRequest)
+		return
+	}
+
+	if cmd.State && cmd.DurationSeconds <= 0 {
+		http.Error(w, "Pole durationSeconds jest wymagane i musi być większe od zera przy włączaniu pompy.", http.StatusBadRequest)
 		return
 	}
 
@@ -153,12 +186,26 @@ func (h *DeviceHandler) handlePump(w http.ResponseWriter, r *http.Request) {
 	stan := "WYŁĄCZONA"
 	if cmd.State {
 		stan = "WŁĄCZONA"
+		go func(duration int) {
+			time.Sleep(time.Duration(duration) * time.Second)
+			h.state.Lock()
+			h.state.PumpOn = false
+			h.state.Unlock()
+			log.Printf("[INFO] Pompa wyłączona automatycznie po %d sekundach", duration)
+		}(cmd.DurationSeconds)
 	}
 	log.Printf("[INFO] Stan pompy zmieniony na: %s", stan)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *DeviceHandler) handleLight(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
 		return
@@ -170,6 +217,11 @@ func (h *DeviceHandler) handleLight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if cmd.State && cmd.DurationSeconds <= 0 {
+		http.Error(w, "Pole durationSeconds jest wymagane i musi być większe od zera przy włączaniu światła.", http.StatusBadRequest)
+		return
+	}
+
 	h.state.Lock()
 	h.state.LightOn = cmd.State
 	h.state.Unlock()
@@ -177,12 +229,26 @@ func (h *DeviceHandler) handleLight(w http.ResponseWriter, r *http.Request) {
 	stan := "WYŁĄCZONE"
 	if cmd.State {
 		stan = "WŁĄCZONE"
+		go func(duration int) {
+			time.Sleep(time.Duration(duration) * time.Second)
+			h.state.Lock()
+			h.state.LightOn = false
+			h.state.Unlock()
+			log.Printf("[INFO] Światło wyłączone automatycznie po %d sekundach", duration)
+		}(cmd.DurationSeconds)
 	}
 	log.Printf("[INFO] Stan oświetlenia zmieniony na: %s", stan)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *DeviceHandler) handleWaterSimulation(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
 		return

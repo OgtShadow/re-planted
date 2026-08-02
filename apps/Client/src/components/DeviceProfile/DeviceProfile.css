@@ -1,11 +1,12 @@
 @import '../../colors.css';
 
 div .device-profile-card {
-    width: 200px;
+    width: 240px;
     background-color: var(--dark-color);
-    padding: 2px 20px 8px 20px;
+    padding: 12px 16px 16px 16px;
     border-radius: 10px;
     margin: 20px;
+    color: var(--background-color);
 }
 
 div .device-profile-card-header {
@@ -13,6 +14,13 @@ div .device-profile-card-header {
     display: inline-flex;
     width: 200px;
     justify-content: space-between;
+}
+
+.device-profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .device-profile-card h3 {
@@ -28,14 +36,40 @@ div .device-profile-card-header {
     margin: 5px 0;
 }
 
+.device-profile-slider-label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+    color: var(--background-color);
+}
+
+.device-profile-slider {
+    width: 80%;
+    accent-color: var(--light-color);
+}
+
 .device-profile-card button {
     background-color: var(--dark-color);
     color: var(--dark-background-color);
     margin-top: 10px;
     width: 100%;
+    border: 1px solid var(--light-color);
+    cursor: pointer;
 }
 
 .device-profile-card button:hover {
     background-color: var(--light-color);
     color: var(--light-text-color);
+}
+
+.device-profile-card button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.device-profile-feedback {
+    color: var(--light-text-color);
+    font-size: 0.9rem;
+    margin-top: 8px;
 }
