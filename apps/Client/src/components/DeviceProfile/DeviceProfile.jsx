@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import StatusDot from '../StatusDot/StatusDot';
+import { useNavigate } from 'react-router-dom';
 import './DeviceProfile.css';
 
 function DeviceProfile({ device }) {
+
+  const navigate = useNavigate();
   const [selectedDuration, setSelectedDuration] = useState(10);
   const [isActivating, setIsActivating] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -63,7 +66,7 @@ function DeviceProfile({ device }) {
 
   return (
     <div className="device-profile-card">
-      <div className="device-profile-header">
+      <div className="device-profile-header" onClick={() => navigate(`/device/${device?.id ?? 'default'}`)} style={{ cursor: 'pointer' }}>
         <h3>{name}</h3>
         <StatusDot status={isOn ? 'green' : 'gray'} size="medium" />
       </div>

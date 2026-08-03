@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import DeviceList from './components/DeviceList/DeviceList' 
+import DeviceList from './components/DeviceList/DeviceList'
+import DeviceDetails from './components/DeviceDetails/DeviceDetails'
 import './App.css'
 import connectionManager, { clearActiveUserId, clearAuthToken, getActiveUserId, getAuthToken, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
@@ -79,6 +80,10 @@ function App() {
 
           <Route path="/plant/:id" element={
             <PlantDetails/> 
+          } />
+
+            <Route path="/device/:id" element={
+            <DeviceDetails/> 
           } />
 
           <Route path="/plant/add" element={
