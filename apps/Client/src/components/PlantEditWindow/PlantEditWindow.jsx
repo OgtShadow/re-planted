@@ -1,7 +1,7 @@
 import './PlantEditWindow.css';
 import connectionManager, { userPlantsEndpoint } from '../../connectionManager';
 import React, { useState } from 'react';
-import ParametersSeter from '../ParametersSeter/ParametersSeter';
+import PlantParametersSeter from '../PlantParametersSeter/PlantParametersSeter';
 
 function PlantEditWindow({ plant, onClose }) {
   const [editedPlant, setEditedPlant] = useState({ ...plant });
@@ -61,7 +61,7 @@ function PlantEditWindow({ plant, onClose }) {
                     />
                 </label>
 
-                <ParametersSeter plant={editedPlant} setPlant={setEditedPlant} />
+                <PlantParametersSeter plant={editedPlant} setPlant={setEditedPlant} />
                 
                 <div className="button-group">
                     <button type="submit">Save Changes</button>

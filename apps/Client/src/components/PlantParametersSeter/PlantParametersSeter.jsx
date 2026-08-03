@@ -1,8 +1,8 @@
-import './ParametersSeter.css';
+import './PlantParametersSeter.css';
 import Slider2 from '../Sliders/Slider2';
 import Slider1 from '../Sliders/Slider1';
 
-const ParametersSeter = ({ plant, setPlant }) => {
+const PlantParametersSeter = ({ plant, setPlant }) => {
 
     const handleTemperatureChange = (newValue) => {
         const newPlant = { ...plant };
@@ -99,4 +99,4 @@ const ParametersSeter = ({ plant, setPlant }) => {
     );
 };
 
-export default ParametersSeter;
+export default PlantParametersSeter;

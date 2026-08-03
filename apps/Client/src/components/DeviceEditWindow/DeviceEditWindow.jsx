@@ -1,7 +1,7 @@
 import './DeviceEditWindow.css';
 import connectionManager, { userDevicesEndpoint } from '../../connectionManager';
 import React, { useState } from 'react';
-import ParametersSeter from '../ParametersSeter/ParametersSeter';
+import DeviceParametersSeter from '../DeviceParametersSeter/DeviceParametersSeter';
 
 function DeviceEditWindow({ device, onClose }) {
   const [editedDevice, setEditedDevice] = useState({ ...device });
@@ -44,24 +44,7 @@ function DeviceEditWindow({ device, onClose }) {
         <div className="device-edit-window" onClick={(e) => e.stopPropagation()}>
           <h2>Edit Device Details</h2>
             <form onSubmit={handleSaveChanges}>
-                <label>
-                    Name:
-                    <input
-                        type="text"
-                        value={editedDevice.name}
-                        onChange={(e) => setEditedDevice({ ...editedDevice, name: e.target.value })}
-                    />
-                </label>
-                <label>
-                    Target Parameter:
-                    <input
-                        type="text"
-                        value={editedDevice.targetParameter}
-                        onChange={(e) => setEditedDevice({ ...editedDevice, targetParameter: e.target.value })}
-                    />
-                </label>
-
-                <ParametersSeter device={editedDevice} setDevice={setEditedDevice} />
+                <DeviceParametersSeter device={editedDevice} setDevice={setEditedDevice} />
                 
                 <div className="button-group">
                     <button type="submit">Save Changes</button>
