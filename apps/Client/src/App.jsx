@@ -11,6 +11,7 @@ import PlantAdd from './components/PlantAdd/PlantAdd'
 import Login from './components/login/Login'
 import DeviceAdd from './components/DeviceAdd/DeviceAdd'
 import TelemetryStats from './components/TelemetryStats/TelemetryStats'
+import TelemetryDetails from './components/TelemetryDetails/TelemetryDetails'
 
 function App() {
   const [test, setTest] = useState('')
@@ -96,6 +97,10 @@ function App() {
 
           <Route path="/stats" element={
             <TelemetryStats/>
+          } />
+
+          <Route path="/telemetry/:deviceId" element={
+            <TelemetryDetails/>
           } />
         </Routes>
       

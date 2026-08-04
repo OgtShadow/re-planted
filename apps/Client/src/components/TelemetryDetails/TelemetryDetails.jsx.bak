@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import connectionManager, { userTelemetryEndpoint } from '../../connectionManager';
-import { useNavigate } from 'react-router-dom';
-import './TelemetryStats.css';
+import './TelemetryDetails.css';
 
 const NUMERIC_SERIES = [
   { key: 'temperatureAvg', label: 'Temperatura', unit: 'raw', color: '#1f77b4' },
@@ -53,16 +52,13 @@ function formatMinutes(totalMinutes) {
   return `${hours}h ${minutes}m`;
 }
 
-function TelemetryStats() {
-  const navigate = useNavigate();
+function TelemetryDetails() {
   const [hours, setHours] = useState(6);
   const [response, setResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
 
-  const loadTelemetry = useCallback(async () => {
+  const loadTelemetry = async () => {
     setIsLoading(true);
     setError('');
 
@@ -75,36 +71,10 @@ function TelemetryStats() {
     } finally {
       setIsLoading(false);
     }
-  }, [hours]);
-
-  //====================================================================
-  //Dane testowe telemetryczne do testowania wykresów potem usunąć :>
-  //====================================================================
-  const handleSeedTestData = async () => {
-    setIsSeeding(true);
-    setError('');
-    setInfo('');
-
-    try {
-      const result = await connectionManager.post(
-        userTelemetryEndpoint('/seed-test-data?hours=72&stepMinutes=5&replaceExisting=true'),
-        {}
-      );
-      setInfo(`Wygenerowano ${result?.insertedBuckets ?? 0} bucketów danych testowych z 72h.`);
-      setHours(72);
-      await loadTelemetry();
-    } catch (err) {
-      setError(err?.message || 'Nie udało się wygenerować danych testowych.');
-    } finally {
-      setIsSeeding(false);
-    }
   };
-  //====================================================================
-  //--------------------------------------------------------------------
-  //====================================================================
   useEffect(() => {
     loadTelemetry();
-  }, [loadTelemetry]);
+  }, [hours]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -112,7 +82,7 @@ function TelemetryStats() {
     }, 30000);
 
     return () => window.clearInterval(intervalId);
-  }, [loadTelemetry]);
+  }, [hours]);
 
   const chartData = useMemo(() => {
     const points = response?.points ?? [];
@@ -166,7 +136,7 @@ function TelemetryStats() {
   return (
     <section className="telemetry-stats">
       <div className="telemetry-stats-header">
-        <h2>Statystyki telemetryczne</h2>
+        <h2>Statystyki telemetryczne podstrona</h2>
         <p>
           Dane z mock ESP są zbierane cyklicznie przez backend i zapisywane minutowo. Widok odświeża się co 30 sekund.
         </p>
@@ -185,13 +155,7 @@ function TelemetryStats() {
         <button type="button" onClick={loadTelemetry} disabled={isLoading}>
           {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
         </button>
-
-        <button type="button" onClick={handleSeedTestData} disabled={isSeeding}>
-          {isSeeding ? 'Generowanie...' : 'Generuj testowe 72h'}
-        </button>
       </div>
-
-      {info ? <p>{info}</p> : null}
       {error ? <p className="telemetry-error">{error}</p> : null}
 
       {!chartData ? (
@@ -206,7 +170,7 @@ function TelemetryStats() {
 
           <div className="telemetry-series-grid">
             {chartData.numericCards.map((series) => (
-              <article className="telemetry-series-item" key={series.key} onClick={() => navigate(`/telemetry/${response?.deviceId ?? 'unknown'}?series=${series.key}&hours=${hours}`)}>
+              <article className="telemetry-series-item" key={series.key}>
                 <h3>{series.label}</h3>
                 <svg viewBox="0 0 1000 320" className="telemetry-chart" role="img" aria-label={`Wykres serii ${series.label}`}>
                   <line x1="0" y1="280" x2="1000" y2="280" className="axis" />
@@ -259,4 +223,4 @@ function TelemetryStats() {
   );
 }
 
-export default TelemetryStats;
+export default TelemetryDetails;
