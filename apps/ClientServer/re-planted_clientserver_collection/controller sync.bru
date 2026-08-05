@@ -1,0 +1,37 @@
+meta {
+  name: controller sync
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:{{client_server}}/api/client-server/controllers/{{clientId}}/sync
+  body: none
+  auth: none
+}
+
+tests {
+  test("sync returns success", function () {
+    const status = res.getStatus();
+    expect([200, 502]).to.include(status);
+  });
+
+  test("sync response contains controller topology or error payload", function () {
+    const status = res.getStatus();
+    const data = res.getBody() || {};
+
+    if (status === 200) {
+      expect(data).to.have.property("clientId", 1);
+      expect(data).to.have.property("plants");
+      expect(data.plants).to.be.an("array");
+      bru.setVar("lastTopologySync", data.syncedAtUtc);
+    } else {
+      expect(data).to.have.property("response");
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

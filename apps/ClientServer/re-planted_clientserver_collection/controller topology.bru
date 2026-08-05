@@ -1,0 +1,30 @@
+meta {
+  name: controller topology
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:{{client_server}}/api/client-server/controllers/{{clientId}}/topology
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("topology response shape", function () {
+    const data = res.getBody() || {};
+    expect(data).to.have.property("clientId", 1);
+    expect(data).to.have.property("syncedAtUtc");
+    expect(data).to.have.property("plants");
+    expect(data.plants).to.be.an("array");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
