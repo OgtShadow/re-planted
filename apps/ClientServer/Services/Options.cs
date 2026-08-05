@@ -4,7 +4,7 @@ public sealed class MainServerApiOptions
 {
     public const string SectionName = "MainServerApi";
 
-    public string BaseUrl { get; set; } = "http://localhost:8080";
+    public string BaseUrl { get; set; } = "http://localhost:{{SERVER_PORT}}";
     public int ClientId { get; set; } = 1;
     public string PlantsPath { get; set; } = "/api/users/{clientId}/plants";
 }
@@ -13,7 +13,7 @@ public sealed class MockDeviceApiOptions
 {
     public const string SectionName = "MockDeviceApi";
 
-    public string BaseUrl { get; set; } = "http://localhost:8085";
+    public string BaseUrl { get; set; } = "http://localhost:{{ESP_PORT}}";
     public string SensorsPath { get; set; } = "/sensors";
     public string PumpCommandPath { get; set; } = "/command/pump";
 }
