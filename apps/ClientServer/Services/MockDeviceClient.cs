@@ -36,7 +36,7 @@ public sealed class MockDeviceClient : IMockDeviceClient
             }
 
             return new ControllerTelemetryDto(
-                string.IsNullOrWhiteSpace(snapshot.DeviceId) ? $"client-{clientId}" : snapshot.DeviceId,
+                string.IsNullOrWhiteSpace(snapshot.DeviceId) ? $"client-{clientId}" : $"{snapshot.DeviceId}-client-{clientId}",
                 snapshot.SoilMoistureAnalog,
                 snapshot.Temperature,
                 snapshot.Humidity,

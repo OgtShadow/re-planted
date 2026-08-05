@@ -4,56 +4,73 @@ namespace ClientServer.Services;
 
 public interface IControllerStateStore
 {
-    ControllerTopologyDto? Topology { get; }
-    ControllerTelemetryDto? Telemetry { get; }
-    PumpControlStateMachine PumpStateMachine { get; }
-    void UpdateTopology(ControllerTopologyDto topology);
-    void UpdateTelemetry(ControllerTelemetryDto telemetry);
+    ControllerTopologyDto? GetTopology(int clientId);
+    ControllerTelemetryDto? GetTelemetry(int clientId);
+    IReadOnlyList<ControllerTelemetryDto> GetAllTelemetry();
+    PumpControlStateMachine GetPumpStateMachine(int clientId);
+    void UpdateTopology(int clientId, ControllerTopologyDto topology);
+    void UpdateTelemetry(int clientId, ControllerTelemetryDto telemetry);
 }
 
 public sealed class ControllerStateStore : IControllerStateStore
 {
     private readonly object _gate = new();
-    private ControllerTopologyDto? _topology;
-    private ControllerTelemetryDto? _telemetry;
+    private readonly Dictionary<int, ControllerTopologyDto> _topologies = new();
+    private readonly Dictionary<int, ControllerTelemetryDto> _telemetrySnapshots = new();
+    private readonly Dictionary<int, PumpControlStateMachine> _machines = new();
 
-    public PumpControlStateMachine PumpStateMachine { get; } = new();
-
-    public ControllerTopologyDto? Topology
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _topology;
-            }
-        }
-    }
-
-    public ControllerTelemetryDto? Telemetry
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _telemetry;
-            }
-        }
-    }
-
-    public void UpdateTopology(ControllerTopologyDto topology)
+    public ControllerTopologyDto? GetTopology(int clientId)
     {
         lock (_gate)
         {
-            _topology = topology;
+            return _topologies.TryGetValue(clientId, out var topology) ? topology : null;
         }
     }
 
-    public void UpdateTelemetry(ControllerTelemetryDto telemetry)
+    public ControllerTelemetryDto? GetTelemetry(int clientId)
     {
         lock (_gate)
         {
-            _telemetry = telemetry;
+            return _telemetrySnapshots.TryGetValue(clientId, out var telemetry) ? telemetry : null;
+        }
+    }
+
+    public IReadOnlyList<ControllerTelemetryDto> GetAllTelemetry()
+    {
+        lock (_gate)
+        {
+            return _telemetrySnapshots.Values.ToList();
+        }
+    }
+
+    public PumpControlStateMachine GetPumpStateMachine(int clientId)
+    {
+        lock (_gate)
+        {
+            if (_machines.TryGetValue(clientId, out var machine))
+            {
+                return machine;
+            }
+
+            var created = new PumpControlStateMachine();
+            _machines[clientId] = created;
+            return created;
+        }
+    }
+
+    public void UpdateTopology(int clientId, ControllerTopologyDto topology)
+    {
+        lock (_gate)
+        {
+            _topologies[clientId] = topology;
+        }
+    }
+
+    public void UpdateTelemetry(int clientId, ControllerTelemetryDto telemetry)
+    {
+        lock (_gate)
+        {
+            _telemetrySnapshots[clientId] = telemetry;
         }
     }
 }

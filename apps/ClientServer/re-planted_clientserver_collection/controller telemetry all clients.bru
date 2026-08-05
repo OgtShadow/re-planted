@@ -1,0 +1,27 @@
+meta {
+  name: controller telemetry all clients
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:{{client_server}}/api/client-server/controllers/telemetry/current
+  body: none
+  auth: none
+}
+
+tests {
+  test("telemetry all endpoint returns 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("telemetry all endpoint returns an array", function () {
+    const data = res.getBody() || [];
+    expect(data).to.be.an("array");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

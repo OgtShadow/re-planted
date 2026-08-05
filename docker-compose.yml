@@ -27,7 +27,7 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - TelemetryCollector__BaseUrl=http://app_client:8080
-      - TelemetryCollector__SensorsPath=/api/client-server/controllers/1/telemetry/current
+      - TelemetryCollector__SensorsPath=/api/client-server/controllers/telemetry/current
       - TelemetryCollector__PollingIntervalSeconds=15
       - TelemetryCollector__RetentionDays=30
     depends_on:
@@ -43,12 +43,13 @@ services:
       - "${APP_CLIENT_PORT}:8080"
     environment:
       - MainServerApi__BaseUrl=http://app:8080
-      - MainServerApi__ClientId=1
       - MainServerApi__PlantsPath=/api/users/{clientId}/plants
       - MockDeviceApi__BaseUrl=http://sensor-mock:8085
       - MockDeviceApi__SensorsPath=/sensors
       - MockDeviceApi__PumpCommandPath=/command/pump
-      - IoTController__ClientId=1
+      - IoTController__ClientIds__0=1
+      - IoTController__ClientIds__1=2
+      - IoTController__ClientIds__2=3
       - IoTController__PollingIntervalSeconds=15
       - IoTController__PumpRunSeconds=2
       - IoTController__SoakTimeSeconds=60

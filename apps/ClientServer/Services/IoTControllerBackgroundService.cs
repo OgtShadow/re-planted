@@ -13,6 +13,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     private readonly IHubContext<ControllerHub> _hubContext;
     private readonly IoTControllerOptions _options;
     private readonly ILogger<IoTControllerBackgroundService> _logger;
+    private bool _reportedEmptyClientSet;
 
     public IoTControllerBackgroundService(
         IMainServerTopologyClient topologyClient,
@@ -50,27 +51,49 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 
     private async Task RunCycleAsync(CancellationToken cancellationToken)
     {
-        var topology = await _topologyClient.GetTopologyAsync(cancellationToken);
-        if (topology is not null)
+        var clientIds = ResolveClientIds();
+        if (clientIds.Count == 0)
         {
-            _stateStore.UpdateTopology(topology);
+            if (!_reportedEmptyClientSet)
+            {
+                _logger.LogWarning("Brak skonfigurowanych identyfikatorów klientów. Ustaw IoTController:ClientIds.");
+                _reportedEmptyClientSet = true;
+            }
+
+            return;
         }
 
-        var currentTopology = _stateStore.Topology;
+        _reportedEmptyClientSet = false;
+        foreach (var clientId in clientIds)
+        {
+            await RunCycleForClientAsync(clientId, cancellationToken);
+        }
+    }
+
+    private async Task RunCycleForClientAsync(int clientId, CancellationToken cancellationToken)
+    {
+        var topology = await _topologyClient.GetTopologyAsync(clientId, cancellationToken);
+        if (topology is not null)
+        {
+            _stateStore.UpdateTopology(clientId, topology);
+        }
+
+        var currentTopology = _stateStore.GetTopology(clientId);
         if (currentTopology is null || currentTopology.Plants.Count == 0)
         {
             return;
         }
 
         var nowUtc = DateTime.UtcNow;
-        _stateStore.PumpStateMachine.Refresh(nowUtc);
+        var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
+        pumpStateMachine.Refresh(nowUtc);
 
         var telemetry = await _mockDeviceClient.ReadTelemetryAsync(
             currentTopology.ClientId,
-            _stateStore.PumpStateMachine.Phase,
+            pumpStateMachine.Phase,
             null,
-            _stateStore.PumpStateMachine.WarningMessage,
-            _stateStore.PumpStateMachine.SoakUntilUtc,
+            pumpStateMachine.WarningMessage,
+            pumpStateMachine.SoakUntilUtc,
             cancellationToken);
 
         if (telemetry is null)
@@ -79,13 +102,13 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         }
 
         var activePlant = SelectPlantNeedingWater(currentTopology.Plants, telemetry.SoilMoistureAnalog, _options.MoistureThresholdBufferPercent);
-        if (activePlant is not null && !_stateStore.PumpStateMachine.IsInSoak(nowUtc))
+        if (activePlant is not null && !pumpStateMachine.IsInSoak(nowUtc))
         {
             if (IsWaterLevelTooLow(telemetry.WaterLevelCm))
             {
                 var warningMessage = $"Brak wody w zbiorniku. Zablokowano uruchomienie pompy dla rośliny {activePlant.Name}.";
                 _logger.LogWarning(warningMessage);
-                _stateStore.PumpStateMachine.MarkBlocked(warningMessage);
+                pumpStateMachine.MarkBlocked(warningMessage);
 
                 var blockedTelemetry = telemetry with
                 {
@@ -95,34 +118,42 @@ public sealed class IoTControllerBackgroundService : BackgroundService
                     LastSyncUtc = currentTopology.SyncedAtUtc
                 };
 
-                _stateStore.UpdateTelemetry(blockedTelemetry);
+                _stateStore.UpdateTelemetry(clientId, blockedTelemetry);
                 await PublishTelemetryAsync(currentTopology.ClientId, blockedTelemetry, cancellationToken);
                 return;
             }
 
-            _stateStore.PumpStateMachine.BeginWatering(activePlant.Name);
+            pumpStateMachine.BeginWatering(activePlant.Name);
 
             var pumpStarted = await _mockDeviceClient.TurnPumpOnAsync(_options.PumpRunSeconds, cancellationToken);
             if (!pumpStarted)
             {
-                _stateStore.PumpStateMachine.MarkBlocked($"Nie udało się uruchomić pompy dla rośliny {activePlant.Name}.");
+                pumpStateMachine.MarkBlocked($"Nie udało się uruchomić pompy dla rośliny {activePlant.Name}.");
                 return;
             }
 
-            _stateStore.PumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
+            pumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
             _logger.LogInformation("Uruchomiono pompę dla rośliny {PlantName}. Rozpoczynam okres wchłaniania.", activePlant.Name);
         }
 
         var enrichedTelemetry = telemetry with
         {
-            ControllerState = _stateStore.PumpStateMachine.Phase.ToString(),
+            ControllerState = pumpStateMachine.Phase.ToString(),
             ActivePlantName = activePlant?.Name,
-            WarningMessage = _stateStore.PumpStateMachine.WarningMessage,
+            WarningMessage = pumpStateMachine.WarningMessage,
             LastSyncUtc = currentTopology.SyncedAtUtc
         };
 
-        _stateStore.UpdateTelemetry(enrichedTelemetry);
+        _stateStore.UpdateTelemetry(clientId, enrichedTelemetry);
         await PublishTelemetryAsync(currentTopology.ClientId, enrichedTelemetry, cancellationToken);
+    }
+
+    private IReadOnlyList<int> ResolveClientIds()
+    {
+        return _options.ClientIds
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
     }
 
     private static ControllerPlantDto? SelectPlantNeedingWater(IReadOnlyList<ControllerPlantDto> plants, int soilMoistureAnalog, int bufferPercent)

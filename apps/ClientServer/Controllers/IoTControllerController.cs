@@ -28,7 +28,7 @@ public sealed class IoTControllerController : ControllerBase
     [ProducesResponseType(typeof(ControllerTelemetryDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerTelemetryDto> GetCurrentTelemetry(int clientId)
     {
-        var telemetry = _stateStore.Telemetry;
+        var telemetry = _stateStore.GetTelemetry(clientId);
         if (telemetry is null || telemetry.ClientId != clientId)
         {
             return Ok(new ControllerTelemetryDto(
@@ -50,12 +50,21 @@ public sealed class IoTControllerController : ControllerBase
         return Ok(telemetry);
     }
 
+    /// <summary>Returns telemetry snapshots for all active clients.</summary>
+    [HttpGet("/api/client-server/controllers/telemetry/current")]
+    [ProducesResponseType(typeof(IReadOnlyList<ControllerTelemetryDto>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyList<ControllerTelemetryDto>> GetCurrentTelemetryForAllClients()
+    {
+        var telemetry = _stateStore.GetAllTelemetry();
+        return Ok(telemetry);
+    }
+
     /// <summary>Returns the last synchronized topology for the controller.</summary>
     [HttpGet("topology")]
     [ProducesResponseType(typeof(ControllerTopologyDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerTopologyDto> GetTopology(int clientId)
     {
-        var topology = _stateStore.Topology;
+        var topology = _stateStore.GetTopology(clientId);
         if (topology is null || topology.ClientId != clientId)
         {
             return Ok(new ControllerTopologyDto(clientId, DateTime.UtcNow, []));
@@ -70,15 +79,15 @@ public sealed class IoTControllerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<ControllerTopologyDto>> Sync(int clientId, CancellationToken cancellationToken)
     {
-        var topology = await _topologyClient.GetTopologyAsync(cancellationToken);
+        var topology = await _topologyClient.GetTopologyAsync(clientId, cancellationToken);
         if (topology is null)
         {
             _logger.LogWarning("Nie udało się zsynchronizować topologii dla klienta {ClientId}.", clientId);
             return StatusCode(StatusCodes.Status502BadGateway, new { response = "Nie udało się zsynchronizować topologii z głównym serwerem." });
         }
 
-        _stateStore.UpdateTopology(topology with { SyncedAtUtc = DateTime.UtcNow });
-        return Ok(_stateStore.Topology);
+        _stateStore.UpdateTopology(clientId, topology with { SyncedAtUtc = DateTime.UtcNow });
+        return Ok(_stateStore.GetTopology(clientId));
     }
 
     /// <summary>Returns the operational state of the controller and its soak timer.</summary>
@@ -86,16 +95,17 @@ public sealed class IoTControllerController : ControllerBase
     [ProducesResponseType(typeof(ControllerStatusDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerStatusDto> GetStatus(int clientId)
     {
-        var topology = _stateStore.Topology;
-        var phase = _stateStore.PumpStateMachine.Phase.ToString();
+        var topology = _stateStore.GetTopology(clientId);
+        var machine = _stateStore.GetPumpStateMachine(clientId);
+        var phase = machine.Phase.ToString();
 
         return Ok(new ControllerStatusDto(
             clientId,
             phase,
-            _stateStore.PumpStateMachine.IsInSoak(DateTime.UtcNow),
-            _stateStore.PumpStateMachine.SoakUntilUtc,
+            machine.IsInSoak(DateTime.UtcNow),
+            machine.SoakUntilUtc,
             topology?.SyncedAtUtc ?? DateTime.UtcNow,
-            _stateStore.PumpStateMachine.WarningMessage,
+            machine.WarningMessage,
             topology?.Plants.Count ?? 0));
     }
 }

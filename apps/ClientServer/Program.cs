@@ -21,15 +21,13 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 
 builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
 builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
-builder.Services.AddScoped<BearerTokenHandler>();
 
 builder.Services.AddHttpClient<IMainServerTopologyClient, MainServerTopologyClient>((serviceProvider, client) =>
 {
 	var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MainServerApiOptions>>().Value;
 	client.BaseAddress = new Uri(options.BaseUrl);
 	client.Timeout = TimeSpan.FromSeconds(10);
-})
-.AddHttpMessageHandler<BearerTokenHandler>();
+});
 
 builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProvider, client) =>
 {

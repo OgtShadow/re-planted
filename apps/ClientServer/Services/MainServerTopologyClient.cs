@@ -5,47 +5,57 @@ namespace ClientServer.Services;
 
 public interface IMainServerTopologyClient
 {
-    Task<ControllerTopologyDto?> GetTopologyAsync(CancellationToken cancellationToken);
+    Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken);
 }
 
 public sealed class MainServerTopologyClient : IMainServerTopologyClient
 {
     private readonly HttpClient _httpClient;
     private readonly MainServerApiOptions _options;
-    private readonly IoTControllerOptions _controllerOptions;
+    private readonly IJwtTokenProvider _jwtTokenProvider;
     private readonly ILogger<MainServerTopologyClient> _logger;
 
     public MainServerTopologyClient(
         HttpClient httpClient,
         IOptions<MainServerApiOptions> options,
-        IOptions<IoTControllerOptions> controllerOptions,
+        IJwtTokenProvider jwtTokenProvider,
         ILogger<MainServerTopologyClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _controllerOptions = controllerOptions.Value;
+        _jwtTokenProvider = jwtTokenProvider;
         _logger = logger;
     }
 
-    public async Task<ControllerTopologyDto?> GetTopologyAsync(CancellationToken cancellationToken)
+    public async Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken)
     {
         try
         {
-            var path = _options.PlantsPath.Replace("{clientId}", _controllerOptions.ClientId.ToString(), StringComparison.OrdinalIgnoreCase);
-            var plants = await _httpClient.GetFromJsonAsync<List<PlantDto>>(path, cancellationToken);
+            var path = _options.PlantsPath.Replace("{clientId}", clientId.ToString(), StringComparison.OrdinalIgnoreCase);
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _jwtTokenProvider.CreateClientToken(clientId));
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Synchronizacja topologii nie powiodła się dla klienta {ClientId}. Kod: {StatusCode}", clientId, response.StatusCode);
+                return null;
+            }
+
+            var plants = await response.Content.ReadFromJsonAsync<List<PlantDto>>(cancellationToken);
             if (plants is null)
             {
                 return null;
             }
 
             return new ControllerTopologyDto(
-                _controllerOptions.ClientId,
+                clientId,
                 DateTime.UtcNow,
                 plants.Select(MapPlant).ToList());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Nie udało się zsynchronizować topologii z głównym serwerem.");
+            _logger.LogWarning(ex, "Nie udało się zsynchronizować topologii z głównym serwerem dla klienta {ClientId}.", clientId);
             return null;
         }
     }

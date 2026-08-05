@@ -48,17 +48,32 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
     private async Task PollAndStoreSnapshotAsync(HttpClient client, CancellationToken cancellationToken)
     {
         var endpoint = BuildSensorsUri();
-        var snapshot = await client.GetFromJsonAsync<SensorTelemetrySnapshot>(endpoint, cancellationToken);
-        if (snapshot is null)
+        var snapshots = await client.GetFromJsonAsync<List<SensorTelemetrySnapshot>>(endpoint, cancellationToken);
+        if (snapshots is null || snapshots.Count == 0)
         {
             return;
         }
 
-        var bucketStartUtc = TruncateToMinute(snapshot.Timestamp == default ? DateTime.UtcNow : snapshot.Timestamp.ToUniversalTime());
-        var deviceId = string.IsNullOrWhiteSpace(snapshot.DeviceId) ? "unknown-device" : snapshot.DeviceId.Trim();
-
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        foreach (var snapshot in snapshots)
+        {
+            await UpsertSnapshotAsync(db, snapshot, cancellationToken);
+        }
+
+        var retentionDays = Math.Clamp(options.RetentionDays, 1, 365);
+        var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
+        var staleBuckets = db.TelemetryBuckets.Where(x => x.BucketStartUtc < cutoff);
+        db.TelemetryBuckets.RemoveRange(staleBuckets);
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task UpsertSnapshotAsync(AppDbContext db, SensorTelemetrySnapshot snapshot, CancellationToken cancellationToken)
+    {
+        var bucketStartUtc = TruncateToMinute(snapshot.Timestamp == default ? DateTime.UtcNow : snapshot.Timestamp.ToUniversalTime());
+        var deviceId = string.IsNullOrWhiteSpace(snapshot.DeviceId) ? "unknown-device" : snapshot.DeviceId.Trim();
 
         var bucket = await db.TelemetryBuckets
             .FirstOrDefaultAsync(x => x.DeviceId == deviceId && x.BucketStartUtc == bucketStartUtc, cancellationToken);
@@ -110,13 +125,6 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
             bucket.LastPumpState = snapshot.PumpState;
             bucket.LastLampState = snapshot.LampState;
         }
-
-        var retentionDays = Math.Clamp(options.RetentionDays, 1, 365);
-        var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
-        var staleBuckets = db.TelemetryBuckets.Where(x => x.BucketStartUtc < cutoff);
-        db.TelemetryBuckets.RemoveRange(staleBuckets);
-
-        await db.SaveChangesAsync(cancellationToken);
     }
 
     private Uri BuildSensorsUri()
