@@ -1,4 +1,5 @@
 using ClientServer.Contracts;
+using Microsoft.Extensions.Options;
 
 namespace ClientServer.Services;
 
@@ -12,18 +13,15 @@ public sealed class MockDeviceClient : IMockDeviceClient
 {
     private readonly HttpClient _httpClient;
     private readonly MockDeviceApiOptions _options;
-    private readonly IoTControllerOptions _controllerOptions;
     private readonly ILogger<MockDeviceClient> _logger;
 
     public MockDeviceClient(
         HttpClient httpClient,
         IOptions<MockDeviceApiOptions> options,
-        IOptions<IoTControllerOptions> controllerOptions,
         ILogger<MockDeviceClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _controllerOptions = controllerOptions.Value;
         _logger = logger;
     }
 

@@ -1,3 +1,4 @@
+using System.Reflection;
 using ClientServer.Services;
 using ClientServer.Hubs;
 
@@ -5,7 +6,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+	var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+	var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+	options.IncludeXmlComments(xmlPath);
+});
 builder.Services.AddSignalR();
 
 builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSection(MainServerApiOptions.SectionName));
@@ -33,7 +39,6 @@ builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProv
 });
 
 builder.Services.AddHostedService<IoTControllerBackgroundService>();
-builder.Services.AddScoped<BearerTokenHandler>();
 
 var app = builder.Build();
 

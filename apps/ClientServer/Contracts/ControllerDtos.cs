@@ -1,5 +1,6 @@
 namespace ClientServer.Contracts;
 
+/// <summary>Represents plant control thresholds and target ranges used by the IoT Controller.</summary>
 public sealed record ControllerPlantParametersDto(
     int WateringIntervalDays,
     int HumidityMin,
@@ -8,6 +9,7 @@ public sealed record ControllerPlantParametersDto(
     int TemperatureMin,
     int TemperatureMax);
 
+/// <summary>Represents a single actuator device assigned to a plant.</summary>
 public sealed record ControllerDeviceDto(
     int Id,
     string Name,
@@ -16,6 +18,7 @@ public sealed record ControllerDeviceDto(
     double EffectStrength,
     bool IsEnabled);
 
+/// <summary>Represents a plant synchronized from the main server.</summary>
 public sealed record ControllerPlantDto(
     int Id,
     string Name,
@@ -23,11 +26,13 @@ public sealed record ControllerPlantDto(
     ControllerPlantParametersDto Parameters,
     IReadOnlyList<ControllerDeviceDto> Devices);
 
+/// <summary>Represents the synchronized topology for one ClientId.</summary>
 public sealed record ControllerTopologyDto(
     int ClientId,
     DateTime SyncedAtUtc,
     IReadOnlyList<ControllerPlantDto> Plants);
 
+/// <summary>Represents the latest aggregated telemetry snapshot produced by the IoT Controller.</summary>
 public sealed record ControllerTelemetryDto(
     string DeviceId,
     int SoilMoistureAnalog,
@@ -43,6 +48,7 @@ public sealed record ControllerTelemetryDto(
     string? WarningMessage,
     DateTime LastSyncUtc);
 
+/// <summary>Represents the runtime status of the IoT Controller for a given client.</summary>
 public sealed record ControllerStatusDto(
     int ClientId,
     string ControllerState,

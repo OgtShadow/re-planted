@@ -1,8 +1,10 @@
 using ClientServer.Contracts;
+using ClientServer.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClientServer.Controllers;
 
+/// <summary>Exposes the runtime API of the IoT Controller layer.</summary>
 [ApiController]
 [Route("api/client-server/controllers/{clientId:int}")]
 public sealed class IoTControllerController : ControllerBase
@@ -21,6 +23,7 @@ public sealed class IoTControllerController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>Returns the latest telemetry snapshot for the controller.</summary>
     [HttpGet("telemetry/current")]
     [ProducesResponseType(typeof(ControllerTelemetryDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerTelemetryDto> GetCurrentTelemetry(int clientId)
@@ -47,6 +50,7 @@ public sealed class IoTControllerController : ControllerBase
         return Ok(telemetry);
     }
 
+    /// <summary>Returns the last synchronized topology for the controller.</summary>
     [HttpGet("topology")]
     [ProducesResponseType(typeof(ControllerTopologyDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerTopologyDto> GetTopology(int clientId)
@@ -60,8 +64,10 @@ public sealed class IoTControllerController : ControllerBase
         return Ok(topology);
     }
 
+    /// <summary>Forces synchronization with the main server.</summary>
     [HttpPost("sync")]
     [ProducesResponseType(typeof(ControllerTopologyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<ControllerTopologyDto>> Sync(int clientId, CancellationToken cancellationToken)
     {
         var topology = await _topologyClient.GetTopologyAsync(cancellationToken);
@@ -75,6 +81,7 @@ public sealed class IoTControllerController : ControllerBase
         return Ok(_stateStore.Topology);
     }
 
+    /// <summary>Returns the operational state of the controller and its soak timer.</summary>
     [HttpGet("status")]
     [ProducesResponseType(typeof(ControllerStatusDto), StatusCodes.Status200OK)]
     public ActionResult<ControllerStatusDto> GetStatus(int clientId)

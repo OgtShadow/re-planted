@@ -65,51 +65,10 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         var nowUtc = DateTime.UtcNow;
         _stateStore.PumpStateMachine.Refresh(nowUtc);
 
-        var activePlant = SelectPlantNeedingWater(currentTopology.Plants);
-        if (activePlant is not null && !_stateStore.PumpStateMachine.IsInSoak(nowUtc))
-        {
-            var freshSnapshot = await _mockDeviceClient.ReadTelemetryAsync(
-                currentTopology.ClientId,
-                _stateStore.PumpStateMachine.Phase,
-                activePlant.Name,
-                _stateStore.PumpStateMachine.WarningMessage,
-                _stateStore.PumpStateMachine.SoakUntilUtc,
-                cancellationToken);
-
-            if (freshSnapshot is not null && IsWaterLevelTooLow(freshSnapshot.WaterLevelCm))
-            {
-                var warningMessage = $"Brak wody w zbiorniku. Zablokowano uruchomienie pompy dla rośliny {activePlant.Name}.";
-                _logger.LogWarning(warningMessage);
-                _stateStore.PumpStateMachine.MarkBlocked(warningMessage);
-                await PublishTelemetryAsync(currentTopology.ClientId, freshSnapshot with
-                {
-                    ControllerState = PumpControlPhase.Idle.ToString(),
-                    ActivePlantName = activePlant.Name,
-                    WarningMessage = warningMessage
-                }, cancellationToken);
-                return;
-            }
-
-            if (freshSnapshot is not null)
-            {
-                _stateStore.PumpStateMachine.BeginWatering(activePlant.Name);
-
-                var pumpStarted = await _mockDeviceClient.TurnPumpOnAsync(_options.PumpRunSeconds, cancellationToken);
-                if (!pumpStarted)
-                {
-                    _stateStore.PumpStateMachine.MarkBlocked($"Nie udało się uruchomić pompy dla rośliny {activePlant.Name}.");
-                    return;
-                }
-
-                _stateStore.PumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
-                _logger.LogInformation("Uruchomiono pompę dla rośliny {PlantName}. Rozpoczynam okres wchłaniania.", activePlant.Name);
-            }
-        }
-
         var telemetry = await _mockDeviceClient.ReadTelemetryAsync(
             currentTopology.ClientId,
             _stateStore.PumpStateMachine.Phase,
-            activePlant?.Name,
+            null,
             _stateStore.PumpStateMachine.WarningMessage,
             _stateStore.PumpStateMachine.SoakUntilUtc,
             cancellationToken);
@@ -117,6 +76,41 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         if (telemetry is null)
         {
             return;
+        }
+
+        var activePlant = SelectPlantNeedingWater(currentTopology.Plants, telemetry.SoilMoistureAnalog, _options.MoistureThresholdBufferPercent);
+        if (activePlant is not null && !_stateStore.PumpStateMachine.IsInSoak(nowUtc))
+        {
+            if (IsWaterLevelTooLow(telemetry.WaterLevelCm))
+            {
+                var warningMessage = $"Brak wody w zbiorniku. Zablokowano uruchomienie pompy dla rośliny {activePlant.Name}.";
+                _logger.LogWarning(warningMessage);
+                _stateStore.PumpStateMachine.MarkBlocked(warningMessage);
+
+                var blockedTelemetry = telemetry with
+                {
+                    ControllerState = PumpControlPhase.Idle.ToString(),
+                    ActivePlantName = activePlant.Name,
+                    WarningMessage = warningMessage,
+                    LastSyncUtc = currentTopology.SyncedAtUtc
+                };
+
+                _stateStore.UpdateTelemetry(blockedTelemetry);
+                await PublishTelemetryAsync(currentTopology.ClientId, blockedTelemetry, cancellationToken);
+                return;
+            }
+
+            _stateStore.PumpStateMachine.BeginWatering(activePlant.Name);
+
+            var pumpStarted = await _mockDeviceClient.TurnPumpOnAsync(_options.PumpRunSeconds, cancellationToken);
+            if (!pumpStarted)
+            {
+                _stateStore.PumpStateMachine.MarkBlocked($"Nie udało się uruchomić pompy dla rośliny {activePlant.Name}.");
+                return;
+            }
+
+            _stateStore.PumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
+            _logger.LogInformation("Uruchomiono pompę dla rośliny {PlantName}. Rozpoczynam okres wchłaniania.", activePlant.Name);
         }
 
         var enrichedTelemetry = telemetry with
@@ -131,18 +125,20 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         await PublishTelemetryAsync(currentTopology.ClientId, enrichedTelemetry, cancellationToken);
     }
 
-    private static ControllerPlantDto? SelectPlantNeedingWater(IReadOnlyList<ControllerPlantDto> plants)
+    private static ControllerPlantDto? SelectPlantNeedingWater(IReadOnlyList<ControllerPlantDto> plants, int soilMoistureAnalog, int bufferPercent)
     {
+        var soilMoisturePercent = Math.Clamp(soilMoistureAnalog / 10, 0, 100);
+
         return plants
             .Where(plant => plant.Devices.Any(device => device.IsEnabled && string.Equals(device.TargetParameter, "soilMoisture", StringComparison.OrdinalIgnoreCase)))
             .OrderBy(plant => plant.Parameters.HumidityMin)
-            .FirstOrDefault(plant => IsBelowTarget(plant));
+            .FirstOrDefault(plant => IsBelowTarget(plant, soilMoisturePercent, bufferPercent));
     }
 
-    private static bool IsBelowTarget(ControllerPlantDto plant)
+    private static bool IsBelowTarget(ControllerPlantDto plant, int soilMoisturePercent, int bufferPercent)
     {
-        var currentSoilMoisturePercent = 0;
-        return currentSoilMoisturePercent < plant.Parameters.HumidityMin;
+        var effectiveThreshold = Math.Max(0, plant.Parameters.HumidityMin - Math.Max(0, bufferPercent));
+        return soilMoisturePercent < effectiveThreshold;
     }
 
     private bool IsWaterLevelTooLow(int waterLevelCm)
