@@ -244,18 +244,6 @@ function TelemetryDetails() {
           <option value={24}>Ostatnie 24h</option>
           <option value={72}>Ostatnie 72h</option>
         </select>
-
-        <label htmlFor="series-select">Seria:</label>
-        <select id="series-select" value={selectedSeriesDefinition.key} onChange={handleSeriesChange}>
-          {NUMERIC_SERIES.map((series) => (
-            <option key={series.key} value={series.key}>{series.label}</option>
-          ))}
-          <option value={LIGHT_SERIES.key}>{LIGHT_SERIES.label}</option>
-        </select>
-
-        <button type="button" onClick={loadTelemetry} disabled={isLoading}>
-          {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
-        </button>
       </div>
 
       {error ? <p className="telemetry-error">{error}</p> : null}
@@ -316,13 +304,13 @@ function TelemetryDetails() {
               <h3>Porównanie serii</h3>
               <div className="telemetry-compare-list">
                 {chartData.numericCards.map((series) => (
-                  <div key={series.key} className={`telemetry-compare-row ${selectedSeriesDefinition.key === series.key ? 'active' : ''}`}>
+                  <div key={series.key} className={`telemetry-compare-row ${selectedSeriesDefinition.key === series.key ? 'active' : ''}`} onClick={() => handleSeriesChange({ target: { value: series.key } })} style={{ cursor: 'pointer' }}>
                     <span style={{ color: series.color }}>■</span>
                     <span>{series.label}</span>
                     <strong>{formatValue(series.latest, series.unit)}</strong>
                   </div>
                 ))}
-                <div className={`telemetry-compare-row ${selectedSeriesDefinition.key === LIGHT_SERIES.key ? 'active' : ''}`}>
+                <div className={`telemetry-compare-row ${selectedSeriesDefinition.key === LIGHT_SERIES.key ? 'active' : ''}`} onClick={() => handleSeriesChange({ target: { value: LIGHT_SERIES.key } })} style={{ cursor: 'pointer' }}>
                   <span style={{ color: LIGHT_SERIES.color }}>■</span>
                   <span>{LIGHT_SERIES.label}</span>
                   <strong>{formatValue(chartData.lightCard.latest, LIGHT_SERIES.unit)}</strong>
