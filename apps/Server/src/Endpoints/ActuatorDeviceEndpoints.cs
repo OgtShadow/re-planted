@@ -10,6 +10,10 @@ namespace RePlanted.Server.Endpoints;
 
 public static class ActuatorDeviceEndpoints
 {
+    private const string DeviceKindActuator = "actuator";
+    private const string DeviceKindSensor = "sensor";
+    private const string DefaultEspMockExternalId = "esp32-test-node-01";
+
     private static readonly HashSet<string> SupportedTargetParameters = new(StringComparer.OrdinalIgnoreCase)
     {
         "soilMoisture",
@@ -17,6 +21,15 @@ public static class ActuatorDeviceEndpoints
         "temperature",
         "humidity",
         "waterLevel"
+    };
+
+    private static readonly HashSet<string> SupportedSensorFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "soilMoistureAnalog",
+        "lightIsDark",
+        "temperature",
+        "humidity",
+        "waterLevelCm"
     };
 
     public static IEndpointRouteBuilder MapActuatorDeviceEndpoints(this IEndpointRouteBuilder app)
@@ -34,6 +47,7 @@ public static class ActuatorDeviceEndpoints
 
             return Results.Ok(new
             {
+                supportedDeviceKinds = new[] { DeviceKindSensor, DeviceKindActuator },
                 targetParameters = new[]
                 {
                     new
@@ -83,6 +97,14 @@ public static class ActuatorDeviceEndpoints
                     }
                 },
                 sensorFields = new[] { "soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm" },
+                defaultEspMockDevice = new
+                {
+                    name = "ESP Mock Device",
+                    deviceKind = DeviceKindSensor,
+                    sensorFields = new[] { "soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm" },
+                    externalDeviceId = DefaultEspMockExternalId,
+                    isEnabled = true
+                },
                 supportedEffectTypes = new[] { "increase", "decrease", "set" }
             });
         })
@@ -175,7 +197,10 @@ public static class ActuatorDeviceEndpoints
 
             var mapped = MapToDevice(request);
             device.Name = mapped.Name;
+            device.DeviceKind = mapped.DeviceKind;
             device.TargetParameter = mapped.TargetParameter;
+            device.SensorFields = mapped.SensorFields;
+            device.ExternalDeviceId = mapped.ExternalDeviceId;
             device.EffectType = mapped.EffectType;
             device.EffectStrength = mapped.EffectStrength;
             device.IsEnabled = mapped.IsEnabled;
@@ -194,6 +219,26 @@ public static class ActuatorDeviceEndpoints
             .Accepts<UpsertActuatorDeviceRequest>("application/json")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
+
+        devices.MapPost("/ensure-esp-mock", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var created = await EnsureEspMockDeviceAsync(db, userId);
+
+            return Results.Ok(new
+            {
+                response = created ? "Dodano domyślne urządzenie ESP mock." : "Urządzenie ESP mock już istnieje.",
+                created,
+                externalDeviceId = DefaultEspMockExternalId
+            });
+        })
+            .WithSummary("Ensure ESP mock device")
+            .WithDescription("Ensures a multi-sensor ESP mock device exists for the user.")
+            .Produces(StatusCodes.Status200OK);
 
         devices.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db) =>
         {
@@ -302,16 +347,67 @@ public static class ActuatorDeviceEndpoints
 
     private static ActuatorDevice MapToDevice(UpsertActuatorDeviceRequest request)
     {
+        var deviceKind = NormalizeDeviceKind(request.DeviceKind);
         var targetParameter = NormalizeTargetParameter(request.TargetParameter);
         var profile = ResolveControlProfile(targetParameter);
+        var sensorFields = NormalizeSensorFields(request.SensorFields);
+        var externalDeviceId = NormalizeExternalDeviceId(request.ExternalDeviceId);
 
         return new ActuatorDevice
         {
             Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed device" : request.Name.Trim(),
+            DeviceKind = deviceKind,
             TargetParameter = targetParameter,
+            SensorFields = sensorFields,
+            ExternalDeviceId = externalDeviceId,
             EffectType = NormalizeEffectType(request.EffectType, profile.SuggestedEffectType),
             EffectStrength = request.EffectStrength is null or 0 ? 1 : request.EffectStrength.Value,
             IsEnabled = request.IsEnabled ?? true
+        };
+    }
+
+    public static async Task<bool> EnsureEspMockDeviceAsync(AppDbContext db, int userId)
+    {
+        var existing = await db.ActuatorDevices.FirstOrDefaultAsync(d =>
+            d.UserId == userId &&
+            d.DeviceKind == DeviceKindSensor &&
+            d.ExternalDeviceId == DefaultEspMockExternalId);
+
+        if (existing is not null)
+        {
+            return false;
+        }
+
+        db.ActuatorDevices.Add(new ActuatorDevice
+        {
+            UserId = userId,
+            Name = "ESP Mock Device",
+            DeviceKind = DeviceKindSensor,
+            TargetParameter = "soilMoisture",
+            SensorFields = ["soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm"],
+            ExternalDeviceId = DefaultEspMockExternalId,
+            EffectType = "increase",
+            EffectStrength = 1,
+            IsEnabled = true
+        });
+
+        await db.SaveChangesAsync();
+        return true;
+    }
+
+    private static string NormalizeDeviceKind(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return DeviceKindActuator;
+        }
+
+        var normalized = value.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            DeviceKindSensor => DeviceKindSensor,
+            DeviceKindActuator => DeviceKindActuator,
+            _ => DeviceKindActuator
         };
     }
 
@@ -347,6 +443,48 @@ public static class ActuatorDeviceEndpoints
             "increase" or "decrease" or "set" => normalized,
             _ => defaultValue
         };
+    }
+
+    private static List<string> NormalizeSensorFields(List<string>? fields)
+    {
+        if (fields is null || fields.Count == 0)
+        {
+            return [];
+        }
+
+        var normalized = fields
+            .Where(field => !string.IsNullOrWhiteSpace(field))
+            .Select(field => NormalizeSensorField(field!))
+            .Where(field => !string.IsNullOrWhiteSpace(field))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return normalized;
+    }
+
+    private static string NormalizeSensorField(string value)
+    {
+        var normalized = value.Trim();
+
+        return normalized.ToLowerInvariant() switch
+        {
+            "soilmoisture" or "soilmoistureanalog" => "soilMoistureAnalog",
+            "light" or "lightisdark" => "lightIsDark",
+            "temperature" => "temperature",
+            "humidity" => "humidity",
+            "waterlevel" or "waterlevelcm" => "waterLevelCm",
+            _ => SupportedSensorFields.Contains(normalized) ? normalized : string.Empty
+        };
+    }
+
+    private static string NormalizeExternalDeviceId(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Trim();
     }
 
     private static ControlProfile ResolveControlProfile(string targetParameter)

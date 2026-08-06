@@ -102,6 +102,8 @@ function TelemetryDetails() {
   const [error, setError] = useState('');
 
   const selectedSeriesParam = searchParams.get('series') || NUMERIC_SERIES[0].key;
+  const selectedPlantId = searchParams.get('plantId') || '';
+  const selectedSensorField = searchParams.get('sensorField') || 'soilMoistureAnalog';
   const selectedSeriesDefinition = NUMERIC_SERIES.find((series) => series.key === selectedSeriesParam)
     || (selectedSeriesParam === LIGHT_SERIES.key ? LIGHT_SERIES : NUMERIC_SERIES[0]);
 
@@ -110,7 +112,18 @@ function TelemetryDetails() {
     setError('');
 
     try {
-      const query = `?hours=${hours}&maxPoints=400${deviceId ? `&deviceId=${encodeURIComponent(deviceId)}` : ''}`;
+      const params = new URLSearchParams();
+      params.set('hours', String(hours));
+      params.set('maxPoints', '400');
+      if (deviceId) {
+        params.set('deviceId', deviceId);
+      }
+      if (selectedPlantId) {
+        params.set('plantId', selectedPlantId);
+        params.set('sensorField', selectedSensorField);
+      }
+
+      const query = `?${params.toString()}`;
       const data = await connectionManager.get(userTelemetryEndpoint(`/trends${query}`));
       setResponse(data);
     } catch (err) {
@@ -118,7 +131,7 @@ function TelemetryDetails() {
     } finally {
       setIsLoading(false);
     }
-  }, [deviceId, hours]);
+  }, [deviceId, hours, selectedPlantId, selectedSensorField]);
 
   useEffect(() => {
     loadTelemetry();

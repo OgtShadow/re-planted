@@ -24,7 +24,10 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ActuatorDevice>(entity =>
         {
             entity.Property(d => d.Name).IsRequired();
+            entity.Property(d => d.DeviceKind).IsRequired();
             entity.Property(d => d.TargetParameter).IsRequired();
+            entity.Property(d => d.SensorFields).HasColumnType("text[]");
+            entity.Property(d => d.ExternalDeviceId).IsRequired();
             entity.Property(d => d.EffectType).IsRequired();
 
             entity.HasOne(d => d.User)

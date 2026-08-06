@@ -53,13 +53,25 @@ function DeviceDetails() {
             
             <div className="device-details-header">
                 <h1>{device.name}</h1>
-                <StatusDot status={device.isEnabled === "true" ? "green" : device.isEnabled === "false" ? "gray" : "red"} size="large" />
+                <StatusDot status={device.isEnabled ? "green" : "gray"} size="large" />
             </div>
 
             <div className="device-info-grid">
                 <div className="info-item">
+                    <span className="label">Typ:</span>
+                    <span className="value">{device.deviceKind || 'actuator'}</span>
+                </div>
+                <div className="info-item">
                     <span className="label">Parameter:</span>
                     <span className="value">{device.targetParameter}</span>
+                </div>
+                <div className="info-item">
+                    <span className="label">Czujniki:</span>
+                    <span className="value">{Array.isArray(device.sensorFields) && device.sensorFields.length > 0 ? device.sensorFields.join(', ') : 'brak'}</span>
+                </div>
+                <div className="info-item">
+                    <span className="label">Telemetry ID:</span>
+                    <span className="value">{device.externalDeviceId || 'brak'}</span>
                 </div>
                 <div className="info-item">
                     <span className="label">Effect Strength:</span>

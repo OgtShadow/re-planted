@@ -2,9 +2,31 @@ import { useEffect, useMemo, useState } from "react";
 import connectionManager, { userDevicesEndpoint, userPlantsEndpoint } from "../../connectionManager";
 import "./DeviceAdd.css";
 
+const DEFAULT_SENSOR_FIELDS = ["soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm"];
+
+function mapSensorFieldToTargetParameter(sensorField) {
+  switch ((sensorField || "").toLowerCase()) {
+    case "soilmoistureanalog":
+      return "soilMoisture";
+    case "lightisdark":
+      return "light";
+    case "temperature":
+      return "temperature";
+    case "humidity":
+      return "humidity";
+    case "waterlevelcm":
+      return "waterLevel";
+    default:
+      return "soilMoisture";
+  }
+}
+
 function DeviceAdd() {
   const [name, setName] = useState("");
+  const [deviceKind, setDeviceKind] = useState("actuator");
   const [targetParameter, setTargetParameter] = useState("soilMoisture");
+  const [sensorFields, setSensorFields] = useState(["soilMoistureAnalog"]);
+  const [externalDeviceId, setExternalDeviceId] = useState("");
   const [effectType, setEffectType] = useState("increase");
   const [effectStrength, setEffectStrength] = useState(1);
   const [isEnabled, setIsEnabled] = useState(true);
@@ -13,6 +35,7 @@ function DeviceAdd() {
   const [plants, setPlants] = useState([]);
   const [selectedPlantIds, setSelectedPlantIds] = useState([]);
   const [catalog, setCatalog] = useState({
+    supportedDeviceKinds: ["sensor", "actuator"],
     targetParameters: [
       { key: "soilMoisture", sensorField: "soilMoistureAnalog", defaultCommand: "pump", defaultCommandPath: "/command/pump", defaultStateField: "pumpState", suggestedEffectType: "increase" },
       { key: "light", sensorField: "lightIsDark", defaultCommand: "light", defaultCommandPath: "/command/light", defaultStateField: "lampState", suggestedEffectType: "set" },
@@ -20,6 +43,8 @@ function DeviceAdd() {
       { key: "humidity", sensorField: "humidity", defaultCommand: "pump", defaultCommandPath: "/command/pump", defaultStateField: "pumpState", suggestedEffectType: "increase" },
       { key: "waterLevel", sensorField: "waterLevelCm", defaultCommand: "pump", defaultCommandPath: "/command/pump", defaultStateField: "pumpState", suggestedEffectType: "increase" },
     ],
+    sensorFields: DEFAULT_SENSOR_FIELDS,
+    defaultEspMockDevice: null,
     supportedEffectTypes: ["increase", "decrease", "set"],
   });
 
@@ -33,10 +58,18 @@ function DeviceAdd() {
 
         if (catalogResult) {
           setCatalog(catalogResult);
+
+          await connectionManager.post(userDevicesEndpoint("/ensure-esp-mock"), {});
+
           const firstTarget = catalogResult.targetParameters?.[0];
           if (firstTarget?.key) {
             setTargetParameter(firstTarget.key);
             setEffectType(firstTarget.suggestedEffectType || effectType);
+          }
+
+          const defaultSensors = catalogResult.defaultEspMockDevice?.sensorFields;
+          if (Array.isArray(defaultSensors) && defaultSensors.length > 0) {
+            setSensorFields(defaultSensors);
           }
         }
 
@@ -56,6 +89,22 @@ function DeviceAdd() {
     () => targetOptions.find((target) => target.key === targetParameter),
     [targetOptions, targetParameter]
   );
+
+  const sensorOptions = useMemo(() => catalog.sensorFields || DEFAULT_SENSOR_FIELDS, [catalog.sensorFields]);
+
+  const toggleSensorField = (field) => {
+    setSensorFields((prev) => {
+      if (prev.includes(field)) {
+        if (prev.length === 1) {
+          return prev;
+        }
+
+        return prev.filter((item) => item !== field);
+      }
+
+      return [...prev, field];
+    });
+  };
   const handleTargetParameterChange = (value) => {
     setTargetParameter(value);
 
@@ -87,9 +136,16 @@ function DeviceAdd() {
 
   const handleCreateDevice = async () => {
     try {
+      const resolvedTargetParameter = deviceKind === "sensor"
+        ? mapSensorFieldToTargetParameter(sensorFields[0])
+        : targetParameter;
+
       const result = await connectionManager.post(userDevicesEndpoint(), {
         name,
-        targetParameter,
+        deviceKind,
+        targetParameter: resolvedTargetParameter,
+        sensorFields,
+        externalDeviceId,
         effectType,
         effectStrength: Number(effectStrength),
         isEnabled,
@@ -101,10 +157,20 @@ function DeviceAdd() {
 
       setResponse(`Dodano urządzenie: ${result?.id || "brak id"}`);
       setName("");
+      setExternalDeviceId("");
       setSelectedPlantIds([]);
     } catch (error) {
       setResponse("Error: " + error.message);
       console.error("Failed to create device:", error);
+    }
+  };
+
+  const handleAddDefaultEspMock = async () => {
+    try {
+      const result = await connectionManager.post(userDevicesEndpoint("/ensure-esp-mock"), {});
+      setResponse(result?.response || "Dodano ESP mock.");
+    } catch (error) {
+      setResponse("Error: " + error.message);
     }
   };
 
@@ -123,57 +189,98 @@ function DeviceAdd() {
         </div>
 
         <div className="info-item">
-          <label>Target parameter</label>
-          <select value={targetParameter} onChange={(e) => handleTargetParameterChange(e.target.value)}>
-            {targetOptions?.map((parameter) => (
-              <option key={parameter.key} value={parameter.key}>
-                {parameter.key} ({parameter.sensorField})
+          <label>Typ urządzenia</label>
+          <select value={deviceKind} onChange={(e) => setDeviceKind(e.target.value)}>
+            {(catalog.supportedDeviceKinds || ["sensor", "actuator"]).map((kind) => (
+              <option key={kind} value={kind}>
+                {kind}
               </option>
             ))}
           </select>
         </div>
 
         <div className="info-item">
-          <label>Domyślny handler</label>
+          <label>External device id (telemetria)</label>
           <input
             type="text"
-            value={selectedTarget ? `${selectedTarget.defaultCommand} (${selectedTarget.defaultCommandPath})` : "pump (/command/pump)"}
-            readOnly
+            placeholder="np. esp32-test-node-01"
+            value={externalDeviceId}
+            onChange={(e) => setExternalDeviceId(e.target.value)}
           />
         </div>
 
         <div className="info-item">
-          <label>Pole stanu z sensora</label>
-          <select disabled value={selectedTarget?.defaultStateField || "pumpState"}>
-            {(selectedTarget?.defaultStateField ? [selectedTarget.defaultStateField] : ["pumpState"]).map((parameter) => (
-              <option key={parameter} value={parameter}>
-                {parameter}
-              </option>
+          <label>Czujniki urządzenia</label>
+          <div className="plants-assign-grid">
+            {sensorOptions.map((field) => (
+              <label key={field} className="plant-checkbox">
+                <input
+                  type="checkbox"
+                  checked={sensorFields.includes(field)}
+                  onChange={() => toggleSensorField(field)}
+                />
+                <span>{field}</span>
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
-        <div className="info-item">
-          <label>Effect type</label>
-          <select value={effectType} onChange={(e) => setEffectType(e.target.value)}>
-            {(catalog.supportedEffectTypes || ["increase", "decrease", "set"]).map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
+        {deviceKind === "actuator" ? (
+          <>
+            <div className="info-item">
+              <label>Target parameter</label>
+              <select value={targetParameter} onChange={(e) => handleTargetParameterChange(e.target.value)}>
+                {targetOptions?.map((parameter) => (
+                  <option key={parameter.key} value={parameter.key}>
+                    {parameter.key} ({parameter.sensorField})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="info-item">
-          <label>Effect strength</label>
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            value={effectStrength}
-            onChange={(e) => setEffectStrength(e.target.value)}
-          />
-        </div>
+            <div className="info-item">
+              <label>Domyślny handler</label>
+              <input
+                type="text"
+                value={selectedTarget ? `${selectedTarget.defaultCommand} (${selectedTarget.defaultCommandPath})` : "pump (/command/pump)"}
+                readOnly
+              />
+            </div>
+
+            <div className="info-item">
+              <label>Pole stanu z sensora</label>
+              <select disabled value={selectedTarget?.defaultStateField || "pumpState"}>
+                {(selectedTarget?.defaultStateField ? [selectedTarget.defaultStateField] : ["pumpState"]).map((parameter) => (
+                  <option key={parameter} value={parameter}>
+                    {parameter}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="info-item">
+              <label>Effect type</label>
+              <select value={effectType} onChange={(e) => setEffectType(e.target.value)}>
+                {(catalog.supportedEffectTypes || ["increase", "decrease", "set"]).map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="info-item">
+              <label>Effect strength</label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={effectStrength}
+                onChange={(e) => setEffectStrength(e.target.value)}
+              />
+            </div>
+          </>
+        ) : null}
 
         <div className="info-item checkbox-item">
           <label>
@@ -204,6 +311,9 @@ function DeviceAdd() {
 
       <button className="add-button" onClick={handleCreateDevice}>
         Dodaj urządzenie
+      </button>
+      <button className="add-button" type="button" onClick={handleAddDefaultEspMock}>
+        Dodaj domyślny ESP mock
       </button>
       <p>{response}</p>
     </div>

@@ -111,6 +111,9 @@ public static class UserEndpoints
 
             db.Users.Add(user);
             await db.SaveChangesAsync();
+
+            await ActuatorDeviceEndpoints.EnsureEspMockDeviceAsync(db, user.Id);
+
             await hubContext.Clients.All.SendAsync("UsersUpdated");
 
             return Results.Ok(new { Response = $"Added user: {user.Username}" });

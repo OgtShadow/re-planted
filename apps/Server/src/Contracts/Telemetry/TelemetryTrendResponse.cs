@@ -3,6 +3,8 @@ namespace RePlanted.Server.Contracts.Telemetry;
 public sealed class TelemetryTrendResponse
 {
     public string DeviceId { get; set; } = string.Empty;
+    public int? PlantId { get; set; }
+    public string SensorField { get; set; } = string.Empty;
     public DateTime FromUtc { get; set; }
     public DateTime ToUtc { get; set; }
     public int IntervalMinutes { get; set; }

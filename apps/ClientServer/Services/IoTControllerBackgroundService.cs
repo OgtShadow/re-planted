@@ -161,7 +161,10 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         var soilMoisturePercent = Math.Clamp(soilMoistureAnalog / 10, 0, 100);
 
         return plants
-            .Where(plant => plant.Devices.Any(device => device.IsEnabled && string.Equals(device.TargetParameter, "soilMoisture", StringComparison.OrdinalIgnoreCase)))
+            .Where(plant => plant.Devices.Any(device =>
+                device.IsEnabled &&
+                (string.Equals(device.TargetParameter, "soilMoisture", StringComparison.OrdinalIgnoreCase)
+                 || device.SensorFields.Any(field => string.Equals(field, "soilMoistureAnalog", StringComparison.OrdinalIgnoreCase)))))
             .OrderBy(plant => plant.Parameters.HumidityMin)
             .FirstOrDefault(plant => IsBelowTarget(plant, soilMoisturePercent, bufferPercent));
     }

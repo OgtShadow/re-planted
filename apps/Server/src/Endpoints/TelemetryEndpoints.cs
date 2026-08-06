@@ -20,6 +20,8 @@ public static class TelemetryEndpoints
             ClaimsPrincipal principal,
             AppDbContext db,
             string? deviceId,
+            int? plantId,
+            string? sensorField,
             int hours = 24,
             int maxPoints = 240) =>
         {
@@ -34,14 +36,53 @@ public static class TelemetryEndpoints
             var toUtc = DateTime.UtcNow;
             var fromUtc = toUtc.AddHours(-normalizedHours);
 
+            var normalizedSensorField = NormalizeSensorField(sensorField);
+            var resolvedDeviceId = string.IsNullOrWhiteSpace(deviceId) ? string.Empty : deviceId.Trim();
+
+            if (plantId is not null)
+            {
+                var plant = await db.Plants
+                    .Include(p => p.Devices)
+                    .FirstOrDefaultAsync(p => p.Id == plantId.Value && p.UserId == userId);
+
+                if (plant is null)
+                {
+                    return Results.NotFound(new { response = $"Nie znaleziono rośliny o id={plantId.Value}" });
+                }
+
+                if (string.IsNullOrWhiteSpace(resolvedDeviceId))
+                {
+                    var matchingDevice = plant.Devices
+                        .Where(d => d.IsEnabled)
+                        .Where(d => DeviceSupportsSensorField(d, normalizedSensorField))
+                        .OrderBy(d => d.Id)
+                        .FirstOrDefault();
+
+                    resolvedDeviceId = ResolveTelemetryDeviceId(matchingDevice);
+
+                    if (string.IsNullOrWhiteSpace(resolvedDeviceId))
+                    {
+                        return Results.Ok(new TelemetryTrendResponse
+                        {
+                            DeviceId = string.Empty,
+                            PlantId = plantId,
+                            SensorField = normalizedSensorField,
+                            FromUtc = fromUtc,
+                            ToUtc = toUtc,
+                            IntervalMinutes = 1,
+                            Points = []
+                        });
+                    }
+                }
+            }
+
             var query = db.TelemetryBuckets
                 .AsNoTracking()
                 .Where(x => x.BucketStartUtc >= fromUtc && x.BucketStartUtc <= toUtc);
 
-            if (!string.IsNullOrWhiteSpace(deviceId))
+            if (!string.IsNullOrWhiteSpace(resolvedDeviceId))
             {
-                var normalizedDeviceId = deviceId.Trim();
-                query = query.Where(x => x.DeviceId == normalizedDeviceId);
+                query = query.Where(x => x.DeviceId == resolvedDeviceId);
             }
 
             var rows = await query
@@ -52,7 +93,9 @@ public static class TelemetryEndpoints
             {
                 return Results.Ok(new TelemetryTrendResponse
                 {
-                    DeviceId = string.IsNullOrWhiteSpace(deviceId) ? string.Empty : deviceId,
+                    DeviceId = resolvedDeviceId,
+                    PlantId = plantId,
+                    SensorField = normalizedSensorField,
                     FromUtc = fromUtc,
                     ToUtc = toUtc,
                     IntervalMinutes = 1,
@@ -63,7 +106,9 @@ public static class TelemetryEndpoints
             var grouped = Downsample(rows, normalizedMaxPoints);
             var response = new TelemetryTrendResponse
             {
-                DeviceId = string.IsNullOrWhiteSpace(deviceId) ? grouped.DeviceId : deviceId!.Trim(),
+                DeviceId = string.IsNullOrWhiteSpace(resolvedDeviceId) ? grouped.DeviceId : resolvedDeviceId,
+                PlantId = plantId,
+                SensorField = normalizedSensorField,
                 FromUtc = fromUtc,
                 ToUtc = toUtc,
                 IntervalMinutes = grouped.IntervalMinutes,
@@ -182,6 +227,66 @@ public static class TelemetryEndpoints
             ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         return int.TryParse(claimValue, out var claimUserId) && claimUserId == routeUserId;
+    }
+
+    private static bool DeviceSupportsSensorField(Models.ActuatorDevice device, string sensorField)
+    {
+        if (device.SensorFields.Any(field => string.Equals(field, sensorField, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return MapTargetParameterToSensorField(device.TargetParameter) == sensorField;
+    }
+
+    private static string ResolveTelemetryDeviceId(Models.ActuatorDevice? device)
+    {
+        if (device is null)
+        {
+            return string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(device.ExternalDeviceId)
+            ? string.Empty
+            : device.ExternalDeviceId.Trim();
+    }
+
+    private static string NormalizeSensorField(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "soilMoistureAnalog";
+        }
+
+        var normalized = value.Trim();
+
+        return normalized.ToLowerInvariant() switch
+        {
+            "soilmoisture" or "soilmoistureanalog" => "soilMoistureAnalog",
+            "light" or "lightisdark" => "lightIsDark",
+            "temperature" => "temperature",
+            "humidity" => "humidity",
+            "waterlevel" or "waterlevelcm" => "waterLevelCm",
+            _ => "soilMoistureAnalog"
+        };
+    }
+
+    private static string MapTargetParameterToSensorField(string? targetParameter)
+    {
+        if (string.IsNullOrWhiteSpace(targetParameter))
+        {
+            return "soilMoistureAnalog";
+        }
+
+        return targetParameter.Trim().ToLowerInvariant() switch
+        {
+            "soilmoisture" => "soilMoistureAnalog",
+            "light" => "lightIsDark",
+            "temperature" => "temperature",
+            "humidity" => "humidity",
+            "waterlevel" => "waterLevelCm",
+            _ => "soilMoistureAnalog"
+        };
     }
 
     private static (int IntervalMinutes, IReadOnlyList<TelemetryTrendPoint> Points, string DeviceId) Downsample(

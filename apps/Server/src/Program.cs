@@ -22,6 +22,11 @@ app.UseAuthorization();
 app.MapHub<PlantHub>("/plantHub");
 app.MapHub<UserHub>("/userHub");
 app.MapServerEndpoints();
-app.ApplyDatabaseMigrations();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.ApplyDatabaseMigrations();
+}
 
 app.Run();
+
+public partial class Program;

@@ -12,6 +12,8 @@ function DeviceProfile({ device }) {
   const [isOn, setIsOn] = useState(false);
 
   const name = device?.name ?? 'Unnamed device';
+  const deviceKind = device?.deviceKind ?? 'actuator';
+  const isSensorOnly = deviceKind === 'sensor';
   const targetParameter = device?.targetParameter ?? '';
   const isLightDevice = /light|temperature/i.test(targetParameter);
   const commandPath = isLightDevice ? '/command/light' : '/command/pump';
@@ -70,23 +72,33 @@ function DeviceProfile({ device }) {
         <h3>{name}</h3>
         <StatusDot status={isOn ? 'green' : 'gray'} size="medium" />
       </div>
+      <p>Typ: {deviceKind}</p>
       <p>Cel: {targetParameter || (isLightDevice ? 'light' : 'pump')}</p>
-      <label className="device-profile-slider-label" htmlFor={`duration-${device?.id ?? 'default'}`}>
-        Czas pracy: {selectedDuration} s
-      </label>
-      <input
-        id={`duration-${device?.id ?? 'default'}`}
-        className="device-profile-slider"
-        type="range"
-        min="1"
-        max="60"
-        step="1"
-        value={selectedDuration}
-        onChange={(event) => setSelectedDuration(Number(event.target.value))}
-      />
-      <button type="button" onClick={handleActivate} disabled={isActivating}>
-        {isActivating ? 'Włączanie...' : `Włącz na ${selectedDuration} s`}
-      </button>
+      {Array.isArray(device?.sensorFields) && device.sensorFields.length > 0 ? (
+        <p>Czujniki: {device.sensorFields.join(', ')}</p>
+      ) : null}
+      {device?.externalDeviceId ? <p>Telemetry ID: {device.externalDeviceId}</p> : null}
+
+      {!isSensorOnly ? (
+        <>
+          <label className="device-profile-slider-label" htmlFor={`duration-${device?.id ?? 'default'}`}>
+            Czas pracy: {selectedDuration} s
+          </label>
+          <input
+            id={`duration-${device?.id ?? 'default'}`}
+            className="device-profile-slider"
+            type="range"
+            min="1"
+            max="60"
+            step="1"
+            value={selectedDuration}
+            onChange={(event) => setSelectedDuration(Number(event.target.value))}
+          />
+          <button type="button" onClick={handleActivate} disabled={isActivating}>
+            {isActivating ? 'Włączanie...' : `Włącz na ${selectedDuration} s`}
+          </button>
+        </>
+      ) : null}
       {feedback ? <p className="device-profile-feedback">{feedback}</p> : null}
     </div>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import connectionManager, { userTelemetryEndpoint } from '../../connectionManager';
+import connectionManager, { userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint } from '../../connectionManager';
 import { useNavigate } from 'react-router-dom';
 import './TelemetryStats.css';
 
@@ -56,18 +56,53 @@ function formatMinutes(totalMinutes) {
 function TelemetryStats() {
   const navigate = useNavigate();
   const [hours, setHours] = useState(6);
+  const [plants, setPlants] = useState([]);
+  const [sensorFields, setSensorFields] = useState(['soilMoistureAnalog', 'lightIsDark', 'temperature', 'humidity', 'waterLevelCm']);
+  const [selectedPlantId, setSelectedPlantId] = useState('');
+  const [selectedSensorField, setSelectedSensorField] = useState('soilMoistureAnalog');
   const [response, setResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [plantsResult, catalogResult] = await Promise.all([
+          connectionManager.get(userPlantsEndpoint()),
+          connectionManager.get(userDevicesEndpoint('/catalog')),
+        ]);
+
+        if (Array.isArray(plantsResult)) {
+          setPlants(plantsResult);
+        }
+
+        if (Array.isArray(catalogResult?.sensorFields) && catalogResult.sensorFields.length > 0) {
+          setSensorFields(catalogResult.sensorFields);
+          setSelectedSensorField(catalogResult.sensorFields[0]);
+        }
+      } catch {
+      }
+    };
+
+    loadFilters();
+  }, []);
+
   const loadTelemetry = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const query = `?hours=${hours}&maxPoints=240`;
+      const params = new URLSearchParams();
+      params.set('hours', String(hours));
+      params.set('maxPoints', '240');
+      if (selectedPlantId) {
+        params.set('plantId', selectedPlantId);
+        params.set('sensorField', selectedSensorField);
+      }
+
+      const query = `?${params.toString()}`;
       const data = await connectionManager.get(userTelemetryEndpoint(`/trends${query}`));
       setResponse(data);
     } catch (err) {
@@ -75,7 +110,7 @@ function TelemetryStats() {
     } finally {
       setIsLoading(false);
     }
-  }, [hours]);
+  }, [hours, selectedPlantId, selectedSensorField]);
 
   //====================================================================
   //Dane testowe telemetryczne do testowania wykresów potem usunąć :>
@@ -182,6 +217,25 @@ function TelemetryStats() {
           <option value={72}>Ostatnie 72h</option>
         </select>
 
+        <label htmlFor="plant-filter">Roślina:</label>
+        <select id="plant-filter" value={selectedPlantId} onChange={(event) => setSelectedPlantId(event.target.value)}>
+          <option value="">Wszystkie / bez filtra</option>
+          {plants.map((plant) => (
+            <option key={plant.id} value={plant.id}>
+              {plant.name}
+            </option>
+          ))}
+        </select>
+
+        <label htmlFor="sensor-filter">Czujnik:</label>
+        <select id="sensor-filter" value={selectedSensorField} onChange={(event) => setSelectedSensorField(event.target.value)}>
+          {sensorFields.map((field) => (
+            <option key={field} value={field}>
+              {field}
+            </option>
+          ))}
+        </select>
+
         <button type="button" onClick={loadTelemetry} disabled={isLoading}>
           {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
         </button>
@@ -206,7 +260,7 @@ function TelemetryStats() {
 
           <div className="telemetry-series-grid">
             {chartData.numericCards.map((series) => (
-              <article className="telemetry-series-item" key={series.key} onClick={() => navigate(`/telemetry/${response?.deviceId ?? 'unknown'}?series=${series.key}&hours=${hours}`)}>
+              <article className="telemetry-series-item" key={series.key} onClick={() => navigate(`/telemetry/${response?.deviceId ?? 'unknown'}?series=${series.key}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}>
                 <h3>{series.label}</h3>
                 <svg viewBox="0 0 1000 320" className="telemetry-chart" role="img" aria-label={`Wykres serii ${series.label}`}>
                   <line x1="0" y1="280" x2="1000" y2="280" className="axis" />

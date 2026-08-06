@@ -76,7 +76,10 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
             (plant.Devices ?? []).Select(device => new ControllerDeviceDto(
                 device.Id,
                 string.IsNullOrWhiteSpace(device.Name) ? $"Urządzenie {device.Id}" : device.Name,
+                string.IsNullOrWhiteSpace(device.DeviceKind) ? "actuator" : device.DeviceKind,
                 device.TargetParameter ?? string.Empty,
+                device.SensorFields ?? [],
+                device.ExternalDeviceId ?? string.Empty,
                 device.EffectType ?? string.Empty,
                 device.EffectStrength,
                 device.IsEnabled)).ToList());
@@ -100,7 +103,10 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
     private sealed record DeviceDto(
         int Id,
         string Name,
+        string? DeviceKind,
         string? TargetParameter,
+        List<string>? SensorFields,
+        string? ExternalDeviceId,
         string? EffectType,
         double EffectStrength,
         bool IsEnabled);

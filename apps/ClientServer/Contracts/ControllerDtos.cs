@@ -13,7 +13,10 @@ public sealed record ControllerPlantParametersDto(
 public sealed record ControllerDeviceDto(
     int Id,
     string Name,
+    string DeviceKind,
     string TargetParameter,
+    IReadOnlyList<string> SensorFields,
+    string ExternalDeviceId,
     string EffectType,
     double EffectStrength,
     bool IsEnabled);

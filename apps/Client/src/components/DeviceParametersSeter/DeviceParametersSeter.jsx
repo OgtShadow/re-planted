@@ -4,7 +4,9 @@ import connectionManager, { userDevicesEndpoint } from '../../connectionManager'
 
 const DeviceParametersSeter = ({ device, setDevice }) => {
   const [catalog, setCatalog] = useState({
+    supportedDeviceKinds: ['sensor', 'actuator'],
     targetParameters: [],
+    sensorFields: ['soilMoistureAnalog', 'lightIsDark', 'temperature', 'humidity', 'waterLevelCm'],
     supportedEffectTypes: ['increase', 'decrease', 'set'],
   });
   const [loadError, setLoadError] = useState(null);
@@ -15,7 +17,9 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
         const result = await connectionManager.get(userDevicesEndpoint('/catalog'));
         if (result) {
           setCatalog({
+            supportedDeviceKinds: result.supportedDeviceKinds || ['sensor', 'actuator'],
             targetParameters: result.targetParameters || [],
+            sensorFields: result.sensorFields || ['soilMoistureAnalog', 'lightIsDark', 'temperature', 'humidity', 'waterLevelCm'],
             supportedEffectTypes: result.supportedEffectTypes || ['increase', 'decrease', 'set'],
           });
         }
@@ -56,6 +60,23 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
     }
   };
 
+  const handleDeviceKindChange = (value) => {
+    updateDeviceField('deviceKind', value);
+  };
+
+  const handleExternalDeviceIdChange = (value) => {
+    updateDeviceField('externalDeviceId', value);
+  };
+
+  const handleToggleSensorField = (sensorField) => {
+    const current = Array.isArray(device?.sensorFields) ? device.sensorFields : [];
+    const next = current.includes(sensorField)
+      ? current.filter((field) => field !== sensorField)
+      : [...current, sensorField];
+
+    updateDeviceField('sensorFields', next);
+  };
+
   const handleEffectTypeChange = (value) => {
     updateDeviceField('effectType', value);
   };
@@ -77,6 +98,49 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
               onChange={(e) => handleNameChange(e.target.value)}
             />
           </label>
+        </li>
+
+        <li>
+          <label>
+            Typ urządzenia
+            <select
+              value={device?.deviceKind || 'actuator'}
+              onChange={(e) => handleDeviceKindChange(e.target.value)}
+            >
+              {(catalog.supportedDeviceKinds || ['sensor', 'actuator']).map((kind) => (
+                <option key={kind} value={kind}>
+                  {kind}
+                </option>
+              ))}
+            </select>
+          </label>
+        </li>
+
+        <li>
+          <label>
+            External device id (telemetria)
+            <input
+              type="text"
+              value={device?.externalDeviceId || ''}
+              onChange={(e) => handleExternalDeviceIdChange(e.target.value)}
+            />
+          </label>
+        </li>
+
+        <li>
+          <label>Czujniki urządzenia</label>
+          <div>
+            {(catalog.sensorFields || []).map((sensorField) => (
+              <label key={sensorField} style={{ display: 'block' }}>
+                <input
+                  type="checkbox"
+                  checked={(device?.sensorFields || []).includes(sensorField)}
+                  onChange={() => handleToggleSensorField(sensorField)}
+                />
+                {sensorField}
+              </label>
+            ))}
+          </div>
         </li>
 
         <li>
