@@ -17,7 +17,7 @@ body:json {
 script:post-response {
   if (res.getStatus() === 200) {
       bru.setVar('after_login_next', 'users get');
-      bru.runner.setNextRequest('login');
+      bru.runner.setNextRequest('users login');
   }
 }
 

@@ -1,0 +1,28 @@
+meta {
+  name: diagnostics run all
+  type: http
+  seq: 0
+}
+
+get {
+  url: http://localhost:{{server}}/communication-test
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest('Server conection test');
+  }
+}
+
+tests {
+  test("diagnostics run all bootstrap status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

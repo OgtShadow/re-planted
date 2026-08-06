@@ -1,7 +1,7 @@
 meta {
   name: light true
   type: http
-  seq: 4
+  seq: 8
 }
 
 get {
@@ -13,6 +13,12 @@ get {
 body:json {
   {
     "state": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("0 water lvl");
   }
 }
 

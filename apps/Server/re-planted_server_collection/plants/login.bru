@@ -31,6 +31,8 @@ script:post-response {
     if (nextRequest) {
       bru.setVar('after_login_next', '');
       bru.runner.setNextRequest(nextRequest);
+    } else {
+      bru.runner.setNextRequest('plants post');
     }
   }
 }

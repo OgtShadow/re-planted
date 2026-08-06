@@ -1,7 +1,7 @@
 meta {
   name: pump on
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
@@ -12,7 +12,14 @@ post {
 
 body:json {
   {
-    "state": true
+    "state": true,
+    "durationSeconds": 5
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("pump true");
   }
 }
 

@@ -1,7 +1,7 @@
 meta {
   name: simulate tank
   type: http
-  seq: 2
+  seq: 11
 }
 
 post {
@@ -13,6 +13,12 @@ post {
 body:json {
   {
     "levelCm": 5
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("check pump 5");
   }
 }
 

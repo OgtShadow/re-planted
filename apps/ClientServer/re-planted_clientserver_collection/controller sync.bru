@@ -31,6 +31,12 @@ tests {
   });
 }
 
+script:post-response {
+  if (res.getStatus() === 200 || res.getStatus() === 502) {
+    bru.runner.setNextRequest("controller telemetry current");
+  }
+}
+
 settings {
   encodeUrl: true
   timeout: 0

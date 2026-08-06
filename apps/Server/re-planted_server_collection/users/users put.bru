@@ -20,7 +20,7 @@ body:json {
 
 script:post-response {
   if (res.getStatus() === 200) {
-      bru.runner.setNextRequest('users delete');
+      bru.runner.setNextRequest('users del');
   }
 }
 

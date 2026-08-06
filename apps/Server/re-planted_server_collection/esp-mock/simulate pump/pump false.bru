@@ -1,7 +1,7 @@
 meta {
   name: pump false
   type: http
-  seq: 4
+  seq: 2
 }
 
 get {
@@ -13,6 +13,12 @@ get {
 body:json {
   {
     "state": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("pump on");
   }
 }
 

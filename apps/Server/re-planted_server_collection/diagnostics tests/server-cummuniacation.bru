@@ -1,13 +1,19 @@
 meta {
   name: server-cummuniacation
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
   url: http://localhost:{{server}}/communication-test
   body: none
   auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("Client-Server-health");
+  }
 }
 
 tests {

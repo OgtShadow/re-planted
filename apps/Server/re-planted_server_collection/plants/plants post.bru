@@ -1,7 +1,7 @@
 meta {
   name: plants post
   type: http
-  seq: 6
+  seq: 2
 }
 
 post {
@@ -16,6 +16,16 @@ headers {
 
 body:json {
   {"name":"Mint","species":"Mentha"}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("plant", data.id);
+    }
+    bru.runner.setNextRequest('plants get');
+  }
 }
 
 tests {

@@ -1,13 +1,19 @@
 meta {
   name: Client-Server-communication
   type: http
-  seq: 6
+  seq: 4
 }
 
 get {
   url: http://localhost:{{client_server}}/api/client-server/server-check
   body: none
   auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("message-send-post");
+  }
 }
 
 tests {

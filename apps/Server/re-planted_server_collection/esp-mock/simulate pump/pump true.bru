@@ -1,7 +1,7 @@
 meta {
   name: pump true
   type: http
-  seq: 5
+  seq: 4
 }
 
 get {
@@ -13,6 +13,12 @@ get {
 body:json {
   {
     "state": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("light off");
   }
 }
 

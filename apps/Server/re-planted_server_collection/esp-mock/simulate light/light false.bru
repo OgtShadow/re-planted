@@ -1,7 +1,7 @@
 meta {
   name: light false
   type: http
-  seq: 3
+  seq: 6
 }
 
 get {
@@ -13,6 +13,12 @@ get {
 body:json {
   {
     "state": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("light on");
   }
 }
 

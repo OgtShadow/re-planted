@@ -1,7 +1,7 @@
 meta {
   name: light on
   type: http
-  seq: 3
+  seq: 7
 }
 
 post {
@@ -12,7 +12,14 @@ post {
 
 body:json {
   {
-    "state": true
+    "state": true,
+    "durationSeconds": 5
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("light true");
   }
 }
 

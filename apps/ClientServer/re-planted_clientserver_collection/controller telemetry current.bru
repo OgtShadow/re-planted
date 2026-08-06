@@ -26,6 +26,12 @@ tests {
   });
 }
 
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("controller telemetry all clients");
+  }
+}
+
 settings {
   encodeUrl: true
   timeout: 0

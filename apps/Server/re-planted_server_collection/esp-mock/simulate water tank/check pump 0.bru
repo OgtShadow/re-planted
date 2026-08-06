@@ -1,13 +1,19 @@
 meta {
   name: check pump 0
   type: http
-  seq: 3
+  seq: 10
 }
 
 get {
   url: http://localhost:{{sensor_mock}}/sensors
   body: json
   auth: inherit
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("simulate tank");
+  }
 }
 
 tests {

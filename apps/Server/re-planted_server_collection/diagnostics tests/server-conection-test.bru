@@ -10,6 +10,12 @@ get {
   auth: none
 }
 
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("server-cummuniacation");
+  }
+}
+
 tests {
   test("Server works", function () {
     const data = res.getBody() || "";
