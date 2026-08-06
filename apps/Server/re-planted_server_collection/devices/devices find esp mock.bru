@@ -1,0 +1,48 @@
+meta {
+  name: devices find esp mock
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const devices = res.getBody() || [];
+    const espDevice = devices.find((item) => item && item.externalDeviceId === "esp32-test-node-01");
+    if (espDevice && espDevice.id) {
+      bru.setVar("espMockDevice", espDevice.id);
+    }
+    bru.runner.setNextRequest("devices get esp mock by id");
+  }
+}
+
+tests {
+  test("devices list status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("devices list response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("devices list contains esp mock", function () {
+    const devices = res.getBody() || [];
+    const espDevice = devices.find((item) => item && item.externalDeviceId === "esp32-test-node-01");
+    expect(espDevice).to.exist;
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

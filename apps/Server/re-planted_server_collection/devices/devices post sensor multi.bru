@@ -1,0 +1,54 @@
+meta {
+  name: devices post sensor multi
+  type: http
+  seq: 13
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "name": "ESP Multi Sensor Bridge",
+    "deviceKind": "sensor",
+    "targetParameter": "soilMoisture",
+    "sensorFields": ["soilMoistureAnalog", "temperature", "humidity"],
+    "externalDeviceId": "esp32-test-node-01",
+    "effectType": "increase",
+    "effectStrength": 1,
+    "isEnabled": true
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    const data = res.getBody() || {};
+    if (data.id) {
+      bru.setVar("sensorDevice", data.id);
+    }
+    bru.runner.setNextRequest("devices assign sensor plant a");
+  }
+}
+
+tests {
+  test("create sensor device status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("create sensor device has id", function () {
+    const data = res.getBody() || {};
+    expect(data).to.have.property("id");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

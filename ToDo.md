@@ -12,7 +12,7 @@
 - [ ] Integracja klienta MQTT w aplikacji .NET do subskrybowania tematów i nasłuchiwania telemetrii od IoT Controllera.
 - [✅] Utworzenie usługi `BackgroundService` w C# do asynchronicznego zapisywania przetworzonych danych telemetrycznych w PostgreSQL.
 - [✅] Skonfigurowanie Huba SignalR do bezpiecznej, dwukierunkowej komunikacji Web <-> Serwer w czasie rzeczywistym.
-- [ ] Implementacja centralnego Silnika Reguł (Rule Engine) ewaluującego logikę IF-THEN na podstawie napływającej telemetrii z zabezpieczeniem przed kolizjami stanów.
+- [✅] Implementacja centralnego Silnika Reguł (Rule Engine) ewaluującego logikę IF-THEN na podstawie napływającej telemetrii z zabezpieczeniem przed kolizjami stanów.
 - [ ] hashowanie haseł.
 
 ### Faza 3: IoT Controller (Serwer Klienta) - Warstwa Pośrednia
@@ -28,10 +28,9 @@
 - [ ] Instalacja czujnika poziomu cieczy w zbiorniku buforowym.
 
 **Oprogramowanie Mikrokontrolera (Firmware):**
-- [ ] Implementacja pętli pomiarowej (polling) z zachowaniem przerw na ograniczenia czasowe czujników (np. interwały zapytań dla DHT11/22).
-- [ ] Zastosowanie filtru cyfrowego (algorytm średniej kroczącej) dla pomiarów z przetworników ADC (wilgotność gleby i światło) w celu redukcji szumów i stabilizacji odczytów.
+- [✅] Implementacja pętli pomiarowej (polling) z zachowaniem przerw na ograniczenia czasowe czujników (np. interwały zapytań dla DHT11/22).
 - [✅] Normalizacja przetworzonych wyników do formatu JSON przy użyciu `ArduinoJson` (wartości z czujników ADC w zakresie 0-1000, czujnik cieczy jako boolean `true`/`false`).
-- [ ] Zbudowanie blokady programowej (interlock) zapobiegającej uruchomieniu pompy wody przy `false` z czujnika poziomu cieczy (dry-run protection).
+- [✅] Zbudowanie blokady programowej (interlock) zapobiegającej uruchomieniu pompy wody przy `false` z czujnika poziomu cieczy (dry-run protection).
 - [ ] Oprogramowanie Watchdoga (sprzętowego/programowego) wyłączającego przekaźnik pompy po przekroczeniu krytycznego limitu czasu (zapobieganie przelaniu).
 - [ ] Wdrożenie najniższego poziomu Trybu Offline na Client Server – utrzymanie cykli dobowych rośliny wyłącznie na podstawie wewnętrznej pamięci stanu w przypadku utraty pingu do lokalnego brokera.
 

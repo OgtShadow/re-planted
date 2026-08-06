@@ -17,7 +17,10 @@ headers {
 body:json {
   {
     "name": "Room Light",
+    "deviceKind": "actuator",
     "targetParameter": "light",
+    "sensorFields": ["lightIsDark"],
+    "externalDeviceId": "",
     "effectType": "set",
     "effectStrength": 1,
     "isEnabled": true
@@ -47,6 +50,11 @@ tests {
   test("create device has id", function () {
     const data = res.getBody() || {};
     expect(data).to.have.property("id");
+  });
+
+  test("create actuator response has expected user", function () {
+    const data = res.getBody() || {};
+    expect(Number(data.userId)).to.equal(Number(bru.getVar("user")));
   });
 }
 

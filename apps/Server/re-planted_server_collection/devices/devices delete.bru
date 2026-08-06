@@ -16,7 +16,7 @@ headers {
 
 script:post-response {
   if (res.getStatus() === 200 || res.getStatus() === 404) {
-    bru.runner.setNextRequest("devices plants del a");
+    bru.runner.setNextRequest("devices ensure esp mock");
   }
 }
 

@@ -1,0 +1,57 @@
+meta {
+  name: devices get sensor by id
+  type: http
+  seq: 15
+}
+
+get {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices/{{sensorDevice}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("devices delete sensor");
+  }
+}
+
+tests {
+  test("get sensor device status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("sensor device kind is sensor", function () {
+    const data = res.getBody() || {};
+    expect(data.deviceKind).to.equal("sensor");
+  });
+
+  test("sensor device contains selected sensor fields", function () {
+    const data = res.getBody() || {};
+    expect(data.sensorFields).to.be.an("array");
+    expect(data.sensorFields).to.include("soilMoistureAnalog");
+    expect(data.sensorFields).to.include("temperature");
+    expect(data.sensorFields).to.include("humidity");
+  });
+
+  test("sensor device uses esp mock external id", function () {
+    const data = res.getBody() || {};
+    expect(data.externalDeviceId).to.equal("esp32-test-node-01");
+  });
+
+  test("sensor device is assigned to plant A", function () {
+    const data = res.getBody() || {};
+    expect(data.plants).to.be.an("array");
+    const plantA = Number(bru.getVar("plantA"));
+    expect(data.plants.some((plant) => Number(plant.id) === plantA)).to.equal(true);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

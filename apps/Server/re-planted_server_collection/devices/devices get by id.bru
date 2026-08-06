@@ -35,6 +35,17 @@ tests {
     expect(data.targetParameter).to.equal("light");
   });
 
+  test("device kind is actuator", function () {
+    const data = res.getBody() || {};
+    expect(data.deviceKind).to.equal("actuator");
+  });
+
+  test("device sensor fields contains light sensor", function () {
+    const data = res.getBody() || {};
+    expect(data.sensorFields).to.be.an("array");
+    expect(data.sensorFields).to.include("lightIsDark");
+  });
+
   test("device is assigned to many plants", function () {
     const data = res.getBody() || {};
     expect(data.plants).to.be.an("array");

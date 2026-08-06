@@ -1,0 +1,52 @@
+meta {
+  name: devices get esp mock by id
+  type: http
+  seq: 12
+}
+
+get {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices/{{espMockDevice}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("devices post sensor multi");
+  }
+}
+
+tests {
+  test("get esp mock status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("get esp mock kind is sensor", function () {
+    const data = res.getBody() || {};
+    expect(data.deviceKind).to.equal("sensor");
+  });
+
+  test("get esp mock has all core sensors", function () {
+    const data = res.getBody() || {};
+    expect(data.sensorFields).to.be.an("array");
+    expect(data.sensorFields).to.include("soilMoistureAnalog");
+    expect(data.sensorFields).to.include("lightIsDark");
+    expect(data.sensorFields).to.include("temperature");
+    expect(data.sensorFields).to.include("humidity");
+    expect(data.sensorFields).to.include("waterLevelCm");
+  });
+
+  test("get esp mock has external device id", function () {
+    const data = res.getBody() || {};
+    expect(data.externalDeviceId).to.equal("esp32-test-node-01");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

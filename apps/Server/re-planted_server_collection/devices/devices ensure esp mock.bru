@@ -1,0 +1,46 @@
+meta {
+  name: devices ensure esp mock
+  type: http
+  seq: 10
+}
+
+post {
+  url: http://localhost:{{server}}/api/users/{{user}}/devices/ensure-esp-mock
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+    bru.runner.setNextRequest("devices find esp mock");
+  }
+}
+
+tests {
+  test("ensure esp mock status 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("ensure esp mock response is JSON", function () {
+    const type = res.getHeader("content-type") || "";
+    expect(type.toLowerCase()).to.include("application/json");
+  });
+
+  test("ensure esp mock returns external device id", function () {
+    const data = res.getBody() || {};
+    expect(data.externalDeviceId).to.equal("esp32-test-node-01");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
