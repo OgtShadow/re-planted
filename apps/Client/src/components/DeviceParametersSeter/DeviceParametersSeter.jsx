@@ -62,6 +62,11 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
 
   const handleDeviceKindChange = (value) => {
     updateDeviceField('deviceKind', value);
+    if (value === 'sensor') {
+      updateDeviceField('targetParameter', '');
+      updateDeviceField('effectType', 'set');
+      updateDeviceField('effectStrength', 0);
+    }
   };
 
   const handleExternalDeviceIdChange = (value) => {
@@ -84,6 +89,8 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
   const handleEffectStrengthChange = (value) => {
     updateDeviceField('effectStrength', Number(value));
   };
+
+  const isSensorDevice = (device?.deviceKind || '').toLowerCase() === 'sensor';
 
   return (
     <div className="parameters-seter">
@@ -143,74 +150,78 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
           </div>
         </li>
 
-        <li>
-          <label>
-            Cel urządzenia
-            <select
-              value={device?.targetParameter || ''}
-              onChange={(e) => handleTargetParameterChange(e.target.value)}
-            >
-              <option value="" disabled>
-                Wybierz parametr
-              </option>
-              {targetOptions.map((parameter) => (
-                <option key={parameter.key} value={parameter.key}>
-                  {parameter.key} ({parameter.sensorField})
-                </option>
-              ))}
-            </select>
-          </label>
-        </li>
+        {!isSensorDevice ? (
+          <>
+            <li>
+              <label>
+                Cel urządzenia
+                <select
+                  value={device?.targetParameter || ''}
+                  onChange={(e) => handleTargetParameterChange(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Wybierz parametr
+                  </option>
+                  {targetOptions.map((parameter) => (
+                    <option key={parameter.key} value={parameter.key}>
+                      {parameter.key} ({parameter.sensorField})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </li>
 
-        <li>
-          <label>
-            Domyślny handler
-            <input
-              type="text"
-              value={selectedTarget ? `${selectedTarget.defaultCommand} (${selectedTarget.defaultCommandPath})` : ''}
-              readOnly
-            />
-          </label>
-        </li>
+            <li>
+              <label>
+                Domyślny handler
+                <input
+                  type="text"
+                  value={selectedTarget ? `${selectedTarget.defaultCommand} (${selectedTarget.defaultCommandPath})` : ''}
+                  readOnly
+                />
+              </label>
+            </li>
 
-        <li>
-          <label>
-            Pole stanu z sensora
-            <select disabled value={selectedTarget?.defaultStateField || 'pumpState'}>
-              {(selectedTarget?.defaultStateField ? [selectedTarget.defaultStateField] : ['pumpState']).map((parameter) => (
-                <option key={parameter} value={parameter}>
-                  {parameter}
-                </option>
-              ))}
-            </select>
-          </label>
-        </li>
+            <li>
+              <label>
+                Pole stanu z sensora
+                <select disabled value={selectedTarget?.defaultStateField || 'pumpState'}>
+                  {(selectedTarget?.defaultStateField ? [selectedTarget.defaultStateField] : ['pumpState']).map((parameter) => (
+                    <option key={parameter} value={parameter}>
+                      {parameter}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </li>
 
-        <li>
-          <label>
-            Typ działania
-            <select value={device?.effectType || ''} onChange={(e) => handleEffectTypeChange(e.target.value)}>
-              {catalog.supportedEffectTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </label>
-        </li>
+            <li>
+              <label>
+                Typ działania
+                <select value={device?.effectType || ''} onChange={(e) => handleEffectTypeChange(e.target.value)}>
+                  {catalog.supportedEffectTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </li>
 
-        <li>
-          <label>
-            Siła działania
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={device?.effectStrength ?? 1}
-              onChange={(e) => handleEffectStrengthChange(e.target.value)}
-            />
-          </label>
-        </li>
+            <li>
+              <label>
+                Siła działania
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={device?.effectStrength ?? 1}
+                  onChange={(e) => handleEffectStrengthChange(e.target.value)}
+                />
+              </label>
+            </li>
+          </>
+        ) : null}
       </ul>
     </div>
   );

@@ -88,6 +88,7 @@ function DeviceDetails() {
 
     const assignedPlantIds = new Set((device.plants || []).map((plant) => plant.id));
     const assignablePlants = plants.filter((plant) => !assignedPlantIds.has(plant.id));
+    const isSensorDevice = (device.deviceKind || '').toLowerCase() === 'sensor';
 
     return (
         <div className="device-details-container">
@@ -103,10 +104,12 @@ function DeviceDetails() {
                     <span className="label">Typ:</span>
                     <span className="value">{device.deviceKind || 'actuator'}</span>
                 </div>
-                <div className="info-item">
-                    <span className="label">Parameter:</span>
-                    <span className="value">{device.targetParameter}</span>
-                </div>
+                {!isSensorDevice ? (
+                    <div className="info-item">
+                        <span className="label">Parameter:</span>
+                        <span className="value">{device.targetParameter}</span>
+                    </div>
+                ) : null}
                 <div className="info-item">
                     <span className="label">Czujniki:</span>
                     <span className="value">{Array.isArray(device.sensorFields) && device.sensorFields.length > 0 ? device.sensorFields.join(', ') : 'brak'}</span>
@@ -115,10 +118,12 @@ function DeviceDetails() {
                     <span className="label">Telemetry ID:</span>
                     <span className="value">{device.externalDeviceId || 'brak'}</span>
                 </div>
-                <div className="info-item">
-                    <span className="label">Effect Strength:</span>
-                    <span className="value">{device.effectStrength}</span>
-                </div>
+                {!isSensorDevice ? (
+                    <div className="info-item">
+                        <span className="label">Effect Strength:</span>
+                        <span className="value">{device.effectStrength}</span>
+                    </div>
+                ) : null}
             </div>
 
             <div className="relation-box">

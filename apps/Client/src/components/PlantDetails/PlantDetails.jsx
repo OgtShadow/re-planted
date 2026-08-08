@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import connectionManager, { userPlantsEndpoint } from '../../connectionManager';
+import connectionManager, { API_BASE_URL, userPlantsEndpoint } from '../../connectionManager';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 import StatusDot from '../StatusDot/StatusDot';
 import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
 import './PlantDetails.css';
@@ -9,6 +10,7 @@ function PlantDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [plant, setPlant] = useState(null);
+    const [liveSnapshots, setLiveSnapshots] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -44,8 +46,45 @@ function PlantDetails() {
         }
     };
 
+    useEffect(() => {
+        const connection = new HubConnectionBuilder()
+            .withUrl(`${API_BASE_URL}/telemetryHub`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on('TelemetryUpdated', (snapshots) => {
+            if (!Array.isArray(snapshots)) {
+                return;
+            }
+
+            setLiveSnapshots(snapshots);
+        });
+
+        connection.start().catch((error) => {
+            console.error('PlantDetails telemetry SignalR connection failed:', error);
+        });
+
+        return () => {
+            connection.stop();
+        };
+    }, []);
+
     if (loading) return <div className="plant-details-container">Loading...</div>;
     if (!plant) return <div className="plant-details-container">Plant not found</div>;
+
+    const sensorDevices = (plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor');
+    const sensorExternalIds = sensorDevices
+        .map((device) => (device.externalDeviceId || '').trim().toLowerCase())
+        .filter(Boolean);
+
+    const plantLiveSnapshots = liveSnapshots.filter((snapshot) => {
+        const snapshotDeviceId = (snapshot?.deviceId || snapshot?.DeviceId || '').trim().toLowerCase();
+        if (!snapshotDeviceId) {
+            return false;
+        }
+
+        return sensorExternalIds.some((externalId) => snapshotDeviceId === externalId || snapshotDeviceId.startsWith(`${externalId}-`));
+    });
 
     return (
         <div className="plant-details-container">
@@ -77,10 +116,9 @@ function PlantDetails() {
 
             <div className="relation-box">
                 <h3>Przypisane sensory</h3>
-                {(plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor').length > 0 ? (
+                {sensorDevices.length > 0 ? (
                     <ul className="relation-list">
-                        {(plant.devices || [])
-                            .filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor')
+                        {sensorDevices
                             .map((device) => (
                                 <li key={device.id}>
                                     <button type="button" className="link-like" onClick={() => navigate(`/device/${device.id}`)}>
@@ -92,6 +130,24 @@ function PlantDetails() {
                     </ul>
                 ) : (
                     <p>Brak przypisanych sensorów.</p>
+                )}
+
+                <h3>Dane live dla tej rośliny</h3>
+                {plantLiveSnapshots.length > 0 ? (
+                    <div className="plant-live-grid">
+                        {plantLiveSnapshots.map((snapshot) => (
+                            <div key={`${snapshot.deviceId || snapshot.DeviceId}-${snapshot.timestamp || snapshot.Timestamp}`} className="plant-live-card">
+                                <strong>{snapshot.deviceId || snapshot.DeviceId}</strong>
+                                <span>Gleba: {snapshot.soilMoistureAnalog ?? snapshot.SoilMoistureAnalog}</span>
+                                <span>Temp: {snapshot.temperature ?? snapshot.Temperature}</span>
+                                <span>Wilg: {snapshot.humidity ?? snapshot.Humidity}</span>
+                                <span>Woda: {snapshot.waterLevelCm ?? snapshot.WaterLevelCm} cm</span>
+                                <span>{new Date(snapshot.timestamp || snapshot.Timestamp || Date.now()).toLocaleTimeString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p>Brak bieżących odczytów dla przypisanych sensorów.</p>
                 )}
 
                 <h3>Przypisane actuatory</h3>

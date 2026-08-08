@@ -98,3 +98,21 @@
     cursor: pointer;
     padding: 0;
 }
+
+.plant-live-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.plant-live-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: color-mix(in srgb, var(--background-color), white 20%);
+    border: 1px solid var(--dark-background-color);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--light-text-color);
+}
