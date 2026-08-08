@@ -1,4 +1,13 @@
 services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: replanted_mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./infrastructure/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
   postgres_db:
     image: postgres:16-alpine
     container_name: replanted_postgres
@@ -55,6 +64,15 @@ services:
       - IoTController__SoakTimeSeconds=60
       - IoTController__LowWaterThresholdCm=2
       - IoTController__MoistureThresholdBufferPercent=5
+      - Mqtt__Enabled=true
+      - Mqtt__BrokerHost=mosquitto
+      - Mqtt__BrokerPort=1883
+      - Mqtt__ClientId=re-planted-client-server
+      - Mqtt__TelemetryTopicFilter=replanted/telemetry/+/+
+      - Mqtt__CommandsTopicTemplate=replanted/commands/{deviceId}
+      - Mqtt__KeepAliveSeconds=30
+      - Mqtt__ReconnectDelaySeconds=5
+      - Mqtt__QosLevel=1
       - Jwt__Key=dev-only-super-secret-key-change-me-please-12345
       - Jwt__Issuer=re-planted-server
       - Jwt__Audience=re-planted-client
@@ -63,6 +81,8 @@ services:
         condition: service_started
       postgres_db:
         condition: service_healthy
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
 
   client:

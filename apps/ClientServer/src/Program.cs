@@ -17,11 +17,14 @@ builder.Services.AddSignalR();
 builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSection(MainServerApiOptions.SectionName));
 builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSection(MockDeviceApiOptions.SectionName));
 builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
+builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
 builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
 builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
+builder.Services.AddSingleton<MqttBridgeService>();
+builder.Services.AddSingleton<IMqttBridgeService>(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
 
 builder.Services.AddHttpClient<IMainServerTopologyClient, MainServerTopologyClient>((serviceProvider, client) =>
 {
@@ -39,6 +42,7 @@ builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProv
 
 builder.Services.AddHostedService<ControllerStateBackupService>();
 builder.Services.AddHostedService<IoTControllerBackgroundService>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
 
 var app = builder.Build();
 

@@ -67,3 +67,25 @@ public sealed record PlantOverviewDto(
     string Species,
     ControllerPlantParametersDto Parameters,
     IReadOnlyList<ControllerDeviceDto> Devices);
+
+public sealed record TelemetryPayload(
+    string DeviceId,
+    string SourceType,
+    int? SoilMoisture,
+    int? LightLevel,
+    int? Temperature,
+    int? Humidity,
+    int? WaterLevel,
+    bool? WaterLevelOk,
+    bool? PumpState,
+    bool? LampState,
+    DateTime TimestampUtc);
+
+public sealed record CommandPayload(
+    string DeviceId,
+    string Command,
+    bool State,
+    int DurationMs,
+    DateTime RequestedAtUtc);
+
+public sealed record PumpCommandRequest(int DurationMs);

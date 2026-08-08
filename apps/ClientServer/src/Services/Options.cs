@@ -29,6 +29,23 @@ public sealed class IoTControllerOptions
     public int MoistureThresholdBufferPercent { get; set; } = 5;
 }
 
+public sealed class MqttOptions
+{
+    public const string SectionName = "Mqtt";
+
+    public bool Enabled { get; set; } = true;
+    public string BrokerHost { get; set; } = "localhost";
+    public int BrokerPort { get; set; } = 1883;
+    public string ClientId { get; set; } = "re-planted-client-server";
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+    public string TelemetryTopicFilter { get; set; } = "replanted/telemetry/+/+";
+    public string CommandsTopicTemplate { get; set; } = "replanted/commands/{deviceId}";
+    public int KeepAliveSeconds { get; set; } = 30;
+    public int ReconnectDelaySeconds { get; set; } = 5;
+    public int QosLevel { get; set; } = 1;
+}
+
 public sealed class ControllerStateBackupOptions
 {
     public const string SectionName = "ControllerStateBackup";

@@ -2,21 +2,21 @@
 
 ### Faza 1: Środowisko i Infrastruktura (Docker & Baza Danych)
 - [✅] Skonfigurowanie pliku `docker-compose.yml` (PostgreSQL 16, Nginx, .NET 8 Backend, React Frontend).
-- [ ] Zdefiniowanie zewnętrznego brokera wiadomości MQTT w infrastrukturze.
+- [✅] Zdefiniowanie zewnętrznego brokera wiadomości MQTT w infrastrukturze.
 - [✅] Zaprojektowanie relacyjnego schematu bazy danych (tabele m.in.: `Users`, `Devices`, `Telemetry`, `AutomationRules`).
 - [✅] Utworzenie i uruchomienie migracji Entity Framework Core w .NET 8.
 
 ### Faza 2: Serwer Główny (C# / .NET 8 Minimal API)
 - [✅] Zaimplementowanie endpointów CRUD dla zarządzania urządzeniami (ESP32) i regułami automatyzacji (wraz z automatyczną dokumentacją w Swaggerze).
 - [✅] Wdrożenie mechanizmów autoryzacji i uwierzytelniania użytkowników (JWT).
-- [ ] Integracja klienta MQTT w aplikacji .NET do subskrybowania tematów i nasłuchiwania telemetrii od IoT Controllera.
+- [✅] Integracja klienta MQTT w aplikacji .NET do subskrybowania tematów i nasłuchiwania telemetrii od IoT Controllera.
 - [✅] Utworzenie usługi `BackgroundService` w C# do asynchronicznego zapisywania przetworzonych danych telemetrycznych w PostgreSQL.
 - [✅] Skonfigurowanie Huba SignalR do bezpiecznej, dwukierunkowej komunikacji Web <-> Serwer w czasie rzeczywistym.
 - [✅] Implementacja centralnego Silnika Reguł (Rule Engine) ewaluującego logikę IF-THEN na podstawie napływającej telemetrii z zabezpieczeniem przed kolizjami stanów.
 - [ ] hashowanie haseł.
 
 ### Faza 3: IoT Controller (Serwer Klienta) - Warstwa Pośrednia
-- [ ] Konfiguracja lokalnego środowiska wymiany wiadomości dla peryferiów domowych (bramka dystrybucyjna).
+- [✅] Konfiguracja lokalnego środowiska wymiany wiadomości dla peryferiów domowych (bramka dystrybucyjna).
 - [ ] Zbudowanie mechanizmu cache'owania – pobieranie i lokalne zapisywanie zatwierdzonych reguł z Głównego Serwera.
 - [ ] Implementacja Trybu Offline na poziomie kontrolera – przejęcie autonomicznego zarządzania stanem urządzeń w przypadku utraty połączenia WAN (Fail-safe).
 

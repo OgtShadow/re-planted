@@ -11,15 +11,18 @@ public sealed class IoTControllerController : ControllerBase
 {
     private readonly IControllerStateStore _stateStore;
     private readonly IMainServerTopologyClient _topologyClient;
+    private readonly IMqttBridgeService _mqttBridgeService;
     private readonly ILogger<IoTControllerController> _logger;
 
     public IoTControllerController(
         IControllerStateStore stateStore,
         IMainServerTopologyClient topologyClient,
+        IMqttBridgeService mqttBridgeService,
         ILogger<IoTControllerController> logger)
     {
         _stateStore = stateStore;
         _topologyClient = topologyClient;
+        _mqttBridgeService = mqttBridgeService;
         _logger = logger;
     }
 
@@ -107,5 +110,51 @@ public sealed class IoTControllerController : ControllerBase
             topology?.SyncedAtUtc ?? DateTime.UtcNow,
             machine.WarningMessage,
             topology?.Plants.Count ?? 0));
+    }
+
+    [HttpGet("devices/{deviceId}/telemetry/latest")]
+    [ProducesResponseType(typeof(TelemetryPayload), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<TelemetryPayload> GetLatestMqttTelemetry(int clientId, string deviceId)
+    {
+        if (_mqttBridgeService.TryGetLatestTelemetry(deviceId, out var telemetry) && telemetry is not null)
+        {
+            return Ok(telemetry);
+        }
+
+        return NotFound(new { response = "Brak telemetrii MQTT dla wskazanego urządzenia." });
+    }
+
+    [HttpPost("devices/{deviceId}/pump")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult> RunPumpWithMqtt(int clientId, string deviceId, [FromBody] PumpCommandRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return BadRequest(new { response = "Identyfikator urządzenia jest wymagany." });
+        }
+
+        if (request.DurationMs <= 0)
+        {
+            return BadRequest(new { response = "Pole durationMs musi być większe od zera." });
+        }
+
+        var published = await _mqttBridgeService.PublishPumpCommandAsync(deviceId, request.DurationMs, cancellationToken);
+        if (!published)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy MQTT do urządzenia." });
+        }
+
+        _logger.LogInformation("Wysłano komendę MQTT uruchomienia pompy dla urządzenia {DeviceId} na {DurationMs} ms.", deviceId, request.DurationMs);
+
+        return Accepted(new
+        {
+            ClientId = clientId,
+            DeviceId = deviceId,
+            request.DurationMs,
+            Topic = $"replanted/commands/{deviceId}"
+        });
     }
 }
