@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using RePlanted.Server.Contracts;
 using RePlanted.Server.Contracts.Devices;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
@@ -126,11 +127,11 @@ public static class ActuatorDeviceEndpoints
                 .Where(d => d.UserId == userId)
                 .ToListAsync();
 
-            return Results.Ok(result);
+            return Results.Ok(result.Select(device => device.ToResponse(includePlants: true)).ToList());
         })
             .WithSummary("Get all actuator devices for user")
             .WithDescription("Returns all actuator devices owned by the user and assigned plants.")
-            .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
+            .Produces<List<DeviceResponse>>(StatusCodes.Status200OK);
 
         devices.MapGet("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db) =>
         {
@@ -143,11 +144,11 @@ public static class ActuatorDeviceEndpoints
                 .Include(d => d.Plants)
                 .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
 
-            return device is not null ? Results.Ok(device) : Results.NotFound();
+            return device is not null ? Results.Ok(device.ToResponse(includePlants: true)) : Results.NotFound();
         })
             .WithSummary("Get actuator device by ID")
             .WithDescription("Returns a single actuator device only when it belongs to the selected user.")
-            .Produces<ActuatorDevice>(StatusCodes.Status200OK)
+            .Produces<DeviceResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         devices.MapGet("/actuators", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
@@ -162,11 +163,11 @@ public static class ActuatorDeviceEndpoints
                 .Where(d => d.UserId == userId && d.DeviceKind == DeviceKindActuator)
                 .ToListAsync();
 
-            return Results.Ok(result);
+            return Results.Ok(result.Select(device => device.ToResponse(includePlants: true)).ToList());
         })
             .WithSummary("Get actuator devices for user")
             .WithDescription("Returns only actuator devices owned by the user.")
-            .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
+            .Produces<List<DeviceResponse>>(StatusCodes.Status200OK);
 
         devices.MapGet("/sensors", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
         {
@@ -180,11 +181,11 @@ public static class ActuatorDeviceEndpoints
                 .Where(d => d.UserId == userId && d.DeviceKind == DeviceKindSensor)
                 .ToListAsync();
 
-            return Results.Ok(result);
+            return Results.Ok(result.Select(device => device.ToResponse(includePlants: true)).ToList());
         })
             .WithSummary("Get sensor devices for user")
             .WithDescription("Returns only sensor devices owned by the user.")
-            .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
+            .Produces<List<DeviceResponse>>(StatusCodes.Status200OK);
 
         devices.MapPost("/actuators", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {

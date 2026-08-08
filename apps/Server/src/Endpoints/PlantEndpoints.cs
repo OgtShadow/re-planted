@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using RePlanted.Server.Contracts;
 using RePlanted.Server.Contracts.Plants;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
@@ -25,15 +26,17 @@ public static class PlantEndpoints
                 return Results.Forbid();
             }
 
-            return Results.Ok(await db.Plants
+            var plantsForUser = await db.Plants
                 .Include(p => p.Parameters)
                 .Include(p => p.Devices)
                 .Where(p => p.UserId == userId)
-                .ToListAsync());
+                .ToListAsync();
+
+            return Results.Ok(plantsForUser.Select(plant => plant.ToResponse()).ToList());
         })
             .WithSummary("Get all plants for user")
             .WithDescription("Returns all plants assigned to the specified user.")
-            .Produces<List<Plant>>(StatusCodes.Status200OK);
+            .Produces<List<PlantResponse>>(StatusCodes.Status200OK);
 
         plants.MapGet("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db) =>
         {
@@ -46,11 +49,11 @@ public static class PlantEndpoints
                 .Include(p => p.Parameters)
                 .Include(p => p.Devices)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-            return plant is not null ? Results.Ok(plant) : Results.NotFound();
+            return plant is not null ? Results.Ok(plant.ToResponse()) : Results.NotFound();
         })
             .WithSummary("Get user plant by ID")
             .WithDescription("Returns a plant only when it belongs to the specified user.")
-            .Produces<Plant>(StatusCodes.Status200OK)
+            .Produces<PlantResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
         plants.MapPost("", async (int userId, UpsertPlantRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<PlantHub> hubContext) =>
