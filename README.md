@@ -9,6 +9,7 @@ re-planted składa się z:
 - aplikacji frontendowej (React + Vite),
 - API backendowego (ASP.NET Core Minimal API),
 - dodatkowego serwisu `ClientServer` do logiki komunikacji klient-serwer,
+- lokalnego brokera MQTT (Mosquitto) do komunikacji ClientServer <-> ESP32,
 - bazy PostgreSQL,
 - komunikacji realtime przez SignalR.
 
@@ -20,6 +21,7 @@ Aktualna konfiguracja zawiera gotowy workflow uruchamiania przez Docker Compose 
 - Backend: .NET 8 (ASP.NET Core Minimal API), Entity Framework Core, Npgsql
 - Baza danych: PostgreSQL 16
 - Runtime deployment: Docker, Docker Compose, Nginx (dla frontendu)
+- Messaging: MQTT (Mosquitto), MQTTnet (.NET), PubSubClient (ESP32)
 - Dokumentacja API: Swagger / OpenAPI
 
 ## 3. Struktura repozytorium
@@ -39,6 +41,9 @@ Najważniejsze katalogi i pliki:
 │   │   ├── Services/
 │   │   ├── Dockerfile
 │   │   └── ClientServer.csproj
+│   ├── ArtificialEsp/             # Symulator + firmware ESP32
+│   │   ├── main.go                # HTTP mock urządzenia
+│   │   └── firmware/RePlantedNode/RePlantedNode.ino
 │   └── Server/                    # Backend (.NET 8)
 │       ├── src/
 │       │   ├── Contracts/         # DTO i kontrakty API
@@ -147,6 +152,7 @@ Domyślne adresy po starcie:
 - ClientServer server-check: http://localhost:8082/api/client-server/server-check
 - Sensor mock: http://localhost:8085/sensors
 - PostgreSQL: localhost:5432
+- MQTT broker: localhost:1883
 
 ## 7. Uruchamianie lokalne (bez Docker Compose)
 
@@ -235,11 +241,50 @@ Dostępne endpointy:
 - `GET /` - prosty status serwisu i link do dokumentacji
 - `GET /api/client-server/health` - health check serwisu
 - `GET /api/client-server/server-check` - test połączenia z głównym serwerem
+- `GET /api/client-server/controllers/{clientId}/devices/{deviceId}/telemetry/latest` - ostatnia telemetria MQTT urządzenia
+- `POST /api/client-server/controllers/{clientId}/devices/{deviceId}/pump` - publikacja komendy uruchomienia pompy z parametrem `durationMs`
 
 Serwis korzysta z konfiguracji:
 
-- `ServerApi__BaseUrl=http://app:8080`
-- `ServerApi__CommunicationPath=/communication-test`
+- `MainServerApi__BaseUrl=http://app:8080`
+- `MainServerApi__PlantsPath=/api/users/{clientId}/plants`
+
+Dodatkowa konfiguracja MQTT:
+
+- `Mqtt__Enabled=true`
+- `Mqtt__BrokerHost=mosquitto`
+- `Mqtt__BrokerPort=1883`
+- `Mqtt__TelemetryTopicFilter=replanted/telemetry/+/+`
+- `Mqtt__CommandsTopicTemplate=replanted/commands/{deviceId}`
+
+### 9.5 MQTT Tier 3 <-> Tier 4
+
+Topiki:
+
+- Telemetria: `replanted/telemetry/{sensor|actuator}/{deviceId}`
+- Komendy: `replanted/commands/{deviceId}`
+
+Model telemetrii (`TelemetryPayload`):
+
+- `deviceId`
+- `sourceType`
+- `soilMoisture`, `lightLevel`, `temperature`, `humidity`, `waterLevel` (zakres 0-1000)
+- `waterLevelOk`, `pumpState`, `lampState`
+- `timestampUtc`
+
+Model komendy (`CommandPayload`):
+
+- `deviceId`
+- `command` (np. `pump`)
+- `state`
+- `durationMs`
+- `requestedAtUtc`
+
+Bezpieczeństwo wykonania komendy pompy w firmware ESP32:
+
+- interlock poziomu wody blokuje start pompy przy niskim stanie,
+- dead-man switch wyłącza pompę automatycznie po `durationMs`,
+- filtr moving average wygładza odczyty ADC przed publikacją telemetrii.
 
 ## 10. Swagger / OpenAPI
 
@@ -337,3 +382,17 @@ nie przejdzie i dalej wyglądało na cache:
 docker compose build --no-cache sensor-mock
 docker compose up -d --force-recreate --no-deps sensor-mock
 ```
+
+## 16. Firmware ESP32
+
+Bazowy firmware pod lokalną komunikację MQTT znajduje się w:
+
+- `apps/ArtificialEsp/firmware/RePlantedNode/RePlantedNode.ino`
+
+Firmware realizuje:
+
+- subskrypcję komend z `replanted/commands/{deviceId}`,
+- publikację telemetrii sensor/actuator do `replanted/telemetry/...`,
+- interlock pompy zależny od czujnika poziomu cieczy,
+- automatyczne wyłączanie pompy po `durationMs` bez blokowania pętli,
+- moving average dla wejść analogowych (wilgotność gleby, światło).
