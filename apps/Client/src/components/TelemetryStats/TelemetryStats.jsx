@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import connectionManager, { userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint } from '../../connectionManager';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../connectionManager';
 import './TelemetryStats.css';
 
 const NUMERIC_SERIES = [
@@ -65,6 +67,7 @@ function TelemetryStats() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [liveSnapshots, setLiveSnapshots] = useState([]);
 
   useEffect(() => {
     const loadFilters = async () => {
@@ -148,6 +151,50 @@ function TelemetryStats() {
 
     return () => window.clearInterval(intervalId);
   }, [loadTelemetry]);
+
+  useEffect(() => {
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${API_BASE_URL}/telemetryHub`)
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('TelemetryUpdated', (snapshots) => {
+      if (!Array.isArray(snapshots) || snapshots.length === 0) {
+        return;
+      }
+
+      setLiveSnapshots(snapshots);
+      loadTelemetry();
+    });
+
+    connection.start().catch((signalrError) => {
+      console.error('Telemetry SignalR connection failed:', signalrError);
+    });
+
+    return () => {
+      connection.stop();
+    };
+  }, [loadTelemetry]);
+
+  const liveRows = useMemo(() => {
+    if (!Array.isArray(liveSnapshots) || liveSnapshots.length === 0) {
+      return [];
+    }
+
+    const resolvedDeviceId = response?.deviceId || '';
+    const normalized = resolvedDeviceId.trim().toLowerCase();
+
+    if (!normalized) {
+      return liveSnapshots;
+    }
+
+    const exact = liveSnapshots.filter((snapshot) => (snapshot?.deviceId || '').trim().toLowerCase() === normalized);
+    if (exact.length > 0) {
+      return exact;
+    }
+
+    return liveSnapshots;
+  }, [liveSnapshots, response?.deviceId]);
 
   const chartData = useMemo(() => {
     const points = response?.points ?? [];
@@ -247,6 +294,22 @@ function TelemetryStats() {
 
       {info ? <p>{info}</p> : null}
       {error ? <p className="telemetry-error">{error}</p> : null}
+
+      {liveRows.length > 0 ? (
+        <div className="telemetry-live-card">
+          <strong>Live stream czujników</strong>
+          {liveRows.map((snapshot) => (
+            <div key={`${snapshot.deviceId}-${snapshot.timestamp}`} className="telemetry-live-row">
+              <span>{snapshot.deviceId}</span>
+              <span>gleba: {snapshot.soilMoistureAnalog}</span>
+              <span>temp: {snapshot.temperature}</span>
+              <span>wilg: {snapshot.humidity}</span>
+              <span>woda: {snapshot.waterLevelCm} cm</span>
+              <span>{new Date(snapshot.timestamp).toLocaleTimeString()}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {!chartData ? (
         <p className="telemetry-empty">Brak danych telemetrycznych dla wybranego zakresu.</p>

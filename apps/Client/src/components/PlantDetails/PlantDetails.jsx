@@ -75,6 +75,44 @@ function PlantDetails() {
                 </div>
             </div>
 
+            <div className="relation-box">
+                <h3>Przypisane sensory</h3>
+                {(plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor').length > 0 ? (
+                    <ul className="relation-list">
+                        {(plant.devices || [])
+                            .filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor')
+                            .map((device) => (
+                                <li key={device.id}>
+                                    <button type="button" className="link-like" onClick={() => navigate(`/device/${device.id}`)}>
+                                        {device.name}
+                                    </button>
+                                    <span>{device.externalDeviceId || 'brak telemetry id'}</span>
+                                </li>
+                            ))}
+                    </ul>
+                ) : (
+                    <p>Brak przypisanych sensorów.</p>
+                )}
+
+                <h3>Przypisane actuatory</h3>
+                {(plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor').length > 0 ? (
+                    <ul className="relation-list">
+                        {(plant.devices || [])
+                            .filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor')
+                            .map((device) => (
+                                <li key={device.id}>
+                                    <button type="button" className="link-like" onClick={() => navigate(`/device/${device.id}`)}>
+                                        {device.name}
+                                    </button>
+                                    <span>{device.targetParameter || 'brak celu'}</span>
+                                </li>
+                            ))}
+                    </ul>
+                ) : (
+                    <p>Brak przypisanych actuatorów.</p>
+                )}
+            </div>
+
             <button className="edit-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
 
             {isEditing && <PlantEditWindow plant={plant} onClose={handleEditClose} />}

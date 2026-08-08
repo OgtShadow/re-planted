@@ -21,7 +21,7 @@ function DeviceList() {
       fetchDevices();
 
       const connection = new HubConnectionBuilder()
-          .withUrl(`${API_BASE_URL}/deviceHub`)
+          .withUrl(`${API_BASE_URL}/userHub`)
           .withAutomaticReconnect()
           .build();
 

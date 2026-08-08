@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using RePlanted.Server.Contracts.Telemetry;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
+using Server.Hubs;
 
 namespace RePlanted.Server.Services;
 
@@ -11,16 +13,19 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
     private readonly IServiceScopeFactory scopeFactory;
     private readonly IHttpClientFactory httpClientFactory;
     private readonly ILogger<TelemetryCollectorBackgroundService> logger;
+    private readonly IHubContext<TelemetryHub> telemetryHub;
     private readonly TelemetryCollectorOptions options;
 
     public TelemetryCollectorBackgroundService(
         IServiceScopeFactory scopeFactory,
         IHttpClientFactory httpClientFactory,
+        IHubContext<TelemetryHub> telemetryHub,
         IOptions<TelemetryCollectorOptions> options,
         ILogger<TelemetryCollectorBackgroundService> logger)
     {
         this.scopeFactory = scopeFactory;
         this.httpClientFactory = httpClientFactory;
+        this.telemetryHub = telemetryHub;
         this.logger = logger;
         this.options = options.Value;
     }
@@ -68,6 +73,7 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
         db.TelemetryBuckets.RemoveRange(staleBuckets);
 
         await db.SaveChangesAsync(cancellationToken);
+        await telemetryHub.Clients.All.SendAsync("TelemetryUpdated", snapshots, cancellationToken);
     }
 
     private static async Task UpsertSnapshotAsync(AppDbContext db, SensorTelemetrySnapshot snapshot, CancellationToken cancellationToken)

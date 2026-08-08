@@ -69,3 +69,39 @@
     background-color: var(--accent-color-light);
     color: var(--accent-color-dark);
 }
+
+.relation-box {
+    background-color: var(--dark-color);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 20px;
+}
+
+.relation-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.relation-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.assign-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.link-like {
+    background: none;
+    border: none;
+    color: var(--light-color);
+    cursor: pointer;
+    padding: 0;
+}

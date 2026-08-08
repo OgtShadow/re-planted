@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Contracts.Devices;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
+using Server.Hubs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -184,7 +186,7 @@ public static class ActuatorDeviceEndpoints
             .WithDescription("Returns only sensor devices owned by the user.")
             .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
 
-        devices.MapPost("", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapPost("/actuators", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -202,38 +204,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Add(device);
             await db.SaveChangesAsync();
-
-            return Results.Ok(new
-            {
-                Response = $"Dodano urządzenie: {device.Name}",
-                Id = device.Id,
-                UserId = device.UserId
-            });
-        })
-            .WithSummary("Create actuator device (legacy route)")
-            .WithDescription("Creates a new standalone actuator device for user.")
-            .Accepts<UpsertActuatorDeviceRequest>("application/json")
-            .Produces(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
-
-        devices.MapPost("/actuators", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
-        {
-            if (!IsRequestUserAuthorized(principal, userId))
-            {
-                return Results.Forbid();
-            }
-
-            var userExists = await db.Users.AnyAsync(u => u.Id == userId);
-            if (!userExists)
-            {
-                return Results.NotFound(new { Response = $"Nie znaleziono użytkownika o id={userId}" });
-            }
-
-            var device = MapToActuatorDevice(request);
-            device.UserId = userId;
-
-            db.ActuatorDevices.Add(device);
-            await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -248,7 +219,7 @@ public static class ActuatorDeviceEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        devices.MapPost("/sensors", async (int userId, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapPost("/sensors", async (int userId, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -266,6 +237,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Add(device);
             await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -280,47 +252,7 @@ public static class ActuatorDeviceEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        devices.MapPut("/{id:int}", async (int userId, int id, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
-        {
-            if (!IsRequestUserAuthorized(principal, userId))
-            {
-                return Results.Forbid();
-            }
-
-            var device = await db.ActuatorDevices
-                .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
-
-            if (device is null)
-            {
-                return Results.NotFound();
-            }
-
-            var mapped = MapToActuatorDevice(request);
-            device.Name = mapped.Name;
-            device.DeviceKind = mapped.DeviceKind;
-            device.TargetParameter = mapped.TargetParameter;
-            device.SensorFields = mapped.SensorFields;
-            device.ExternalDeviceId = mapped.ExternalDeviceId;
-            device.EffectType = mapped.EffectType;
-            device.EffectStrength = mapped.EffectStrength;
-            device.IsEnabled = mapped.IsEnabled;
-
-            await db.SaveChangesAsync();
-
-            return Results.Ok(new
-            {
-                Response = $"Zaktualizowano urządzenie: {device.Name}",
-                Id = device.Id,
-                UserId = device.UserId
-            });
-        })
-            .WithSummary("Update actuator device (legacy route)")
-            .WithDescription("Updates an existing actuator device.")
-            .Accepts<UpsertActuatorDeviceRequest>("application/json")
-            .Produces(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status404NotFound);
-
-        devices.MapPut("/actuators/{id:int}", async (int userId, int id, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapPut("/actuators/{id:int}", async (int userId, int id, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -351,6 +283,7 @@ public static class ActuatorDeviceEndpoints
             device.IsEnabled = mapped.IsEnabled;
 
             await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -365,7 +298,7 @@ public static class ActuatorDeviceEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        devices.MapPut("/sensors/{id:int}", async (int userId, int id, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapPut("/sensors/{id:int}", async (int userId, int id, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -396,6 +329,7 @@ public static class ActuatorDeviceEndpoints
             device.IsEnabled = mapped.IsEnabled;
 
             await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -430,7 +364,7 @@ public static class ActuatorDeviceEndpoints
             .WithDescription("Ensures a multi-sensor ESP mock device exists for the user.")
             .Produces(StatusCodes.Status200OK);
 
-        devices.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -446,6 +380,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Remove(device);
             await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -459,7 +394,7 @@ public static class ActuatorDeviceEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        devices.MapPut("/{deviceId:int}/plants/{plantId:int}", async (int userId, int deviceId, int plantId, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapPut("/{deviceId:int}/plants/{plantId:int}", async (int userId, int deviceId, int plantId, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -484,6 +419,7 @@ public static class ActuatorDeviceEndpoints
             {
                 device.Plants.Add(plant);
                 await db.SaveChangesAsync();
+                await hubContext.Clients.All.SendAsync("DevicesUpdated");
             }
 
             return Results.Ok(new { Response = "Przypisano urządzenie do rośliny", DeviceId = deviceId, PlantId = plantId });
@@ -493,7 +429,7 @@ public static class ActuatorDeviceEndpoints
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
-        devices.MapDelete("/{deviceId:int}/plants/{plantId:int}", async (int userId, int deviceId, int plantId, ClaimsPrincipal principal, AppDbContext db) =>
+        devices.MapDelete("/{deviceId:int}/plants/{plantId:int}", async (int userId, int deviceId, int plantId, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
             {
@@ -516,6 +452,7 @@ public static class ActuatorDeviceEndpoints
 
             device.Plants.Remove(plant);
             await db.SaveChangesAsync();
+            await hubContext.Clients.All.SendAsync("DevicesUpdated");
 
             return Results.Ok(new { Response = "Odpięto urządzenie od rośliny", DeviceId = deviceId, PlantId = plantId });
         })
@@ -581,11 +518,17 @@ public static class ActuatorDeviceEndpoints
     {
         var existing = await db.ActuatorDevices.FirstOrDefaultAsync(d =>
             d.UserId == userId &&
-            d.DeviceKind == DeviceKindSensor &&
             d.ExternalDeviceId == DefaultEspMockExternalId);
 
         if (existing is not null)
         {
+            existing.DeviceKind = DeviceKindSensor;
+            existing.TargetParameter = "soilMoisture";
+            existing.SensorFields = ["soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm"];
+            existing.EffectType = "set";
+            existing.EffectStrength = 0;
+            existing.IsEnabled = true;
+            await db.SaveChangesAsync();
             return false;
         }
 
@@ -597,8 +540,8 @@ public static class ActuatorDeviceEndpoints
             TargetParameter = "soilMoisture",
             SensorFields = ["soilMoistureAnalog", "lightIsDark", "temperature", "humidity", "waterLevelCm"],
             ExternalDeviceId = DefaultEspMockExternalId,
-            EffectType = "increase",
-            EffectStrength = 1,
+            EffectType = "set",
+            EffectStrength = 0,
             IsEnabled = true
         });
 

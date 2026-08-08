@@ -78,6 +78,11 @@ function DeviceProfile({ device }) {
         <p>Czujniki: {device.sensorFields.join(', ')}</p>
       ) : null}
       {device?.externalDeviceId ? <p>Telemetry ID: {device.externalDeviceId}</p> : null}
+      {Array.isArray(device?.plants) && device.plants.length > 0 ? (
+        <p>Rośliny: {device.plants.map((plant) => plant.name).join(', ')}</p>
+      ) : (
+        <p>Rośliny: brak</p>
+      )}
 
       {!isSensorOnly ? (
         <>
