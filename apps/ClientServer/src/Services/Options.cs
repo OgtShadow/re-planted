@@ -29,6 +29,15 @@ public sealed class IoTControllerOptions
     public int MoistureThresholdBufferPercent { get; set; } = 5;
 }
 
+public sealed class ControllerStateBackupOptions
+{
+    public const string SectionName = "ControllerStateBackup";
+
+    public bool Enabled { get; set; } = true;
+    public int SaveIntervalSeconds { get; set; } = 60;
+    public string FilePath { get; set; } = "data/controller-state.json";
+}
+
 public sealed class JwtOptions
 {
     public const string SectionName = "Jwt";

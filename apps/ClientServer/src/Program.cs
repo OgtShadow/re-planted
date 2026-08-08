@@ -17,6 +17,7 @@ builder.Services.AddSignalR();
 builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSection(MainServerApiOptions.SectionName));
 builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSection(MockDeviceApiOptions.SectionName));
 builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
+builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
@@ -36,6 +37,7 @@ builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProv
 	client.Timeout = TimeSpan.FromSeconds(10);
 });
 
+builder.Services.AddHostedService<ControllerStateBackupService>();
 builder.Services.AddHostedService<IoTControllerBackgroundService>();
 
 var app = builder.Build();

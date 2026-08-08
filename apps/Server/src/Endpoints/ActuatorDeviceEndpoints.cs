@@ -148,6 +148,42 @@ public static class ActuatorDeviceEndpoints
             .Produces<ActuatorDevice>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
+        devices.MapGet("/actuators", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var result = await db.ActuatorDevices
+                .Include(d => d.Plants)
+                .Where(d => d.UserId == userId && d.DeviceKind == DeviceKindActuator)
+                .ToListAsync();
+
+            return Results.Ok(result);
+        })
+            .WithSummary("Get actuator devices for user")
+            .WithDescription("Returns only actuator devices owned by the user.")
+            .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
+
+        devices.MapGet("/sensors", async (int userId, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var result = await db.ActuatorDevices
+                .Include(d => d.Plants)
+                .Where(d => d.UserId == userId && d.DeviceKind == DeviceKindSensor)
+                .ToListAsync();
+
+            return Results.Ok(result);
+        })
+            .WithSummary("Get sensor devices for user")
+            .WithDescription("Returns only sensor devices owned by the user.")
+            .Produces<List<ActuatorDevice>>(StatusCodes.Status200OK);
+
         devices.MapPost("", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))
@@ -161,7 +197,39 @@ public static class ActuatorDeviceEndpoints
                 return Results.NotFound(new { Response = $"Nie znaleziono użytkownika o id={userId}" });
             }
 
-            var device = MapToDevice(request);
+            var device = MapToActuatorDevice(request);
+            device.UserId = userId;
+
+            db.ActuatorDevices.Add(device);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                Response = $"Dodano urządzenie: {device.Name}",
+                Id = device.Id,
+                UserId = device.UserId
+            });
+        })
+            .WithSummary("Create actuator device (legacy route)")
+            .WithDescription("Creates a new standalone actuator device for user.")
+            .Accepts<UpsertActuatorDeviceRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        devices.MapPost("/actuators", async (int userId, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var userExists = await db.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Results.NotFound(new { Response = $"Nie znaleziono użytkownika o id={userId}" });
+            }
+
+            var device = MapToActuatorDevice(request);
             device.UserId = userId;
 
             db.ActuatorDevices.Add(device);
@@ -175,8 +243,40 @@ public static class ActuatorDeviceEndpoints
             });
         })
             .WithSummary("Create actuator device")
-            .WithDescription("Creates a new standalone actuator device for user.")
+            .WithDescription("Creates a new actuator device. Accepts only actuator fields.")
             .Accepts<UpsertActuatorDeviceRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        devices.MapPost("/sensors", async (int userId, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var userExists = await db.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                return Results.NotFound(new { Response = $"Nie znaleziono użytkownika o id={userId}" });
+            }
+
+            var device = MapToSensorDevice(request);
+            device.UserId = userId;
+
+            db.ActuatorDevices.Add(device);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                Response = $"Dodano sensor: {device.Name}",
+                Id = device.Id,
+                UserId = device.UserId
+            });
+        })
+            .WithSummary("Create sensor device")
+            .WithDescription("Creates a new sensor device. Accepts only sensor fields.")
+            .Accepts<UpsertSensorDeviceRequest>("application/json")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
@@ -195,7 +295,52 @@ public static class ActuatorDeviceEndpoints
                 return Results.NotFound();
             }
 
-            var mapped = MapToDevice(request);
+            var mapped = MapToActuatorDevice(request);
+            device.Name = mapped.Name;
+            device.DeviceKind = mapped.DeviceKind;
+            device.TargetParameter = mapped.TargetParameter;
+            device.SensorFields = mapped.SensorFields;
+            device.ExternalDeviceId = mapped.ExternalDeviceId;
+            device.EffectType = mapped.EffectType;
+            device.EffectStrength = mapped.EffectStrength;
+            device.IsEnabled = mapped.IsEnabled;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                Response = $"Zaktualizowano urządzenie: {device.Name}",
+                Id = device.Id,
+                UserId = device.UserId
+            });
+        })
+            .WithSummary("Update actuator device (legacy route)")
+            .WithDescription("Updates an existing actuator device.")
+            .Accepts<UpsertActuatorDeviceRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        devices.MapPut("/actuators/{id:int}", async (int userId, int id, UpsertActuatorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var device = await db.ActuatorDevices
+                .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            if (device.DeviceKind == DeviceKindSensor)
+            {
+                return Results.Conflict(new { Response = "To urządzenie jest sensorem. Użyj endpointu /devices/sensors/{id}." });
+            }
+
+            var mapped = MapToActuatorDevice(request);
             device.Name = mapped.Name;
             device.DeviceKind = mapped.DeviceKind;
             device.TargetParameter = mapped.TargetParameter;
@@ -215,8 +360,53 @@ public static class ActuatorDeviceEndpoints
             });
         })
             .WithSummary("Update actuator device")
-            .WithDescription("Updates an existing standalone actuator device.")
+            .WithDescription("Updates an existing actuator device.")
             .Accepts<UpsertActuatorDeviceRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        devices.MapPut("/sensors/{id:int}", async (int userId, int id, UpsertSensorDeviceRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var device = await db.ActuatorDevices
+                .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            if (device.DeviceKind == DeviceKindActuator)
+            {
+                return Results.Conflict(new { Response = "To urządzenie jest aktuatorem. Użyj endpointu /devices/actuators/{id}." });
+            }
+
+            var mapped = MapToSensorDevice(request);
+            device.Name = mapped.Name;
+            device.DeviceKind = mapped.DeviceKind;
+            device.TargetParameter = mapped.TargetParameter;
+            device.SensorFields = mapped.SensorFields;
+            device.ExternalDeviceId = mapped.ExternalDeviceId;
+            device.EffectType = mapped.EffectType;
+            device.EffectStrength = mapped.EffectStrength;
+            device.IsEnabled = mapped.IsEnabled;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                Response = $"Zaktualizowano sensor: {device.Name}",
+                Id = device.Id,
+                UserId = device.UserId
+            });
+        })
+            .WithSummary("Update sensor device")
+            .WithDescription("Updates an existing sensor device.")
+            .Accepts<UpsertSensorDeviceRequest>("application/json")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
@@ -345,23 +535,44 @@ public static class ActuatorDeviceEndpoints
         return int.TryParse(claimValue, out var claimUserId) && claimUserId == routeUserId;
     }
 
-    private static ActuatorDevice MapToDevice(UpsertActuatorDeviceRequest request)
+    private static ActuatorDevice MapToActuatorDevice(UpsertActuatorDeviceRequest request)
     {
-        var deviceKind = NormalizeDeviceKind(request.DeviceKind);
         var targetParameter = NormalizeTargetParameter(request.TargetParameter);
         var profile = ResolveControlProfile(targetParameter);
-        var sensorFields = NormalizeSensorFields(request.SensorFields);
         var externalDeviceId = NormalizeExternalDeviceId(request.ExternalDeviceId);
 
         return new ActuatorDevice
         {
             Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed device" : request.Name.Trim(),
-            DeviceKind = deviceKind,
+            DeviceKind = DeviceKindActuator,
             TargetParameter = targetParameter,
-            SensorFields = sensorFields,
+            SensorFields = [],
             ExternalDeviceId = externalDeviceId,
             EffectType = NormalizeEffectType(request.EffectType, profile.SuggestedEffectType),
             EffectStrength = request.EffectStrength is null or 0 ? 1 : request.EffectStrength.Value,
+            IsEnabled = request.IsEnabled ?? true
+        };
+    }
+
+    private static ActuatorDevice MapToSensorDevice(UpsertSensorDeviceRequest request)
+    {
+        var sensorFields = NormalizeSensorFields(request.SensorFields);
+        if (sensorFields.Count == 0)
+        {
+            sensorFields = ["soilMoistureAnalog"];
+        }
+
+        var targetParameter = MapSensorFieldToTargetParameter(sensorFields[0]);
+
+        return new ActuatorDevice
+        {
+            Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed sensor" : request.Name.Trim(),
+            DeviceKind = DeviceKindSensor,
+            TargetParameter = targetParameter,
+            SensorFields = sensorFields,
+            ExternalDeviceId = NormalizeExternalDeviceId(request.ExternalDeviceId),
+            EffectType = "set",
+            EffectStrength = 0,
             IsEnabled = request.IsEnabled ?? true
         };
     }
@@ -393,22 +604,6 @@ public static class ActuatorDeviceEndpoints
 
         await db.SaveChangesAsync();
         return true;
-    }
-
-    private static string NormalizeDeviceKind(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return DeviceKindActuator;
-        }
-
-        var normalized = value.Trim().ToLowerInvariant();
-        return normalized switch
-        {
-            DeviceKindSensor => DeviceKindSensor,
-            DeviceKindActuator => DeviceKindActuator,
-            _ => DeviceKindActuator
-        };
     }
 
     private static string NormalizeTargetParameter(string? value)
@@ -474,6 +669,19 @@ public static class ActuatorDeviceEndpoints
             "humidity" => "humidity",
             "waterlevel" or "waterlevelcm" => "waterLevelCm",
             _ => SupportedSensorFields.Contains(normalized) ? normalized : string.Empty
+        };
+    }
+
+    private static string MapSensorFieldToTargetParameter(string sensorField)
+    {
+        return sensorField.ToLowerInvariant() switch
+        {
+            "soilmoistureanalog" => "soilMoisture",
+            "lightisdark" => "light",
+            "temperature" => "temperature",
+            "humidity" => "humidity",
+            "waterlevelcm" => "waterLevel",
+            _ => "soilMoisture"
         };
     }
 

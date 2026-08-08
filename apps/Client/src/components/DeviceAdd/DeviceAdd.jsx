@@ -136,20 +136,27 @@ function DeviceAdd() {
 
   const handleCreateDevice = async () => {
     try {
-      const resolvedTargetParameter = deviceKind === "sensor"
-        ? mapSensorFieldToTargetParameter(sensorFields[0])
-        : targetParameter;
+      const endpoint = deviceKind === "sensor"
+        ? userDevicesEndpoint("/sensors")
+        : userDevicesEndpoint("/actuators");
 
-      const result = await connectionManager.post(userDevicesEndpoint(), {
-        name,
-        deviceKind,
-        targetParameter: resolvedTargetParameter,
-        sensorFields,
-        externalDeviceId,
-        effectType,
-        effectStrength: Number(effectStrength),
-        isEnabled,
-      });
+      const payload = deviceKind === "sensor"
+        ? {
+            name,
+            sensorFields,
+            externalDeviceId,
+            isEnabled,
+          }
+        : {
+            name,
+            targetParameter: targetParameter || mapSensorFieldToTargetParameter(sensorFields[0]),
+            externalDeviceId,
+            effectType,
+            effectStrength: Number(effectStrength),
+            isEnabled,
+          };
+
+      const result = await connectionManager.post(endpoint, payload);
 
       if (result?.id && selectedPlantIds.length > 0) {
         await assignDeviceToSelectedPlants(result.id);

@@ -9,7 +9,28 @@ function DeviceEditWindow({ device, onClose }) {
   const handleSaveChanges = async (e) => {
     e.preventDefault();
     try {
-          const result = await connectionManager.put(userDevicesEndpoint(`/${device.id}`), editedDevice);
+          const isSensor = (editedDevice?.deviceKind || '').toLowerCase() === 'sensor';
+          const endpoint = isSensor
+            ? userDevicesEndpoint(`/sensors/${device.id}`)
+            : userDevicesEndpoint(`/actuators/${device.id}`);
+
+          const payload = isSensor
+            ? {
+                name: editedDevice?.name,
+                sensorFields: editedDevice?.sensorFields,
+                externalDeviceId: editedDevice?.externalDeviceId,
+                isEnabled: editedDevice?.isEnabled,
+              }
+            : {
+                name: editedDevice?.name,
+                targetParameter: editedDevice?.targetParameter,
+                externalDeviceId: editedDevice?.externalDeviceId,
+                effectType: editedDevice?.effectType,
+                effectStrength: Number(editedDevice?.effectStrength ?? 1),
+                isEnabled: editedDevice?.isEnabled,
+              };
+
+          const result = await connectionManager.put(endpoint, payload);
           const resultMessage = JSON.stringify(result);
           if (onClose) {
             onClose(resultMessage);
