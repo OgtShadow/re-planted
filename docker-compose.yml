@@ -6,6 +6,8 @@ services:
       - "1883:1883"
     volumes:
       - ./infrastructure/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - replanted-network
     restart: unless-stopped
 
   postgres_db:
@@ -20,6 +22,8 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - replanted-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -42,6 +46,8 @@ services:
     depends_on:
       postgres_db:
         condition: service_healthy
+    networks:
+      - replanted-network
 
   app_client:
     build:
@@ -83,6 +89,8 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
+    networks:
+      - replanted-network
     restart: unless-stopped
 
   client:
@@ -101,6 +109,8 @@ services:
     volumes:
       - ./apps/Client:/app
       - /app/node_modules
+    networks:
+      - replanted-network
     restart: unless-stopped
 
   sensor-mock:

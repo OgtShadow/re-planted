@@ -30,6 +30,76 @@
     padding: 0.75rem;
 }
 
+.telemetry-chart-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.telemetry-device-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.telemetry-device-card {
+    border: 1px solid var(--dark-background-color);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: color-mix(in srgb, var(--background-color), white 18%);
+}
+
+.telemetry-device-meta h3 {
+    margin: 0 0 0.35rem;
+}
+
+.telemetry-device-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.telemetry-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    font-weight: 700;
+    padding: 0.24rem 0.52rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+}
+
+.telemetry-status-live {
+    background: color-mix(in srgb, #2ecc71, white 82%);
+    border-color: color-mix(in srgb, #2ecc71, white 45%);
+    color: #1f7a45;
+}
+
+.telemetry-status-offline {
+    background: color-mix(in srgb, #e74c3c, white 84%);
+    border-color: color-mix(in srgb, #e74c3c, white 46%);
+    color: #8f2c23;
+}
+
+.telemetry-status-no-data {
+    background: color-mix(in srgb, #7f8c8d, white 80%);
+    border-color: color-mix(in srgb, #7f8c8d, white 40%);
+    color: #445152;
+}
+
+.telemetry-device-meta > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    color: var(--light-text-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.65rem;
+}
+
 .telemetry-series-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

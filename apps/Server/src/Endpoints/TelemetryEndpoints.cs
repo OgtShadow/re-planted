@@ -37,63 +37,16 @@ public static class TelemetryEndpoints
             var fromUtc = toUtc.AddHours(-normalizedHours);
 
             var normalizedSensorField = NormalizeSensorField(sensorField);
-            var resolvedDeviceId = string.IsNullOrWhiteSpace(deviceId) ? string.Empty : deviceId.Trim();
+            var normalizedDeviceId = NormalizeIdentifier(deviceId);
 
-            if (plantId is not null)
-            {
-                var plant = await db.Plants
-                    .Include(p => p.Devices)
-                    .FirstOrDefaultAsync(p => p.Id == plantId.Value && p.UserId == userId);
-
-                if (plant is null)
-                {
-                    return Results.NotFound(new { response = $"Nie znaleziono rośliny o id={plantId.Value}" });
-                }
-
-                if (string.IsNullOrWhiteSpace(resolvedDeviceId))
-                {
-                    var matchingDevice = plant.Devices
-                        .Where(d => d.IsEnabled)
-                        .Where(d => DeviceSupportsSensorField(d, normalizedSensorField))
-                        .OrderBy(d => d.Id)
-                        .FirstOrDefault();
-
-                    resolvedDeviceId = ResolveTelemetryDeviceId(matchingDevice);
-
-                    if (string.IsNullOrWhiteSpace(resolvedDeviceId))
-                    {
-                        return Results.Ok(new TelemetryTrendResponse
-                        {
-                            DeviceId = string.Empty,
-                            PlantId = plantId,
-                            SensorField = normalizedSensorField,
-                            FromUtc = fromUtc,
-                            ToUtc = toUtc,
-                            IntervalMinutes = 1,
-                            Points = []
-                        });
-                    }
-                }
-            }
-
-            var query = db.TelemetryBuckets
-                .AsNoTracking()
-                .Where(x => x.BucketStartUtc >= fromUtc && x.BucketStartUtc <= toUtc);
-
-            if (!string.IsNullOrWhiteSpace(resolvedDeviceId))
-            {
-                query = query.Where(x => x.DeviceId == resolvedDeviceId);
-            }
-
-            var rows = await query
-                .OrderBy(x => x.BucketStartUtc)
-                .ToListAsync();
-
-            if (rows.Count == 0)
+            var contexts = await BuildTelemetryContextsAsync(db, userId, plantId, normalizedSensorField);
+            if (contexts.Count == 0)
             {
                 return Results.Ok(new TelemetryTrendResponse
                 {
-                    DeviceId = resolvedDeviceId,
+                    DeviceId = string.Empty,
+                    DeviceName = string.Empty,
+                    ExternalDeviceId = string.Empty,
                     PlantId = plantId,
                     SensorField = normalizedSensorField,
                     FromUtc = fromUtc,
@@ -103,23 +56,107 @@ public static class TelemetryEndpoints
                 });
             }
 
-            var grouped = Downsample(rows, normalizedMaxPoints);
-            var response = new TelemetryTrendResponse
-            {
-                DeviceId = string.IsNullOrWhiteSpace(resolvedDeviceId) ? grouped.DeviceId : resolvedDeviceId,
-                PlantId = plantId,
-                SensorField = normalizedSensorField,
-                FromUtc = fromUtc,
-                ToUtc = toUtc,
-                IntervalMinutes = grouped.IntervalMinutes,
-                Points = grouped.Points
-            };
+            var selectedContext = string.IsNullOrWhiteSpace(normalizedDeviceId)
+                ? contexts[0]
+                : contexts.FirstOrDefault(ctx => ctx.MatchesRequestedDevice(normalizedDeviceId));
 
-            return Results.Ok(response);
+            if (selectedContext is null)
+            {
+                return Results.Ok(new TelemetryTrendResponse
+                {
+                    DeviceId = string.Empty,
+                    DeviceName = string.Empty,
+                    ExternalDeviceId = deviceId?.Trim() ?? string.Empty,
+                    PlantId = plantId,
+                    SensorField = normalizedSensorField,
+                    FromUtc = fromUtc,
+                    ToUtc = toUtc,
+                    IntervalMinutes = 1,
+                    Points = []
+                });
+            }
+
+            var rows = await db.TelemetryBuckets
+                .AsNoTracking()
+                .Where(x => x.BucketStartUtc >= fromUtc && x.BucketStartUtc <= toUtc)
+                .OrderBy(x => x.BucketStartUtc)
+                .ToListAsync();
+
+            var matchingRows = rows
+                .Where(selectedContext.MatchesBucketDevice)
+                .OrderBy(x => x.BucketStartUtc)
+                .ToList();
+
+            return Results.Ok(BuildTrendResponse(
+                selectedContext,
+                matchingRows,
+                normalizedMaxPoints,
+                plantId,
+                normalizedSensorField,
+                fromUtc,
+                toUtc));
         })
         .WithSummary("Get telemetry trend points")
         .WithDescription("Returns compact historical telemetry for charts. Data is stored per minute and downsampled when needed.")
         .Produces<TelemetryTrendResponse>(StatusCodes.Status200OK);
+
+        telemetry.MapGet("/trends/all", [Authorize] async (
+            int userId,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            int? plantId,
+            string? sensorField,
+            int hours = 24,
+            int maxPoints = 240) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var normalizedHours = Math.Clamp(hours, 1, 24 * 30);
+            var normalizedMaxPoints = Math.Clamp(maxPoints, 30, 1000);
+            var normalizedSensorField = NormalizeSensorField(sensorField);
+
+            var toUtc = DateTime.UtcNow;
+            var fromUtc = toUtc.AddHours(-normalizedHours);
+
+            var contexts = await BuildTelemetryContextsAsync(db, userId, plantId, normalizedSensorField);
+            if (contexts.Count == 0)
+            {
+                return Results.Ok(Array.Empty<TelemetryTrendResponse>());
+            }
+
+            var rows = await db.TelemetryBuckets
+                .AsNoTracking()
+                .Where(x => x.BucketStartUtc >= fromUtc && x.BucketStartUtc <= toUtc)
+                .OrderBy(x => x.BucketStartUtc)
+                .ToListAsync();
+
+            var result = contexts
+                .Select(context =>
+                {
+                    var matchingRows = rows
+                        .Where(context.MatchesBucketDevice)
+                        .OrderBy(x => x.BucketStartUtc)
+                        .ToList();
+
+                    return BuildTrendResponse(
+                        context,
+                        matchingRows,
+                        normalizedMaxPoints,
+                        plantId,
+                        normalizedSensorField,
+                        fromUtc,
+                        toUtc);
+                })
+                .ToList();
+
+            return Results.Ok(result);
+        })
+        .WithSummary("Get telemetry trends for all sensor devices")
+        .WithDescription("Returns one trend series per sensor device, including assigned plants, to build meaningful per-device charts.")
+        .Produces<List<TelemetryTrendResponse>>(StatusCodes.Status200OK);
 //====================================================================
 // Dane testowe telemetryczne do testowania wykresów potem usunąć :>
 //====================================================================
@@ -239,6 +276,86 @@ public static class TelemetryEndpoints
         return MapTargetParameterToSensorField(device.TargetParameter) == sensorField;
     }
 
+    private static async Task<List<TelemetryDeviceContext>> BuildTelemetryContextsAsync(
+        AppDbContext db,
+        int userId,
+        int? plantId,
+        string sensorField)
+    {
+        var devices = await db.ActuatorDevices
+            .AsNoTracking()
+            .Include(d => d.Plants)
+            .Where(d => d.UserId == userId)
+            .Where(d => d.DeviceKind == "sensor")
+            .OrderBy(d => d.Name)
+            .ThenBy(d => d.Id)
+            .ToListAsync();
+
+        var filtered = devices
+            .Where(d => DeviceSupportsSensorField(d, sensorField))
+            .Where(d => !plantId.HasValue || d.Plants.Any(p => p.Id == plantId.Value))
+            .ToList();
+
+        return filtered
+            .Select(device => new TelemetryDeviceContext(
+                device.Name,
+                ResolveTelemetryDeviceId(device),
+                device.Plants.Select(p => p.Id).Distinct().ToList(),
+                device.Plants.Select(p => p.Name).Distinct().ToList()))
+            .ToList();
+    }
+
+    private static TelemetryTrendResponse BuildTrendResponse(
+        TelemetryDeviceContext context,
+        List<Models.TelemetryBucket> rows,
+        int maxPoints,
+        int? selectedPlantId,
+        string sensorField,
+        DateTime fromUtc,
+        DateTime toUtc)
+    {
+        if (rows.Count == 0)
+        {
+            return new TelemetryTrendResponse
+            {
+                DeviceId = context.ExternalDeviceId,
+                DeviceName = context.DeviceName,
+                ExternalDeviceId = context.ExternalDeviceId,
+                PlantId = selectedPlantId,
+                PlantIds = context.PlantIds,
+                PlantNames = context.PlantNames,
+                SensorField = sensorField,
+                FromUtc = fromUtc,
+                ToUtc = toUtc,
+                IntervalMinutes = 1,
+                Points = []
+            };
+        }
+
+        var grouped = Downsample(rows, maxPoints);
+        return new TelemetryTrendResponse
+        {
+            DeviceId = grouped.DeviceId,
+            DeviceName = context.DeviceName,
+            ExternalDeviceId = context.ExternalDeviceId,
+            PlantId = selectedPlantId,
+            PlantIds = context.PlantIds,
+            PlantNames = context.PlantNames,
+            SensorField = sensorField,
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            IntervalMinutes = grouped.IntervalMinutes,
+            Points = grouped.Points
+        };
+    }
+
+    private static string NormalizeIdentifier(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToLowerInvariant();
+    }
+
     private static string ResolveTelemetryDeviceId(Models.ActuatorDevice? device)
     {
         if (device is null)
@@ -351,5 +468,43 @@ public static class TelemetryEndpoints
 
         var approximate = (int)Math.Round(totalMinutes / (rows.Count - 1));
         return Math.Clamp(approximate, 1, 60);
+    }
+
+    private sealed record TelemetryDeviceContext(
+        string DeviceName,
+        string ExternalDeviceId,
+        IReadOnlyList<int> PlantIds,
+        IReadOnlyList<string> PlantNames)
+    {
+        private readonly string normalizedExternalDeviceId = NormalizeIdentifier(ExternalDeviceId);
+
+        public bool MatchesBucketDevice(Models.TelemetryBucket bucket)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedExternalDeviceId))
+            {
+                return false;
+            }
+
+            var normalizedBucketDeviceId = NormalizeIdentifier(bucket.DeviceId);
+            if (string.IsNullOrWhiteSpace(normalizedBucketDeviceId))
+            {
+                return false;
+            }
+
+            return normalizedBucketDeviceId == normalizedExternalDeviceId
+                || normalizedBucketDeviceId.StartsWith(normalizedExternalDeviceId + "-", StringComparison.Ordinal);
+        }
+
+        public bool MatchesRequestedDevice(string normalizedRequestedDevice)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedRequestedDevice))
+            {
+                return true;
+            }
+
+            return normalizedRequestedDevice == normalizedExternalDeviceId
+                || normalizedRequestedDevice.StartsWith(normalizedExternalDeviceId + "-", StringComparison.Ordinal)
+                || normalizedExternalDeviceId.StartsWith(normalizedRequestedDevice + "-", StringComparison.Ordinal);
+        }
     }
 }
