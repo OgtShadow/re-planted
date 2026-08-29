@@ -12,11 +12,13 @@ return (
       <div className="plant-profile-image">
         <img src={plantImage} alt={plant.name} />
       </div>
+      <div className="plant-profile-body">
       <div className="plant-profile-header">
         <h2>{plant.name}</h2>
         {plant.healthStatus === "Healthy" ? <StatusDot status="green" size="small" /> : plant.healthStatus === "Unhealthy" ? <StatusDot status="red" size="small" /> : <StatusDot status="gray" size="small" />} 
       </div>
         <p>Specie: {plant.species}</p>
+      </div>
     </div>
   );
 }
