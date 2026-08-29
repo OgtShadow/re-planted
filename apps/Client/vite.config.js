@@ -8,11 +8,15 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      host: '0.0.0.0',
       port: parseInt(env.VITE_PORT) || 5173,
       hmr: {
         protocol: 'ws',
         host: 'localhost',
         port: parseInt(env.VITE_PORT) || 5173,
+      },
+      watch: {
+        usePolling: true, // wymagane dla Docker na Windows (WSL2/Hyper-V volumes)
       },
     },
   }

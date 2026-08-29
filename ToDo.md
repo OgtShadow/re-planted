@@ -17,7 +17,7 @@
 
 ### Faza 3: IoT Controller (Serwer Klienta) - Warstwa Pośrednia
 - [✅] Konfiguracja lokalnego środowiska wymiany wiadomości dla peryferiów domowych (bramka dystrybucyjna).
-- [ ] Zbudowanie mechanizmu cache'owania – pobieranie i lokalne zapisywanie zatwierdzonych reguł z Głównego Serwera.
+- [✅] Zbudowanie mechanizmu cache'owania – pobieranie i lokalne zapisywanie zatwierdzonych reguł z Głównego Serwera.
 - [ ] Implementacja Trybu Offline na poziomie kontrolera – przejęcie autonomicznego zarządzania stanem urządzeń w przypadku utraty połączenia WAN (Fail-safe).
 
 ### Faza 4: Warstwa Sprzętowa i Firmware IoT (ESP32, C/C++)
