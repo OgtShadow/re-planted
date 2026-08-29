@@ -75,6 +75,11 @@ function App() {
           <Route path="/" element={
               <>
                 <PlantList />
+              </>
+          } />
+
+          <Route path="/devices" element={
+              <>
                 <DeviceList/>
               </>
           } />

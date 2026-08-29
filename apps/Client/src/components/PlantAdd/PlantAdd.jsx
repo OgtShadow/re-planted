@@ -1,17 +1,35 @@
 import { useState } from "react";
 import connectionManager, { userPlantsEndpoint } from "../../connectionManager";
 import "./PlantAdd.css";
+import defaultPlantImage from '../../resources/plant.jpg';
 
 function PlantAdd() {
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [response, setResponse] = useState("");
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setImageUrl("");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(typeof reader.result === "string" ? reader.result : "");
+    };
+    reader.readAsDataURL(file);
+  };
 
     const handleCreatePlant = async () => {
     try {
       const result = await connectionManager.post(userPlantsEndpoint(), {
         name,
-        species
+        species,
+        imageUrl
       });
       setResponse(JSON.stringify(result));
     } catch (error) {
@@ -39,6 +57,18 @@ function PlantAdd() {
         value={species}
         onChange={(e) => setSpecies(e.target.value)}
       />
+    </div>
+    <div className="info-item">
+      <label htmlFor="plant-image">Zdjęcie rośliny</label>
+      <input
+        id="plant-image"
+        type="file"
+        accept="image/*"
+        onChange={handleImageChange}
+      />
+      <div className="plant-image-preview">
+        <img src={imageUrl || defaultPlantImage} alt="Podgląd rośliny" />
+      </div>
     </div>
   </div>
   <div className="add-actions">

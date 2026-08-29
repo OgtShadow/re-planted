@@ -2,9 +2,28 @@ import './PlantEditWindow.css';
 import connectionManager, { userPlantsEndpoint } from '../../connectionManager';
 import React, { useState } from 'react';
 import PlantParametersSeter from '../PlantParametersSeter/PlantParametersSeter';
+import defaultPlantImage from '../../resources/plant.jpg';
 
 function PlantEditWindow({ plant, onClose }) {
   const [editedPlant, setEditedPlant] = useState({ ...plant });
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setEditedPlant((currentPlant) => ({ ...currentPlant, imageUrl: '' }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditedPlant((currentPlant) => ({
+        ...currentPlant,
+        imageUrl: typeof reader.result === 'string' ? reader.result : ''
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
@@ -60,6 +79,19 @@ function PlantEditWindow({ plant, onClose }) {
                         onChange={(e) => setEditedPlant({ ...editedPlant, species: e.target.value })}
                     />
                 </label>
+
+                <label>
+                  Zdjęcie rośliny:
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </label>
+
+                <div className="plant-edit-preview">
+                  <img src={editedPlant.imageUrl || defaultPlantImage} alt={editedPlant.name || 'Podgląd rośliny'} />
+                </div>
 
                 <PlantParametersSeter plant={editedPlant} setPlant={setEditedPlant} />
                 

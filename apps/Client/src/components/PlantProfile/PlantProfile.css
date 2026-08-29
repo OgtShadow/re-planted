@@ -8,6 +8,22 @@ div .plant-profile {
     margin: 20px;
 }
 
+.plant-profile-image {
+    width: 100%;
+    height: 140px;
+    margin-top: 10px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--background-color);
+}
+
+.plant-profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 div .plant-profile-header {
     align-items: baseline;
     display: inline-flex;

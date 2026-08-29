@@ -41,6 +41,7 @@ public static class ResponseMappings
             UserId = plant.UserId,
             Name = plant.Name,
             Species = plant.Species,
+            ImageUrl = plant.ImageUrl,
             PlantedDate = plant.PlantedDate,
             HealthStatus = plant.HealthStatus,
             LastWatered = plant.LastWatered,

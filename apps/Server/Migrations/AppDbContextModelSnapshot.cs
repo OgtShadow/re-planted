@@ -117,6 +117,9 @@ namespace Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("LastWatered")
                         .HasColumnType("timestamp with time zone");
 

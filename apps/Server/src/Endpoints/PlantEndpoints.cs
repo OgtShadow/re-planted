@@ -108,6 +108,7 @@ public static class PlantEndpoints
 
             plant.Name = updatedPlant.Name;
             plant.Species = updatedPlant.Species;
+            plant.ImageUrl = updatedPlant.ImageUrl;
             plant.PlantedDate = updatedPlant.PlantedDate;
             plant.LastWatered = updatedPlant.LastWatered;
 
@@ -174,6 +175,7 @@ public static class PlantEndpoints
         {
             Name = string.IsNullOrWhiteSpace(request.Name) ? "Unnamed plant" : request.Name.Trim(),
             Species = species,
+            ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             PlantedDate = request.PlantedDate ?? DateTime.UtcNow,
             HealthStatus = string.IsNullOrWhiteSpace(request.HealthStatus) ? "Healthy" : request.HealthStatus.Trim(),
             LastWatered = request.LastWatered ?? DateTime.UtcNow,

@@ -9,6 +9,7 @@ public sealed class PlantResponse
     public int? UserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public DateTime PlantedDate { get; set; }
     public string HealthStatus { get; set; } = string.Empty;
     public DateTime LastWatered { get; set; }

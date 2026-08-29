@@ -5,6 +5,7 @@ import { HubConnectionBuilder } from '@microsoft/signalr';
 import StatusDot from '../StatusDot/StatusDot';
 import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
 import './PlantDetails.css';
+import defaultPlantImage from '../../resources/plant.jpg';
 
 function PlantDetails() {
     const { id } = useParams();
@@ -13,6 +14,7 @@ function PlantDetails() {
     const [liveSnapshots, setLiveSnapshots] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const plantImage = plant?.imageUrl || defaultPlantImage;
 
     useEffect(() => {
         const fetchPlant = async () => {
@@ -88,7 +90,11 @@ function PlantDetails() {
 
     return (
         <div className="plant-details-container">
-            <button className="back-button" onClick={() => navigate("/")}>&larr; Back to List</button>
+            <button className="back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
+
+            <div className="plant-details-hero">
+                <img src={plantImage} alt={plant.name} />
+            </div>
             
             <div className="plant-details-header">
                 <h1>{plant.name}</h1>
