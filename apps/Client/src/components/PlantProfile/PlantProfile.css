@@ -17,6 +17,10 @@ div .plant-profile {
 
 .plant-profile-body {
     padding: 0px 15px;
+    height: 110px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .plant-profile-image img {

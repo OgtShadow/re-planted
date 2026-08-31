@@ -1,93 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import connectionManager, { userTelemetryEndpoint } from '../../connectionManager';
+import TelemetryChartCard from './TelemetryChartCard';
+import TelemetrySeriesComparison from './TelemetrySeriesComparison';
+import TelemetryPointsList from './TelemetryPointsList';
+import { NUMERIC_SERIES, LIGHT_SERIES, buildPath, buildPointCoordinates } from './telemetryUtils';
 import './TelemetryDetails.css';
-
-const NUMERIC_SERIES = [
-  { key: 'temperatureAvg', label: 'Temperatura', unit: 'raw', color: '#1f77b4' },
-  { key: 'humidityAvg', label: 'Wilgotność powietrza', unit: 'raw', color: '#2ca02c' },
-  { key: 'soilMoistureAvg', label: 'Wilgotność gleby', unit: 'raw', color: '#8c564b' },
-  { key: 'waterLevelAvg', label: 'Poziom wody (cm)', unit: 'cm', color: '#17becf' },
-];
-
-const LIGHT_SERIES = { key: 'lightOnPercent', label: 'Światło ON (%)', unit: '%', color: '#f39c12' };
-
-function buildPath(points, selectedKey, minY, maxY) {
-  if (!points.length) {
-    return '';
-  }
-
-  const width = 1000;
-  const height = 280;
-  const safeRange = Math.max(1, maxY - minY);
-
-  return points
-    .map((point, index) => {
-      const x = points.length === 1 ? 0 : (index / (points.length - 1)) * width;
-      const rawValue = Number(point[selectedKey] ?? 0);
-      const y = height - (((rawValue - minY) / safeRange) * height);
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
-function buildPointCoordinates(points, selectedKey, minY, maxY) {
-  if (!points.length) {
-    return [];
-  }
-
-  const width = 1000;
-  const height = 280;
-  const safeRange = Math.max(1, maxY - minY);
-
-  return points.map((point, index) => {
-    const x = points.length === 1 ? 0 : (index / (points.length - 1)) * width;
-    const rawValue = Number(point[selectedKey] ?? 0);
-    const y = height - (((rawValue - minY) / safeRange) * height);
-    return { x, y, rawValue, label: point.bucketStartUtc };
-  });
-}
-
-function formatValue(value, unit) {
-  if (!Number.isFinite(value)) {
-    return '-';
-  }
-
-  if (unit === 'cm') {
-    return `${value.toFixed(1)} cm`;
-  }
-
-  if (unit === '%') {
-    return `${value.toFixed(1)}%`;
-  }
-
-  return value.toFixed(1);
-}
-
-function formatMinutes(totalMinutes) {
-  const rounded = Math.max(0, Math.round(totalMinutes));
-  const hours = Math.floor(rounded / 60);
-  const minutes = rounded % 60;
-  return `${hours}h ${minutes}m`;
-}
-
-function formatTimestamp(value) {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function TelemetryDetails() {
   const navigate = useNavigate();
@@ -152,25 +70,21 @@ function TelemetryDetails() {
     }
 
     const numericCards = NUMERIC_SERIES.map((series) => {
-      const values = points.map((point) => Number(point[series.key] ?? 0));
-      const minY = Math.min(...values);
-      const maxY = Math.max(...values);
+      const values = points.map((point) => series.transform(Number(point[series.key] ?? 0)));
       const averageValue = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
 
       return {
         ...series,
-        path: buildPath(points, series.key, minY, maxY),
-        minY,
-        maxY,
+        path: buildPath(points, series.key, series.min, series.max, series.transform),
         latest: values[values.length - 1],
-        minValue: minY,
-        maxValue: maxY,
+        minValue: Math.min(...values),
+        maxValue: Math.max(...values),
         averageValue,
       };
     });
 
     const lightValues = points.map((point) => Number(point.lightOnPercent ?? 0));
-    const lightPath = buildPath(points, LIGHT_SERIES.key, 0, 100);
+    const lightPath = buildPath(points, LIGHT_SERIES.key, LIGHT_SERIES.min, LIGHT_SERIES.max);
     const lightOnMinutes = points.reduce((sum, point) => sum + Number(point.lightOnMinutes ?? 0), 0);
     const lightOffMinutes = points.reduce((sum, point) => sum + Number(point.lightOffMinutes ?? 0), 0);
     const lightTotal = Math.max(1, lightOnMinutes + lightOffMinutes);
@@ -211,13 +125,10 @@ function TelemetryDetails() {
       return [];
     }
 
-    const minY = selectedSeriesDefinition.key === LIGHT_SERIES.key ? 0 : selectedSeriesCard.minValue;
-    const maxY = selectedSeriesDefinition.key === LIGHT_SERIES.key ? 100 : selectedSeriesCard.maxValue;
-    return buildPointCoordinates(chartData.points, selectedSeriesDefinition.key, minY, maxY);
+    return buildPointCoordinates(chartData.points, selectedSeriesDefinition.key, selectedSeriesDefinition.min, selectedSeriesDefinition.max, selectedSeriesDefinition.transform);
   }, [chartData, selectedSeriesCard, selectedSeriesDefinition]);
 
-  const handleSeriesChange = (event) => {
-    const nextSeries = event.target.value;
+  const handleSeriesSelect = (nextSeries) => {
     setSearchParams((previousParams) => {
       const next = new URLSearchParams(previousParams);
       next.set('series', nextSeries);
@@ -265,83 +176,23 @@ function TelemetryDetails() {
         <p className="telemetry-empty">Brak danych telemetrycznych dla wybranego zakresu.</p>
       ) : (
         <div className="telemetry-details-layout">
-          <article className="telemetry-detail-chart-card">
-            <div className="telemetry-chart-meta">
-              <span>Urządzenie: {response?.deviceId || deviceId || 'n/a'}</span>
-              <span>Próbki: {chartData.points.length}</span>
-              <span>Bucket: co {response?.intervalMinutes ?? 1} min</span>
-            </div>
-
-            <div className="telemetry-detail-title-row">
-              <h3>{selectedSeriesDefinition.label}</h3>
-              <span className="telemetry-detail-pill">{selectedSeriesDefinition.unit === '%' ? 'Procent' : 'Wartość'}</span>
-            </div>
-
-            <svg viewBox="0 0 1000 320" className="telemetry-chart telemetry-chart-large" role="img" aria-label={`Szczegółowy wykres ${selectedSeriesDefinition.label}`}>
-              <line x1="0" y1="280" x2="1000" y2="280" className="axis" />
-              <line x1="0" y1="0" x2="0" y2="280" className="axis" />
-              <path d={selectedSeriesCard.path} stroke={selectedSeriesDefinition.color} strokeWidth="3" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-              {selectedSeriesPoints.map((point, index) => (
-                <circle key={`${point.label}-${index}`} cx={point.x} cy={point.y} r="4" fill={selectedSeriesDefinition.color} stroke="#fff" strokeWidth="1" />
-              ))}
-            </svg>
-
-            <div className="telemetry-summary telemetry-summary-detailed">
-              <div>
-                <strong>Aktualnie:</strong> {formatValue(selectedSeriesCard.latest, selectedSeriesDefinition.unit)}
-              </div>
-              <div>
-                <strong>Średnia:</strong> {formatValue(selectedSeriesCard.averageValue, selectedSeriesDefinition.unit)}
-              </div>
-              <div>
-                <strong>Min:</strong> {formatValue(selectedSeriesCard.minValue, selectedSeriesDefinition.unit)}
-              </div>
-              <div>
-                <strong>Max:</strong> {formatValue(selectedSeriesCard.maxValue, selectedSeriesDefinition.unit)}
-              </div>
-              {selectedSeriesDefinition.key === LIGHT_SERIES.key ? (
-                <>
-                  <div>
-                    <strong>ON:</strong> {formatMinutes(chartData.lightCard.onMinutes)}
-                  </div>
-                  <div>
-                    <strong>OFF:</strong> {formatMinutes(chartData.lightCard.offMinutes)}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </article>
+          <TelemetryChartCard
+            response={response}
+            deviceId={deviceId}
+            chartData={chartData}
+            selectedSeriesDefinition={selectedSeriesDefinition}
+            selectedSeriesCard={selectedSeriesCard}
+            selectedSeriesPoints={selectedSeriesPoints}
+          />
 
           <div className="telemetry-detail-side">
-            <article className="telemetry-series-item telemetry-side-card">
-              <h3>Porównanie serii</h3>
-              <div className="telemetry-compare-list">
-                {chartData.numericCards.map((series) => (
-                  <div key={series.key} className={`telemetry-compare-row ${selectedSeriesDefinition.key === series.key ? 'active' : ''}`} onClick={() => handleSeriesChange({ target: { value: series.key } })} style={{ cursor: 'pointer' }}>
-                    <span style={{ color: series.color }}>■</span>
-                    <span>{series.label}</span>
-                    <strong>{formatValue(series.latest, series.unit)}</strong>
-                  </div>
-                ))}
-                <div className={`telemetry-compare-row ${selectedSeriesDefinition.key === LIGHT_SERIES.key ? 'active' : ''}`} onClick={() => handleSeriesChange({ target: { value: LIGHT_SERIES.key } })} style={{ cursor: 'pointer' }}>
-                  <span style={{ color: LIGHT_SERIES.color }}>■</span>
-                  <span>{LIGHT_SERIES.label}</span>
-                  <strong>{formatValue(chartData.lightCard.latest, LIGHT_SERIES.unit)}</strong>
-                </div>
-              </div>
-            </article>
+            <TelemetrySeriesComparison
+              chartData={chartData}
+              selectedSeriesDefinition={selectedSeriesDefinition}
+              onSeriesSelect={handleSeriesSelect}
+            />
 
-            <article className="telemetry-series-item telemetry-side-card">
-              <h3>Dokładne wartości punktów</h3>
-              <div className="telemetry-points-list">
-                {chartData.points.map((point, index) => (
-                  <div key={`${point.bucketStartUtc}-${index}`} className="telemetry-point-row">
-                    <span>{formatTimestamp(point.bucketStartUtc)}</span>
-                    <strong>{formatValue(Number(point[selectedSeriesDefinition.key] ?? 0), selectedSeriesDefinition.unit)}</strong>
-                  </div>
-                ))}
-              </div>
-            </article>
+            <TelemetryPointsList points={chartData.points} selectedSeriesDefinition={selectedSeriesDefinition} />
           </div>
         </div>
       )}

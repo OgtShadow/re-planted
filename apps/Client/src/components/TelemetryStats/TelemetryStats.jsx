@@ -6,16 +6,19 @@ import { API_BASE_URL } from '../../connectionManager';
 import './TelemetryStats.css';
 
 const NUMERIC_SERIES = [
-  { key: 'temperatureAvg', label: 'Temperatura', unit: 'raw', color: '#1f77b4' },
-  { key: 'humidityAvg', label: 'Wilgotność powietrza', unit: 'raw', color: '#2ca02c' },
-  { key: 'soilMoistureAvg', label: 'Wilgotność gleby', unit: 'raw', color: '#8c564b' },
-  { key: 'waterLevelAvg', label: 'Poziom wody (cm)', unit: 'cm', color: '#17becf' },
+  // raw value is a 3-digit fixed-point reading (e.g. 235 => 23.5°C)
+  { key: 'temperatureAvg', label: 'Temperatura', unit: '°C', color: '#1f77b4', min: 0, max: 50, transform: (raw) => raw / 10 },
+  // raw value is a 3-digit fixed-point reading (e.g. 580 => 58.0%)
+  { key: 'humidityAvg', label: 'Wilgotność powietrza', unit: '%', color: '#2ca02c', min: 0, max: 100, transform: (raw) => raw / 10 },
+  // raw ADC reading 0-4000, inverted: 0 = 100% moist, 4000 = 0% moist
+  { key: 'soilMoistureAvg', label: 'Wilgotność gleby', unit: '%', color: '#8c564b', min: 0, max: 100, transform: (raw) => 100 - (raw / 4000) * 100 },
+  { key: 'waterLevelAvg', label: 'Poziom wody (cm)', unit: 'cm', color: '#17becf', min: 0, max: 20, transform: (raw) => raw },
 ];
 
-const LIGHT_SERIES = { key: 'lightOnPercent', label: 'Światło ON (%)', unit: '%', color: '#f39c12' };
+const LIGHT_SERIES = { key: 'lightOnPercent', label: 'Światło ON (%)', unit: '%', color: '#f39c12', min: 0, max: 100, transform: (raw) => raw };
 const LIVE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
 
-function buildPath(points, selectedKey, minY, maxY) {
+function buildPath(points, selectedKey, minY, maxY, transform = (raw) => raw) {
   if (!points.length) {
     return '';
   }
@@ -27,7 +30,7 @@ function buildPath(points, selectedKey, minY, maxY) {
   return points
     .map((point, index) => {
       const x = points.length === 1 ? 0 : (index / (points.length - 1)) * width;
-      const y = height - (((point[selectedKey] ?? 0) - minY) / safeRange) * height;
+      const y = height - ((transform(Number(point[selectedKey] ?? 0)) - minY) / safeRange) * height;
       return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(' ');
@@ -44,6 +47,10 @@ function formatValue(value, unit) {
 
   if (unit === '%') {
     return `${value.toFixed(1)}%`;
+  }
+
+  if (unit === '°C') {
+    return `${value.toFixed(1)}°C`;
   }
 
   return value.toFixed(1);
@@ -274,25 +281,21 @@ function TelemetryStats() {
       }
 
       const numericCards = NUMERIC_SERIES.map((series) => {
-        const values = points.map((point) => Number(point[series.key] ?? 0));
-        const minY = Math.min(...values);
-        const maxY = Math.max(...values);
+        const values = points.map((point) => series.transform(Number(point[series.key] ?? 0)));
         const averageValue = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
 
         return {
           ...series,
-          path: buildPath(points, series.key, minY, maxY),
-          minY,
-          maxY,
+          path: buildPath(points, series.key, series.min, series.max, series.transform),
           latest: values[values.length - 1],
-          minValue: minY,
-          maxValue: maxY,
+          minValue: Math.min(...values),
+          maxValue: Math.max(...values),
           averageValue,
         };
       });
 
       const lightValues = points.map((point) => Number(point.lightOnPercent ?? 0));
-      const lightPath = buildPath(points, LIGHT_SERIES.key, 0, 100);
+      const lightPath = buildPath(points, LIGHT_SERIES.key, LIGHT_SERIES.min, LIGHT_SERIES.max);
       const lightOnMinutes = points.reduce((sum, point) => sum + Number(point.lightOnMinutes ?? 0), 0);
       const lightOffMinutes = points.reduce((sum, point) => sum + Number(point.lightOffMinutes ?? 0), 0);
       const lightTotal = Math.max(1, lightOnMinutes + lightOffMinutes);
