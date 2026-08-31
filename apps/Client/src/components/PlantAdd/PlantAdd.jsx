@@ -42,6 +42,7 @@ function PlantAdd() {
 <div className="plant-details-container">
   <h1> Create Plant</h1>
   <div className="plant-info-grid">
+    <div className="plant-info-section">
     <div className="info-item">
       <input
         type="text"
@@ -58,6 +59,7 @@ function PlantAdd() {
         onChange={(e) => setSpecies(e.target.value)}
       />
     </div>
+    </div>
     <div className="info-item">
       <label htmlFor="plant-image">Zdjęcie rośliny</label>
       <input
@@ -72,12 +74,9 @@ function PlantAdd() {
     </div>
   </div>
   <div className="add-actions">
-    <button className="add-button" onClick={handleCreatePlant}>
+    <button className="add-plant-button" onClick={handleCreatePlant}>
       Dodaj roślinę
     </button>
-    <a className="secondary-button" href="/device/add">
-      Dodaj urządzenie
-    </a>
   </div>
   <p>{response}</p>
 </div>      

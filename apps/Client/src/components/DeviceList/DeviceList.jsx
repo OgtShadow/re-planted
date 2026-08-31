@@ -3,6 +3,7 @@ import DeviceProfile from "../DeviceProfile/DeviceProfile";
 import connectionManager, { API_BASE_URL, userDevicesEndpoint } from "../../connectionManager";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import './DeviceList.css'
+import AddButton from "../AddButton/AddButton";
 
 function DeviceList() {
     const [devices, setDevices] = useState([]);
@@ -45,6 +46,9 @@ return (
         {devices.map((device) => (
             <DeviceProfile key={device.id} device={device} />
         ))}
+        <div className="device-add-button">
+            <AddButton link="/device/add"/>
+        </div>
     </div>
   );
 }
