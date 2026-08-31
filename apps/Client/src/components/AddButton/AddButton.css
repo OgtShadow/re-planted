@@ -1,0 +1,22 @@
+.add-button {
+    display: inline-block;
+    padding: 10px 10px;
+    height: 40px !important;
+    width: 40px !important;
+    font-weight: bold;
+    color: white;
+    background-color: var(--dark-color);
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.add-button:hover {
+    cursor: pointer;
+    transform: scale(1.1);
+    transition: transform 0.2s;
+}

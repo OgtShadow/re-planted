@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import PlantProfile from "../PlantProfile/PlantProfile";
+import AddButton from "../AddButton/AddButton";
 import connectionManager, { API_BASE_URL, userPlantsEndpoint } from "../../connectionManager";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import './PlantList.css'
@@ -52,6 +53,9 @@ return (
         {plants.map((plant) => (
             <PlantProfile key={plant.id} plant={plant} />
         ))}
+        <div className= "plant-add-button">
+            <AddButton link="/plant/add"/>
+        </div>
     </div>
   );
 }

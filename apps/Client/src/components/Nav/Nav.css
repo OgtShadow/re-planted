@@ -4,7 +4,7 @@
     gap: 20px;
 }
 
-.nav a {
+.nav div, .nav a {
     text-decoration: none;
     background-color: var(--dark-color);
     color: var(--background-color);
@@ -12,7 +12,16 @@
     font-size: 1.1em;
 }
 
-.nav a:hover {
+.nav a {
+    text-decoration: none;
+}
+
+.nav div:hover {
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+nav a:hover {
     background-color: var(--light-color);
     color: var(--text-color);
 }
