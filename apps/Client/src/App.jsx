@@ -12,6 +12,8 @@ import Login from './components/login/Login'
 import DeviceAdd from './components/DeviceAdd/DeviceAdd'
 import TelemetryStats from './components/TelemetryStats/TelemetryStats'
 import TelemetryDetails from './components/TelemetryDetails/TelemetryDetails'
+import Contact from './components/InfoPages/Contact'
+import NotFoundPage from './components/InfoPages/NotFoundPage/NotFoundPage'
 
 function App() {
   const [test, setTest] = useState('')
@@ -106,6 +108,14 @@ function App() {
 
           <Route path="/telemetry/:deviceId" element={
             <TelemetryDetails/>
+          } />
+
+          <Route path="/contact" element={
+            <Contact/>
+          } />
+
+           <Route path="*" element={
+            <NotFoundPage/>
           } />
         </Routes>
       
