@@ -43,6 +43,7 @@ services:
       - TelemetryCollector__SensorsPath=/api/client-server/controllers/telemetry/current
       - TelemetryCollector__PollingIntervalSeconds=15
       - TelemetryCollector__RetentionDays=30
+      - TelemetryCollector__AdditionalSensorUrls__0=http://sensor-mock:8085/sensors2
     depends_on:
       postgres_db:
         condition: service_healthy

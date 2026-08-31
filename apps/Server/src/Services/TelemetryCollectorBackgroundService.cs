@@ -53,8 +53,35 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
     private async Task PollAndStoreSnapshotAsync(HttpClient client, CancellationToken cancellationToken)
     {
         var endpoint = BuildSensorsUri();
-        var snapshots = await client.GetFromJsonAsync<List<SensorTelemetrySnapshot>>(endpoint, cancellationToken);
-        if (snapshots is null || snapshots.Count == 0)
+        var snapshots = new List<SensorTelemetrySnapshot>();
+        var primarySnapshots = await client.GetFromJsonAsync<List<SensorTelemetrySnapshot>>(endpoint, cancellationToken);
+        if (primarySnapshots is not null)
+        {
+            snapshots.AddRange(primarySnapshots);
+        }
+
+        foreach (var additionalUrl in options.AdditionalSensorUrls)
+        {
+            if (string.IsNullOrWhiteSpace(additionalUrl))
+            {
+                continue;
+            }
+
+            try
+            {
+                var additionalSnapshot = await client.GetFromJsonAsync<SensorTelemetrySnapshot>(additionalUrl, cancellationToken);
+                if (additionalSnapshot is not null)
+                {
+                    snapshots.Add(additionalSnapshot);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to poll additional sensor endpoint {Url}.", additionalUrl);
+            }
+        }
+
+        if (snapshots.Count == 0)
         {
             return;
         }

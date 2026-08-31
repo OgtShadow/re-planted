@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -149,6 +150,55 @@ func (h *DeviceHandler) handleSensors(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// sineWave returns a value oscillating between min and max with the given period.
+func sineWave(min, max, periodSeconds, phaseOffset float64) float64 {
+	t := float64(time.Now().UnixNano()) / 1e9
+	angle := (2 * math.Pi * t / periodSeconds) + phaseOffset
+	mid := (min + max) / 2
+	amplitude := (max - min) / 2
+	return mid + amplitude*math.Sin(angle)
+}
+
+// handleSensors2 exposes a second, independent simulated device whose readings
+// vary sinusoidally over time instead of staying fixed, useful for testing charts.
+func (h *DeviceHandler) handleSensors2(w http.ResponseWriter, r *http.Request) {
+	addCORSHeaders(w)
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Nieobsługiwana metoda", http.StatusMethodNotAllowed)
+		return
+	}
+
+	temperature := int(sineWave(150, 350, 900, 0))
+	humidity := int(sineWave(400, 800, 1200, 1.0))
+	soilMoisture := int(sineWave(500, 3500, 1500, 2.0))
+	waterLevel := int(sineWave(5, 15, 2400, 0.5))
+	isDark := math.Sin(2*math.Pi*float64(time.Now().Unix())/600) < 0
+
+	data := SensorData{
+		DeviceID:           "esp32-test-node-02",
+		LightIsDark:        isDark,
+		SoilMoistureAnalog: soilMoisture,
+		Temperature:        temperature,
+		Humidity:           humidity,
+		WaterLevelCm:       waterLevel,
+		PumpState:          false,
+		LampState:          !isDark,
+		Timestamp:          time.Now().UTC().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("[BŁĄD] Kodowanie JSON: %v", err)
+	}
+}
+
 func (h *DeviceHandler) handlePump(w http.ResponseWriter, r *http.Request) {
 	addCORSHeaders(w)
 
@@ -281,6 +331,7 @@ func main() {
 	handler := NewDeviceHandler()
 
 	http.HandleFunc("/sensors", handler.handleSensors)
+	http.HandleFunc("/sensors2", handler.handleSensors2)
 	http.HandleFunc("/command/pump", handler.handlePump)
 	http.HandleFunc("/command/light", handler.handleLight)
 	http.HandleFunc("/simulate/water-tank", handler.handleWaterSimulation)
