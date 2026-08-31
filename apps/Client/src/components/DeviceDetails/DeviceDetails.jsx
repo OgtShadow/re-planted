@@ -92,7 +92,7 @@ function DeviceDetails() {
 
     return (
         <div className="device-details-container">
-            <button className="back-button" onClick={() => navigate("/")}>&larr; Back to List</button>
+            <button className="back-button" onClick={() => navigate("/devices")}>&larr; Back to List</button>
             
             <div className="device-details-header">
                 <h1>{device.name}</h1>
@@ -101,32 +101,32 @@ function DeviceDetails() {
 
             <div className="device-info-grid">
                 <div className="info-item">
-                    <span className="label">Typ:</span>
-                    <span className="value">{device.deviceKind || 'actuator'}</span>
+                    <h3>Typ:</h3>
+                    <p className="value">{device.deviceKind || 'actuator'}</p>
                 </div>
                 {!isSensorDevice ? (
                     <div className="info-item">
-                        <span className="label">Parameter:</span>
-                        <span className="value">{device.targetParameter}</span>
+                        <h3>Parameter:</h3>
+                        <p className="value">{device.targetParameter}</p>
                     </div>
                 ) : null}
                 <div className="info-item">
-                    <span className="label">Czujniki:</span>
-                    <span className="value">{Array.isArray(device.sensorFields) && device.sensorFields.length > 0 ? device.sensorFields.join(', ') : 'brak'}</span>
+                    <h3>Czujniki:</h3>
+                    <p className="value">{Array.isArray(device.sensorFields) && device.sensorFields.length > 0 ? device.sensorFields.join(', ') : 'brak'}</p>
                 </div>
                 <div className="info-item">
-                    <span className="label">Telemetry ID:</span>
-                    <span className="value">{device.externalDeviceId || 'brak'}</span>
+                    <h3>Telemetry ID:</h3>
+                    <p className="value">{device.externalDeviceId || 'brak'}</p>
                 </div>
                 {!isSensorDevice ? (
                     <div className="info-item">
-                        <span className="label">Effect Strength:</span>
-                        <span className="value">{device.effectStrength}</span>
+                        <h3>Effect Strength:</h3>
+                        <p className="value">{device.effectStrength}</p>
                     </div>
                 ) : null}
             </div>
 
-            <div className="relation-box">
+            <div className="info-item">
                 <h3>Przypisane rośliny</h3>
                 {Array.isArray(device.plants) && device.plants.length > 0 ? (
                     <ul className="relation-list">
@@ -154,8 +154,9 @@ function DeviceDetails() {
                 </div>
                 {assignMessage ? <p>{assignMessage}</p> : null}
             </div>
-
-            <button className="edit-button" onClick={() => setIsEditing(true)}>Edit Device</button>
+            <div className="edit-device-container">
+            <button className="edit-device-button" onClick={() => setIsEditing(true)}>Edit Device</button>
+            </div>
 
             {isEditing && <DeviceEditWindow device={device} onClose={handleEditClose} />}
         </div>

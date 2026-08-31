@@ -17,6 +17,11 @@
     padding: 0;
 }
 
+.back-button:hover {
+    text-decoration: none;
+    background: none;
+}
+
 .plant-img {
     width: min(100%, 520px);
     height: 280px;
@@ -62,7 +67,9 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-     justify-content: center;
+    justify-content: center;
+    margin-bottom: 30px !important;
+    
 }
 
 .info-item h3 {

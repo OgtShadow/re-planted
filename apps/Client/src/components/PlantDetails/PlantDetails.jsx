@@ -100,21 +100,21 @@ function PlantDetails() {
             </div>
             <div className="plant-info-grid">
                 <div className="info-item">
-                    <span className="label">Planted Date:</span>
-                    <span className="value">{new Date(plant.plantedDate).toLocaleDateString()}</span>
+                    <h3 className="label">Planted Date:</h3>
+                    <p className="value">{new Date(plant.plantedDate).toLocaleDateString()}</p>
                 </div>
                 <div className="info-item">
-                    <span className="label">Last Watered:</span>
-                    <span className="value">{new Date(plant.lastWatered).toLocaleDateString()} {new Date(plant.lastWatered).toLocaleTimeString()}</span>
+                    <h3 className="label">Last Watered:</h3>
+                    <p className="value">{new Date(plant.lastWatered).toLocaleDateString()} {new Date(plant.lastWatered).toLocaleTimeString()}</p>
                 </div>
                  <div className="info-item">
-                    <span className="label">Health Status:</span>
-                    <span className="value">{plant.healthStatus}</span>
+                    <h3 className="label">Health Status:</h3>
+                    <p className="value">{plant.healthStatus}</p>
                 </div>
             </div>
             <div className="info-item">
-                    <span className="label">Species:</span>
-                    <span className="value">{plant.species}</span>
+                    <h3 className="label">Species:</h3>
+                    <p className="value">{plant.species}</p>
             </div>
 
                 <div className="info-item">

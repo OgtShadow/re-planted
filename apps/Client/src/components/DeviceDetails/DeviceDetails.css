@@ -3,6 +3,9 @@
     max-width: 800px;
     margin: 0 auto;
     color: var(--text-color);
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
 }
 
 .back-button {
@@ -37,37 +40,29 @@
     margin-bottom: 30px;
 }
 
-.info-item {
-    background-color: var(--dark-color);
-    padding: 15px;
-    border-radius: 10px;
+.edit-device-container {
+    margin-top: 30px;
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    justify-content: center;
+    margin-bottom: 30px;
 }
 
-.info-item .label {
-    color: var(--dark-background-color);
-    font-size: 0.9em;
-    font-weight: bold;
-}
-
-.info-item .value {
-    color: var(--background-color);
-    font-size: 1.1em;
-}
-
-.edit-button {
-    width: 100%;
+.edit-device-button {
+    width: 80%;
     padding: 15px;
     font-size: 1.2em;
     background-color: var(--accent-color-dark);
     color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.edit-button:hover {
+.edit-device-button:hover {
     background-color: var(--accent-color-light);
     color: var(--accent-color-dark);
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
 }
 
 .relation-box {
@@ -98,10 +93,60 @@
     margin-top: 10px;
 }
 
+.assign-row select {
+    padding: 8px;
+    border-radius: 5px;
+    width: 80%;
+}
+
+.assign-row button {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: none;
+    background: none;
+    color: white;
+    cursor: pointer;
+    width: 15%;
+    left: 10px;
+    position: relative;
+}
+
+.assign-row button:hover {
+    background-color: var(--light-color);
+    color: var(--text-color);
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+}
+
 .link-like {
     background: none;
     border: none;
     color: var(--light-color);
     cursor: pointer;
     padding: 0;
+}
+
+.info-item {
+    text-align: center;
+    background-color: var(--dark-color);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 30px !important;
+    
+}
+
+.info-item h3 {
+    margin: 0 0 10px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color:var(--dark-background-color);
+}
+
+.info-item p, .info-item ul {
+    margin: 0;
+    color: var(--background-color);
 }
