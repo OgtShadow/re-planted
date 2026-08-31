@@ -17,7 +17,7 @@
     padding: 0;
 }
 
-.plant-details-hero {
+.plant-img {
     width: min(100%, 520px);
     height: 280px;
     margin: 0 auto 24px;
@@ -27,7 +27,7 @@
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
-.plant-details-hero img {
+.plant-img img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -40,6 +40,7 @@
     justify-content: center;
     gap: 15px;
     margin-bottom: 30px;
+    z-index: 100;
 }
 
 .plant-details-header h1 {
@@ -61,17 +62,19 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+     justify-content: center;
 }
 
-.info-item .label {
-    color: var(--dark-background-color);
+.info-item h3 {
+    margin: 0 0 10px;
     font-size: 0.9em;
     font-weight: bold;
+    color:var(--dark-background-color);
 }
 
-.info-item .value {
+.info-item p, .info-item ul {
+    margin: 0;
     color: var(--background-color);
-    font-size: 1.1em;
 }
 
 .edit-button {
@@ -87,18 +90,12 @@
     color: var(--accent-color-dark);
 }
 
-.relation-box {
-    background-color: var(--dark-color);
-    border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 20px;
-    color: white;
-}
-
 .relation-list {
     list-style: none;
     margin: 0 0 12px;
     padding: 0;
+    text-align: center;
+    justify-content: center;
 }
 
 .relation-list li {
@@ -106,10 +103,19 @@
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    justify-content: center;
     margin-bottom: 8px;
 }
 
-.link-like {
+.relation-list button {
+    background: none;
+    border: none;
+    color: var(--light-color);
+    cursor: pointer;
+    padding: 0;
+}
+
+.relation-list button:hover {
     background: none;
     border: none;
     color: var(--light-color);
@@ -118,19 +124,22 @@
 }
 
 .plant-live-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin-bottom: 14px;
+    justify-content: center;
 }
 
 .plant-live-card {
     display: flex;
     flex-direction: column;
+    width: 80%;
     gap: 4px;
     background: color-mix(in srgb, var(--background-color), white 20%);
     border: 1px solid var(--dark-background-color);
     border-radius: 8px;
     padding: 10px;
     color: var(--light-text-color);
+     justify-content: center;
 }

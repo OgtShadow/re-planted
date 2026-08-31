@@ -92,20 +92,13 @@ function PlantDetails() {
         <div className="plant-details-container">
             <button className="back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
 
-            <div className="plant-details-hero">
+            <div className="plant-img">
                 <img src={plantImage} alt={plant.name} />
             </div>
-            
             <div className="plant-details-header">
                 <h1>{plant.name}</h1>
-                <StatusDot status={plant.healthStatus === "Healthy" ? "green" : plant.healthStatus === "Unhealthy" ? "red" : "gray"} size="large" />
             </div>
-
             <div className="plant-info-grid">
-                <div className="info-item">
-                    <span className="label">Species:</span>
-                    <span className="value">{plant.species}</span>
-                </div>
                 <div className="info-item">
                     <span className="label">Planted Date:</span>
                     <span className="value">{new Date(plant.plantedDate).toLocaleDateString()}</span>
@@ -119,9 +112,13 @@ function PlantDetails() {
                     <span className="value">{plant.healthStatus}</span>
                 </div>
             </div>
+            <div className="info-item">
+                    <span className="label">Species:</span>
+                    <span className="value">{plant.species}</span>
+            </div>
 
-            <div className="relation-box">
-                <h3>Przypisane sensory</h3>
+                <div className="info-item">
+                <h3>Przypisane sensory:</h3>
                 {sensorDevices.length > 0 ? (
                     <ul className="relation-list">
                         {sensorDevices
@@ -137,8 +134,9 @@ function PlantDetails() {
                 ) : (
                     <p>Brak przypisanych sensorów.</p>
                 )}
-
-                <h3>Dane live dla tej rośliny</h3>
+                </div>
+                <div className="info-item">
+                <h3>Dane live dla tej rośliny:</h3>
                 {plantLiveSnapshots.length > 0 ? (
                     <div className="plant-live-grid">
                         {plantLiveSnapshots.map((snapshot) => (
@@ -155,15 +153,16 @@ function PlantDetails() {
                 ) : (
                     <p>Brak bieżących odczytów dla przypisanych sensorów.</p>
                 )}
-
-                <h3>Przypisane actuatory</h3>
+                </div>
+                <div className="info-item">
+                <h3>Przypisane actuatory:</h3>
                 {(plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor').length > 0 ? (
                     <ul className="relation-list">
                         {(plant.devices || [])
                             .filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor')
                             .map((device) => (
                                 <li key={device.id}>
-                                    <button type="button" className="link-like" onClick={() => navigate(`/device/${device.id}`)}>
+                                    <button type="button" onClick={() => navigate(`/device/${device.id}`)}>
                                         {device.name}
                                     </button>
                                     <span>{device.targetParameter || 'brak celu'}</span>
@@ -173,7 +172,8 @@ function PlantDetails() {
                 ) : (
                     <p>Brak przypisanych actuatorów.</p>
                 )}
-            </div>
+                </div>
+            
 
             <button className="edit-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
 
