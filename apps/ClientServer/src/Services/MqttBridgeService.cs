@@ -66,7 +66,12 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
         }
     }
 
-    public async Task<bool> PublishPumpCommandAsync(string deviceId, int durationMs, CancellationToken cancellationToken = default)
+    public Task<bool> PublishPumpCommandAsync(string deviceId, int durationMs, CancellationToken cancellationToken = default)
+    {
+        return PublishActuatorCommandAsync(deviceId, "pump", true, durationMs, cancellationToken);
+    }
+
+    public async Task<bool> PublishActuatorCommandAsync(string deviceId, string command, bool state, int durationMs, CancellationToken cancellationToken = default)
     {
         if (!_options.Enabled)
         {
@@ -92,7 +97,7 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
             return false;
         }
 
-        var payload = new CommandPayload(deviceId, "pump", true, durationMs, DateTime.UtcNow);
+        var payload = new CommandPayload(deviceId, string.IsNullOrWhiteSpace(command) ? "pump" : command, state, durationMs, DateTime.UtcNow);
         var topic = _options.CommandsTopicTemplate.Replace("{deviceId}", deviceId, StringComparison.OrdinalIgnoreCase);
         var payloadJson = JsonSerializer.Serialize(payload, _jsonOptions);
 
@@ -109,11 +114,11 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
             var result = await _mqttClient.PublishAsync(message, cancellationToken);
             if (!result.IsSuccess)
             {
-                _logger.LogWarning("Broker MQTT odrzucił komendę pompy dla {DeviceId}.", deviceId);
+                _logger.LogWarning("Broker MQTT odrzucił komendę {Command} dla {DeviceId}.", payload.Command, deviceId);
                 return false;
             }
 
-            _logger.LogInformation("Opublikowano komendę pompy MQTT dla {DeviceId} na {DurationMs} ms.", deviceId, durationMs);
+            _logger.LogInformation("Opublikowano komendę MQTT {Command} dla {DeviceId} na {DurationMs} ms.", payload.Command, deviceId, durationMs);
             return true;
         }
         catch (Exception ex)

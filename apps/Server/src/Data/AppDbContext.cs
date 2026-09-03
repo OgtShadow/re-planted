@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Parameters> Parameters { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<TelemetryBucket> TelemetryBuckets { get; set; }
+    public DbSet<AutomationRule> AutomationRules { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,6 +64,37 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => new { x.DeviceId, x.BucketStartUtc }).IsUnique();
             entity.HasIndex(x => x.BucketStartUtc);
+        });
+
+        modelBuilder.Entity<AutomationRule>(entity =>
+        {
+            entity.Property(r => r.SensorField).IsRequired();
+            entity.Property(r => r.Condition).IsRequired();
+            entity.Property(r => r.Action).IsRequired();
+            entity.Property(r => r.Status).IsRequired();
+
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.Plant)
+                .WithMany()
+                .HasForeignKey(r => r.PlantId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.SensorDevice)
+                .WithMany()
+                .HasForeignKey(r => r.SensorDeviceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.ActuatorDevice)
+                .WithMany()
+                .HasForeignKey(r => r.ActuatorDeviceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(r => r.UserId);
+            entity.HasIndex(r => r.PlantId);
         });
     }
 }

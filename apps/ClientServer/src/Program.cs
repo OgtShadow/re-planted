@@ -23,6 +23,7 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 
 builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
 builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
+builder.Services.AddSingleton<IAutomationRuleEngine, AutomationRuleEngine>();
 builder.Services.AddSingleton<MqttBridgeService>();
 builder.Services.AddSingleton<IMqttBridgeService>(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
 

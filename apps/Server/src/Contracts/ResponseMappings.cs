@@ -1,3 +1,4 @@
+using RePlanted.Server.Contracts.AutomationRules;
 using RePlanted.Server.Contracts.Devices;
 using RePlanted.Server.Contracts.Plants;
 using RePlanted.Server.Models;
@@ -6,6 +7,36 @@ namespace RePlanted.Server.Contracts;
 
 public static class ResponseMappings
 {
+    public static AutomationRuleResponse ToResponse(this AutomationRule rule)
+    {
+        return new AutomationRuleResponse
+        {
+            Id = rule.Id,
+            UserId = rule.UserId,
+            PlantId = rule.PlantId,
+            PlantName = rule.Plant?.Name ?? string.Empty,
+            SensorDeviceId = rule.SensorDeviceId,
+            SensorDeviceName = rule.SensorDevice?.Name ?? string.Empty,
+            SensorField = rule.SensorField,
+            Condition = rule.Condition,
+            Threshold = rule.Threshold,
+            ActuatorDeviceId = rule.ActuatorDeviceId,
+            ActuatorDeviceName = rule.ActuatorDevice?.Name ?? string.Empty,
+            ActuatorExternalDeviceId = rule.ActuatorDevice?.ExternalDeviceId ?? string.Empty,
+            ActuatorTargetParameter = rule.ActuatorDevice?.TargetParameter ?? string.Empty,
+            Action = rule.Action,
+            DurationSeconds = rule.DurationSeconds,
+            ScheduleStartTime = rule.ScheduleStartTime,
+            ScheduleEndTime = rule.ScheduleEndTime,
+            Priority = rule.Priority,
+            CooldownMinutes = rule.CooldownMinutes,
+            Status = rule.Status,
+            LastTriggeredUtc = rule.LastTriggeredUtc,
+            CreatedAtUtc = rule.CreatedAtUtc,
+            UpdatedAtUtc = rule.UpdatedAtUtc
+        };
+    }
+
     public static DeviceResponse ToResponse(this ActuatorDevice device, bool includePlants)
     {
         var isSensor = string.Equals(device.DeviceKind, "sensor", StringComparison.OrdinalIgnoreCase);

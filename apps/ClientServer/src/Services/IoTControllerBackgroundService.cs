@@ -9,6 +9,8 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 {
     private readonly IMainServerTopologyClient _topologyClient;
     private readonly IMockDeviceClient _mockDeviceClient;
+    private readonly IMqttBridgeService _mqttBridgeService;
+    private readonly IAutomationRuleEngine _ruleEngine;
     private readonly IControllerStateStore _stateStore;
     private readonly IHubContext<ControllerHub> _hubContext;
     private readonly IoTControllerOptions _options;
@@ -18,6 +20,8 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     public IoTControllerBackgroundService(
         IMainServerTopologyClient topologyClient,
         IMockDeviceClient mockDeviceClient,
+        IMqttBridgeService mqttBridgeService,
+        IAutomationRuleEngine ruleEngine,
         IControllerStateStore stateStore,
         IHubContext<ControllerHub> hubContext,
         IOptions<IoTControllerOptions> options,
@@ -25,6 +29,8 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     {
         _topologyClient = topologyClient;
         _mockDeviceClient = mockDeviceClient;
+        _mqttBridgeService = mqttBridgeService;
+        _ruleEngine = ruleEngine;
         _stateStore = stateStore;
         _hubContext = hubContext;
         _options = options.Value;
@@ -101,46 +107,60 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             return;
         }
 
-        var activePlant = SelectPlantNeedingWater(currentTopology.Plants, telemetry.SoilMoistureAnalog, _options.MoistureThresholdBufferPercent);
-        if (activePlant is not null && !pumpStateMachine.IsInSoak(nowUtc))
+        string? activePlantName = null;
+        var warningMessage = pumpStateMachine.WarningMessage;
+
+        var rules = await _topologyClient.GetAutomationRulesAsync(clientId, cancellationToken);
+        if (rules.Count > 0 && !pumpStateMachine.IsInSoak(nowUtc))
         {
-            if (IsWaterLevelTooLow(telemetry.WaterLevelCm))
+            var decisions = _ruleEngine.Evaluate(rules, telemetry, nowUtc);
+            foreach (var decision in decisions)
             {
-                var warningMessage = $"Brak wody w zbiorniku. Zablokowano uruchomienie pompy dla rośliny {activePlant.Name}.";
-                _logger.LogWarning(warningMessage);
-                pumpStateMachine.MarkBlocked(warningMessage);
-
-                var blockedTelemetry = telemetry with
+                var isPumpAction = decision.State && string.Equals(decision.Command, "pump", StringComparison.OrdinalIgnoreCase);
+                if (isPumpAction && IsWaterLevelTooLow(telemetry.WaterLevelCm))
                 {
-                    ControllerState = PumpControlPhase.Idle.ToString(),
-                    ActivePlantName = activePlant.Name,
-                    WarningMessage = warningMessage,
-                    LastSyncUtc = currentTopology.SyncedAtUtc
-                };
+                    warningMessage = $"Brak wody w zbiorniku. Zablokowano regułę dla rośliny {decision.Rule.PlantName}.";
+                    _logger.LogWarning(warningMessage);
+                    pumpStateMachine.MarkBlocked(warningMessage);
+                    continue;
+                }
 
-                _stateStore.UpdateTelemetry(clientId, blockedTelemetry);
-                await PublishTelemetryAsync(currentTopology.ClientId, blockedTelemetry, cancellationToken);
-                return;
+                var published = await _mqttBridgeService.PublishActuatorCommandAsync(
+                    decision.ActuatorExternalDeviceId,
+                    decision.Command,
+                    decision.State,
+                    Math.Max(1, decision.DurationSeconds) * 1000,
+                    cancellationToken);
+
+                if (!published)
+                {
+                    _logger.LogWarning("Nie udało się wykonać reguły {RuleId} dla rośliny {PlantName}.", decision.Rule.Id, decision.Rule.PlantName);
+                    continue;
+                }
+
+                await _topologyClient.NotifyRuleTriggeredAsync(clientId, decision.Rule.Id, cancellationToken);
+                activePlantName = decision.Rule.PlantName;
+                _logger.LogInformation(
+                    "Wykonano regułę {RuleId}: {Command} na urządzeniu {ActuatorId} dla rośliny {PlantName}.",
+                    decision.Rule.Id,
+                    decision.Command,
+                    decision.ActuatorExternalDeviceId,
+                    decision.Rule.PlantName);
+
+                if (isPumpAction)
+                {
+                    pumpStateMachine.BeginWatering(decision.Rule.PlantName);
+                    pumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
+                    break;
+                }
             }
-
-            pumpStateMachine.BeginWatering(activePlant.Name);
-
-            var pumpStarted = await _mockDeviceClient.TurnPumpOnAsync(_options.PumpRunSeconds, cancellationToken);
-            if (!pumpStarted)
-            {
-                pumpStateMachine.MarkBlocked($"Nie udało się uruchomić pompy dla rośliny {activePlant.Name}.");
-                return;
-            }
-
-            pumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
-            _logger.LogInformation("Uruchomiono pompę dla rośliny {PlantName}. Rozpoczynam okres wchłaniania.", activePlant.Name);
         }
 
         var enrichedTelemetry = telemetry with
         {
             ControllerState = pumpStateMachine.Phase.ToString(),
-            ActivePlantName = activePlant?.Name,
-            WarningMessage = pumpStateMachine.WarningMessage,
+            ActivePlantName = activePlantName,
+            WarningMessage = warningMessage,
             LastSyncUtc = currentTopology.SyncedAtUtc
         };
 
@@ -154,25 +174,6 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             .Where(id => id > 0)
             .Distinct()
             .ToList();
-    }
-
-    private static ControllerPlantDto? SelectPlantNeedingWater(IReadOnlyList<ControllerPlantDto> plants, int soilMoistureAnalog, int bufferPercent)
-    {
-        var soilMoisturePercent = Math.Clamp(soilMoistureAnalog / 10, 0, 100);
-
-        return plants
-            .Where(plant => plant.Devices.Any(device =>
-                device.IsEnabled &&
-                (string.Equals(device.TargetParameter, "soilMoisture", StringComparison.OrdinalIgnoreCase)
-                 || device.SensorFields.Any(field => string.Equals(field, "soilMoistureAnalog", StringComparison.OrdinalIgnoreCase)))))
-            .OrderBy(plant => plant.Parameters.HumidityMin)
-            .FirstOrDefault(plant => IsBelowTarget(plant, soilMoisturePercent, bufferPercent));
-    }
-
-    private static bool IsBelowTarget(ControllerPlantDto plant, int soilMoisturePercent, int bufferPercent)
-    {
-        var effectiveThreshold = Math.Max(0, plant.Parameters.HumidityMin - Math.Max(0, bufferPercent));
-        return soilMoisturePercent < effectiveThreshold;
     }
 
     private bool IsWaterLevelTooLow(int waterLevelCm)

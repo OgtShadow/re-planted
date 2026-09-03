@@ -6,6 +6,8 @@ public sealed class MainServerApiOptions
 
     public string BaseUrl { get; set; } = "http://localhost:8080";
     public string PlantsPath { get; set; } = "/api/users/{clientId}/plants";
+    public string AutomationRulesPath { get; set; } = "/api/users/{clientId}/automation-rules";
+    public string AutomationRuleTriggerPath { get; set; } = "/api/users/{clientId}/automation-rules/{ruleId}/trigger";
 }
 
 public sealed class MockDeviceApiOptions

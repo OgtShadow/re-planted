@@ -89,3 +89,24 @@ public sealed record CommandPayload(
     DateTime RequestedAtUtc);
 
 public sealed record PumpCommandRequest(int DurationMs);
+
+/// <summary>Represents a persistent automation rule synchronized from the main server.</summary>
+public sealed record ControllerAutomationRuleDto(
+    int Id,
+    int PlantId,
+    string PlantName,
+    int SensorDeviceId,
+    string SensorField,
+    string Condition,
+    double Threshold,
+    int ActuatorDeviceId,
+    string ActuatorExternalDeviceId,
+    string ActuatorCommand,
+    string Action,
+    int DurationSeconds,
+    TimeSpan? ScheduleStartTime,
+    TimeSpan? ScheduleEndTime,
+    int Priority,
+    int CooldownMinutes,
+    string Status,
+    DateTime? LastTriggeredUtc);

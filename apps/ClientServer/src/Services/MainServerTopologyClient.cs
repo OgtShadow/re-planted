@@ -6,6 +6,8 @@ namespace ClientServer.Services;
 public interface IMainServerTopologyClient
 {
     Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ControllerAutomationRuleDto>> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken);
+    Task NotifyRuleTriggeredAsync(int clientId, int ruleId, CancellationToken cancellationToken);
 }
 
 public sealed class MainServerTopologyClient : IMainServerTopologyClient
@@ -60,6 +62,90 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         }
     }
 
+    public async Task<IReadOnlyList<ControllerAutomationRuleDto>> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = _options.AutomationRulesPath.Replace("{clientId}", clientId.ToString(), StringComparison.OrdinalIgnoreCase);
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _jwtTokenProvider.CreateClientToken(clientId));
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Synchronizacja reguł automatyzacji nie powiodła się dla klienta {ClientId}. Kod: {StatusCode}", clientId, response.StatusCode);
+                return [];
+            }
+
+            var rules = await response.Content.ReadFromJsonAsync<List<AutomationRuleDto>>(cancellationToken);
+            if (rules is null)
+            {
+                return [];
+            }
+
+            return rules.Select(MapAutomationRule).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się zsynchronizować reguł automatyzacji z głównym serwerem dla klienta {ClientId}.", clientId);
+            return [];
+        }
+    }
+
+    public async Task NotifyRuleTriggeredAsync(int clientId, int ruleId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = _options.AutomationRuleTriggerPath
+                .Replace("{clientId}", clientId.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{ruleId}", ruleId.ToString(), StringComparison.OrdinalIgnoreCase);
+            using var request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _jwtTokenProvider.CreateClientToken(clientId));
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Nie udało się zarejestrować wykonania reguły {RuleId} dla klienta {ClientId}. Kod: {StatusCode}", ruleId, clientId, response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się powiadomić głównego serwera o wykonaniu reguły {RuleId} dla klienta {ClientId}.", ruleId, clientId);
+        }
+    }
+
+    private static ControllerAutomationRuleDto MapAutomationRule(AutomationRuleDto rule)
+    {
+        return new ControllerAutomationRuleDto(
+            rule.Id,
+            rule.PlantId,
+            rule.PlantName,
+            rule.SensorDeviceId,
+            rule.SensorField,
+            rule.Condition,
+            rule.Threshold,
+            rule.ActuatorDeviceId,
+            string.IsNullOrWhiteSpace(rule.ActuatorExternalDeviceId) ? rule.ActuatorDeviceId.ToString() : rule.ActuatorExternalDeviceId,
+            ResolveActuatorCommand(rule.ActuatorTargetParameter),
+            rule.Action,
+            rule.DurationSeconds,
+            rule.ScheduleStartTime,
+            rule.ScheduleEndTime,
+            rule.Priority,
+            rule.CooldownMinutes,
+            rule.Status,
+            rule.LastTriggeredUtc);
+    }
+
+    private static string ResolveActuatorCommand(string? targetParameter)
+    {
+        return targetParameter?.Trim().ToLowerInvariant() switch
+        {
+            "light" or "temperature" => "light",
+            _ => "pump"
+        };
+    }
+
     private static ControllerPlantDto MapPlant(PlantDto plant)
     {
         return new ControllerPlantDto(
@@ -110,4 +196,24 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         string? EffectType,
         double EffectStrength,
         bool IsEnabled);
+
+    private sealed record AutomationRuleDto(
+        int Id,
+        int PlantId,
+        string PlantName,
+        int SensorDeviceId,
+        string SensorField,
+        string Condition,
+        double Threshold,
+        int ActuatorDeviceId,
+        string? ActuatorExternalDeviceId,
+        string? ActuatorTargetParameter,
+        string Action,
+        int DurationSeconds,
+        TimeSpan? ScheduleStartTime,
+        TimeSpan? ScheduleEndTime,
+        int Priority,
+        int CooldownMinutes,
+        string Status,
+        DateTime? LastTriggeredUtc);
 }
