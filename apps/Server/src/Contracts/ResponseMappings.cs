@@ -24,6 +24,8 @@ public static class ResponseMappings
             ActuatorDeviceName = rule.ActuatorDevice?.Name ?? string.Empty,
             ActuatorExternalDeviceId = rule.ActuatorDevice?.ExternalDeviceId ?? string.Empty,
             ActuatorTargetParameter = rule.ActuatorDevice?.TargetParameter ?? string.Empty,
+            ActuatorEffectType = rule.ActuatorDevice?.EffectType ?? string.Empty,
+            ActuatorEffectStrength = rule.ActuatorDevice?.EffectStrength ?? 0,
             Action = rule.Action,
             DurationSeconds = rule.DurationSeconds,
             ScheduleStartTime = rule.ScheduleStartTime,

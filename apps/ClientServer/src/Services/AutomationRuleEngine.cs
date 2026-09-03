@@ -64,7 +64,8 @@ public sealed class AutomationRuleEngine : IAutomationRuleEngine
             }
 
             var state = string.Equals(rule.Action, "TurnOn", StringComparison.OrdinalIgnoreCase);
-            decisions.Add(new RuleTriggerDecision(rule, rule.ActuatorExternalDeviceId, rule.ActuatorCommand, state, rule.DurationSeconds));
+            var durationSeconds = state ? ResolveDurationSeconds(rule, sensorValue) : rule.DurationSeconds;
+            decisions.Add(new RuleTriggerDecision(rule, rule.ActuatorExternalDeviceId, rule.ActuatorCommand, state, durationSeconds));
             claimedActuators.Add(rule.ActuatorDeviceId);
         }
 
@@ -126,5 +127,30 @@ public sealed class AutomationRuleEngine : IAutomationRuleEngine
             "GreaterOrEqual" => value >= threshold,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// "light" just follows the schedule window, so it always runs for the configured duration.
+    /// Every other actuator runs only long enough to close the gap to its threshold, at
+    /// EffectStrength units per second, capped by the rule's DurationSeconds as a safety limit.
+    /// </summary>
+    private static int ResolveDurationSeconds(ControllerAutomationRuleDto rule, double sensorValue)
+    {
+        if (string.Equals(rule.ActuatorCommand, "light", StringComparison.OrdinalIgnoreCase))
+        {
+            return Math.Max(1, rule.DurationSeconds);
+        }
+
+        var gap = rule.Condition is "GreaterThan" or "GreaterOrEqual"
+            ? sensorValue - rule.Threshold
+            : rule.Threshold - sensorValue;
+
+        if (gap <= 0 || rule.ActuatorEffectStrength <= 0)
+        {
+            return Math.Max(1, rule.DurationSeconds);
+        }
+
+        var computedSeconds = (int)Math.Ceiling(gap / rule.ActuatorEffectStrength);
+        return Math.Clamp(computedSeconds, 1, Math.Max(1, rule.DurationSeconds));
     }
 }

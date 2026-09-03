@@ -47,6 +47,9 @@ public class AutomationRule
     public int ActuatorDeviceId { get; set; }
     public ActuatorDevice? ActuatorDevice { get; set; }
     public string Action { get; set; } = AutomationActions.TurnOn;
+
+    /// <summary>Safety cap in seconds. The Rule Engine computes the actual runtime from the sensor gap
+    /// and the actuator's EffectStrength (except for "light", which just follows the schedule) and never exceeds this value.</summary>
     public int DurationSeconds { get; set; } = 5;
 
     /// <summary>Optional daily time-of-day window (harmonogram) in which the rule is allowed to fire.</summary>

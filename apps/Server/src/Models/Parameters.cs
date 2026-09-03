@@ -10,6 +10,10 @@ public class Parameters
     public int LightHoursPerDay { get; set; }
     public Range Temperature { get; set; }
 
+    /// <summary>Daily time-of-day window in which automation is allowed to turn the light on (e.g. to avoid disturbing sleep).</summary>
+    public TimeSpan? LightScheduleStart { get; set; }
+    public TimeSpan? LightScheduleEnd { get; set; }
+
     public Parameters()
     {
         WateringIntervalDays = 0;

@@ -102,6 +102,8 @@ public sealed record ControllerAutomationRuleDto(
     int ActuatorDeviceId,
     string ActuatorExternalDeviceId,
     string ActuatorCommand,
+    string ActuatorEffectType,
+    double ActuatorEffectStrength,
     string Action,
     int DurationSeconds,
     TimeSpan? ScheduleStartTime,

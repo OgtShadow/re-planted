@@ -18,6 +18,8 @@ public sealed class AutomationRuleResponse
     public string ActuatorDeviceName { get; set; } = string.Empty;
     public string ActuatorExternalDeviceId { get; set; } = string.Empty;
     public string ActuatorTargetParameter { get; set; } = string.Empty;
+    public string ActuatorEffectType { get; set; } = string.Empty;
+    public double ActuatorEffectStrength { get; set; }
     public string Action { get; set; } = string.Empty;
     public int DurationSeconds { get; set; }
 

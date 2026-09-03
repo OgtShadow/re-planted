@@ -175,7 +175,13 @@ public static class AutomationRuleEndpoints
             return $"Pole Condition musi być jedną z wartości: {string.Join(", ", AutomationConditions.All)}.";
         }
 
-        if (request.ActuatorDeviceId is not { } actuatorDeviceId || !await db.ActuatorDevices.AnyAsync(d => d.Id == actuatorDeviceId && d.UserId == userId))
+        if (request.ActuatorDeviceId is not { } actuatorDeviceId)
+        {
+            return "Nieprawidłowy identyfikator urządzenia wykonawczego.";
+        }
+
+        var actuatorDevice = await db.ActuatorDevices.FirstOrDefaultAsync(d => d.Id == actuatorDeviceId && d.UserId == userId);
+        if (actuatorDevice is null)
         {
             return "Nieprawidłowy identyfikator urządzenia wykonawczego.";
         }
@@ -204,11 +210,23 @@ public static class AutomationRuleEndpoints
         rule.ActuatorDeviceId = actuatorDeviceId;
         rule.Action = request.Action;
         rule.DurationSeconds = durationSeconds;
-        rule.ScheduleStartTime = request.ScheduleStartTime;
-        rule.ScheduleEndTime = request.ScheduleEndTime;
         rule.Priority = request.Priority ?? 100;
         rule.CooldownMinutes = Math.Max(0, request.CooldownMinutes ?? 30);
         rule.Status = status;
+
+        // The allowed hours for light are one setting per plant (Parameters), not per rule, so it
+        // can't disturb e.g. sleep no matter which rule/device ends up controlling the light.
+        if (string.Equals(actuatorDevice.TargetParameter, "light", StringComparison.OrdinalIgnoreCase))
+        {
+            var plant = await db.Plants.Include(p => p.Parameters).FirstOrDefaultAsync(p => p.Id == plantId);
+            rule.ScheduleStartTime = plant?.Parameters?.LightScheduleStart;
+            rule.ScheduleEndTime = plant?.Parameters?.LightScheduleEnd;
+        }
+        else
+        {
+            rule.ScheduleStartTime = request.ScheduleStartTime;
+            rule.ScheduleEndTime = request.ScheduleEndTime;
+        }
 
         return null;
     }
