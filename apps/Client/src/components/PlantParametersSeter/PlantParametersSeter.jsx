@@ -43,6 +43,24 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
         if (setPlant) {setPlant(newPlant);}
     }
 
+    const handleLightScheduleChange = (field) => (event) => {
+        const inputValue = event.target.value;
+        const newPlant = { ...plant };
+        if (!newPlant.parameters) newPlant.parameters = {};
+
+        newPlant.parameters[field] = inputValue ? `${inputValue}:00` : null;
+        if (setPlant) {setPlant(newPlant);}
+    };
+
+    const handleClearLightSchedule = () => {
+        const newPlant = { ...plant };
+        if (!newPlant.parameters) newPlant.parameters = {};
+
+        newPlant.parameters.lightScheduleStart = null;
+        newPlant.parameters.lightScheduleEnd = null;
+        if (setPlant) {setPlant(newPlant);}
+    };
+
     const tempVal = [
         plant?.parameters?.temperature?.min ?? 0,
         plant?.parameters?.temperature?.max ?? 100
@@ -56,6 +74,10 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
     const lightVal = plant?.parameters?.lightHoursPerDay ?? 12;
 
     const wateringVal = plant?.parameters?.wateringIntervalDays ?? 7;
+
+    const toTimeInputValue = (timeSpan) => (timeSpan ? timeSpan.slice(0, 5) : '');
+    const lightScheduleStart = toTimeInputValue(plant?.parameters?.lightScheduleStart);
+    const lightScheduleEnd = toTimeInputValue(plant?.parameters?.lightScheduleEnd);
 
     
     return (
@@ -86,6 +108,29 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
                     min={0}
                     max={24}
                 />
+
+                <div className="light-schedule">
+                    <p>Dozwolone godziny włączania światła (aby nie przeszkadzać np. we śnie)</p>
+                    <div className="light-schedule-inputs">
+                        <label>
+                            Od
+                            <input
+                                type="time"
+                                value={lightScheduleStart}
+                                onChange={handleLightScheduleChange('lightScheduleStart')}
+                            />
+                        </label>
+                        <label>
+                            Do
+                            <input
+                                type="time"
+                                value={lightScheduleEnd}
+                                onChange={handleLightScheduleChange('lightScheduleEnd')}
+                            />
+                        </label>
+                        <button type="button" onClick={handleClearLightSchedule}>Bez ograniczenia</button>
+                    </div>
+                </div>
 
                 <Slider1
                     text = "Częstotliwość podlewania (dni)"

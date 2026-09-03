@@ -1,0 +1,16 @@
+.parameters-seter .light-schedule {
+    margin: 12px 0;
+}
+
+.parameters-seter .light-schedule-inputs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.parameters-seter .light-schedule-inputs label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
