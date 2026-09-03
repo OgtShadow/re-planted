@@ -396,3 +396,32 @@ Firmware realizuje:
 - interlock pompy zależny od czujnika poziomu cieczy,
 - automatyczne wyłączanie pompy po `durationMs` bez blokowania pętli,
 - moving average dla wejść analogowych (wilgotność gleby, światło).
+
+## 17. Automatyzacja: trwałe reguły i Rule Engine
+
+System automatyzacji zastąpił dawną logikę, która obsługiwała tylko podlewanie pierwszej napotkanej rośliny z niską wilgotnością.
+
+### 17.1 Model `AutomationRule` (Server)
+
+Trwała encja EF Core (`apps/Server/src/Models/AutomationRule.cs`), właściciel danych: **Server**. Reguła wiąże: roślinę, urządzenie-czujnik + odczytywane pole, warunek + próg, urządzenie-aktuator + akcję, czas trwania (traktowany jako bezpiecznik/maksimum, patrz 17.3), harmonogram godzinowy, priorytet, cooldown i status.
+
+CRUD API: `/api/users/{userId}/automation-rules` (`GET`, `GET /{id}`, `POST`, `PUT /{id}`, `DELETE /{id}`), autoryzacja jak przy roślinach/urządzeniach (użytkownik zarządza tylko swoimi regułami). Dodatkowo `POST /{id}/trigger` — wywoływane przez ClientServer zaraz po wykonaniu reguły, żeby cooldown (`LastTriggeredUtc`) przetrwał restart ClientServer i był widoczny w API.
+
+Harmonogram światła nie jest ustawiany ręcznie per reguła: dla aktuatorów z `TargetParameter == "light"` Server automatycznie nadpisuje `ScheduleStartTime`/`ScheduleEndTime` reguły wartościami `LightScheduleStart`/`LightScheduleEnd` z `Plant.Parameters` — jedno miejsce konfiguracji na roślinę, więc światło nie zapali się np. w środku nocy niezależnie od tego, która reguła nim steruje.
+
+### 17.2 Parametry rośliny: godziny dozwolone dla światła
+
+`Plant.Parameters` (`apps/Server/src/Models/Parameters.cs`) ma nowe pola `LightScheduleStart`/`LightScheduleEnd` (nullable `TimeSpan`) — okno godzinowe, w którym automatyka może włączać światło (np. żeby nie przeszkadzać we śnie). Ustawiane w tym samym miejscu co reszta parametrów rośliny.
+
+Front: `PlantParametersSeter` (`apps/Client/src/components/PlantParametersSeter`) ma dwa pola `<input type="time">` ("Od"/"Do") pod suwakiem godzin światła dziennego oraz przycisk "Bez ograniczenia" czyszczący oba pola (brak ograniczenia = światło może się załączyć o dowolnej porze). Zmiany lecą razem z resztą `plant.parameters` przez istniejący `PUT /api/users/{userId}/plants/{id}`.
+
+### 17.3 Rule Engine (ClientServer)
+
+`AutomationRuleEngine` (`apps/ClientServer/src/Services/AutomationRuleEngine.cs`) — czysta, testowalna logika ewaluacji, używana przez `IoTControllerBackgroundService` w każdym cyklu pollingu zamiast starego kodu wybierającego "pierwszą roślinę z niską wilgotnością":
+
+1. Dla każdej włączonej reguły sprawdza kolejno: harmonogram godzinowy → cooldown → wartość czujnika z bieżącej telemetrii → warunek (`LessThan`/`LessOrEqual`/`GreaterThan`/`GreaterOrEqual`) względem progu.
+2. **Czas pracy aktuatora jest dynamiczny**, a nie sztywny: dla wszystkiego poza światłem (pompy, itd.) silnik liczy różnicę między odczytem czujnika a progiem reguły (`gap`) i dzieli ją przez `EffectStrength` urządzenia (ile jednostek parametru zmienia jedna sekunda pracy), zaokrąglając w górę i przycinając do `[1s, DurationSeconds]`. Im dalej od celu, tym dłużej pracuje aktuator, ale nigdy dłużej niż ustawiony w regule bezpiecznik. Światło nie dawkuje — działa po prostu zgodnie z oknem harmonogramu przez skonfigurowany czas.
+3. **Rozstrzyganie konfliktów** dla aktuatorów współdzielonych przez wiele roślin (typowo światło/ogrzewanie — pompa jest zawsze 1:1 z rośliną, więc konfliktu praktycznie nie ma): reguły grupowane są po `ActuatorDeviceId`; jeśli w danym cyklu spełni się więcej niż jedna reguła dla tego samego urządzenia, wygrywa ta o niższej wartości `Priority`, a przy remisie — ta, która czekała najdłużej od ostatniego zadziałania (`LastTriggeredUtc`, nigdy nietriggerowana = czeka najdłużej), żeby żadna roślina nie była trwale zagłodzona przez inną z takim samym priorytetem.
+
+Po wykonaniu akcji ClientServer publikuje komendę przez wspólny most MQTT (`MqttBridgeService.PublishActuatorCommandAsync`) i zgłasza wykonanie do Servera (`POST /{id}/trigger`), aktualizując cooldown. Ręczne sterowanie z UI i automatyzacja korzystają teraz z tej samej ścieżki MQTT.
+
