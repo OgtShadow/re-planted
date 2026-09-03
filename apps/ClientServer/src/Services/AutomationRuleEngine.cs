@@ -14,9 +14,9 @@ public interface IAutomationRuleEngine
 {
     /// <summary>
     /// Evaluates all enabled rules against the latest telemetry snapshot and returns the actions that
-    /// should be executed this cycle, highest priority first. At most one decision is produced per
-    /// actuator device: once a rule claims an actuator, lower-priority rules targeting the same
-    /// actuator are skipped for this cycle.
+    /// should be executed this cycle. Multiple plants can share one actuator (e.g. one lamp), so when
+    /// more than one rule becomes satisfied for the same actuator device, the conflict is resolved by
+    /// Priority (lower wins), with a fairness tie-break so equal-priority rules can't starve each other.
     /// </summary>
     IReadOnlyList<RuleTriggerDecision> Evaluate(
         IReadOnlyList<ControllerAutomationRuleDto> rules,
@@ -26,50 +26,61 @@ public interface IAutomationRuleEngine
 
 public sealed class AutomationRuleEngine : IAutomationRuleEngine
 {
+    private readonly record struct SatisfiedRule(ControllerAutomationRuleDto Rule, double SensorValue);
+
     public IReadOnlyList<RuleTriggerDecision> Evaluate(
         IReadOnlyList<ControllerAutomationRuleDto> rules,
         ControllerTelemetryDto telemetry,
         DateTime nowUtc)
     {
-        var decisions = new List<RuleTriggerDecision>();
-        var claimedActuators = new HashSet<int>();
+        var satisfiedByActuator = new Dictionary<int, List<SatisfiedRule>>();
 
-        foreach (var rule in rules
-            .Where(rule => string.Equals(rule.Status, "Enabled", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(rule => rule.Priority))
+        foreach (var rule in rules.Where(rule => string.Equals(rule.Status, "Enabled", StringComparison.OrdinalIgnoreCase)))
         {
-            if (claimedActuators.Contains(rule.ActuatorDeviceId))
+            if (!IsWithinSchedule(rule, nowUtc) || IsInCooldown(rule, nowUtc))
             {
                 continue;
             }
 
-            if (!IsWithinSchedule(rule, nowUtc))
+            if (!TryReadSensorValue(telemetry, rule.SensorField, out var sensorValue) ||
+                !IsConditionSatisfied(rule.Condition, sensorValue, rule.Threshold))
             {
                 continue;
             }
 
-            if (IsInCooldown(rule, nowUtc))
+            if (!satisfiedByActuator.TryGetValue(rule.ActuatorDeviceId, out var candidates))
             {
-                continue;
+                candidates = new List<SatisfiedRule>();
+                satisfiedByActuator[rule.ActuatorDeviceId] = candidates;
             }
 
-            if (!TryReadSensorValue(telemetry, rule.SensorField, out var sensorValue))
-            {
-                continue;
-            }
-
-            if (!IsConditionSatisfied(rule.Condition, sensorValue, rule.Threshold))
-            {
-                continue;
-            }
-
-            var state = string.Equals(rule.Action, "TurnOn", StringComparison.OrdinalIgnoreCase);
-            var durationSeconds = state ? ResolveDurationSeconds(rule, sensorValue) : rule.DurationSeconds;
-            decisions.Add(new RuleTriggerDecision(rule, rule.ActuatorExternalDeviceId, rule.ActuatorCommand, state, durationSeconds));
-            claimedActuators.Add(rule.ActuatorDeviceId);
+            candidates.Add(new SatisfiedRule(rule, sensorValue));
         }
 
-        return decisions;
+        var decisions = new List<RuleTriggerDecision>();
+        foreach (var candidates in satisfiedByActuator.Values)
+        {
+            var winner = ResolveConflict(candidates);
+            var state = string.Equals(winner.Rule.Action, "TurnOn", StringComparison.OrdinalIgnoreCase);
+            var durationSeconds = state ? ResolveDurationSeconds(winner.Rule, winner.SensorValue) : winner.Rule.DurationSeconds;
+            decisions.Add(new RuleTriggerDecision(winner.Rule, winner.Rule.ActuatorExternalDeviceId, winner.Rule.ActuatorCommand, state, durationSeconds));
+        }
+
+        return decisions.OrderBy(decision => decision.Rule.Priority).ToList();
+    }
+
+    /// <summary>
+    /// Lowest Priority number wins. Ties go to whichever rule has waited longest since it last fired
+    /// (never-triggered counts as longest), so equal-priority rules sharing an actuator take turns
+    /// instead of one plant permanently starving another.
+    /// </summary>
+    private static SatisfiedRule ResolveConflict(List<SatisfiedRule> candidates)
+    {
+        return candidates
+            .OrderBy(candidate => candidate.Rule.Priority)
+            .ThenBy(candidate => candidate.Rule.LastTriggeredUtc ?? DateTime.MinValue)
+            .ThenBy(candidate => candidate.Rule.Id)
+            .First();
     }
 
     private static bool IsInCooldown(ControllerAutomationRuleDto rule, DateTime nowUtc)
