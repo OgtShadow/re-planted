@@ -12,7 +12,7 @@ import Login from './components/login/Login'
 import DeviceAdd from './components/DeviceAdd/DeviceAdd'
 import TelemetryStats from './components/TelemetryStats/TelemetryStats'
 import TelemetryDetails from './components/TelemetryDetails/TelemetryDetails'
-import Contact from './components/InfoPages/Contact'
+import Contact from './components/InfoPages/Contact/Contact'
 import NotFoundPage from './components/InfoPages/NotFoundPage/NotFoundPage'
 
 function App() {
