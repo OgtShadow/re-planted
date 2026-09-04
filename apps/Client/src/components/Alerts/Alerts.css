@@ -1,0 +1,223 @@
+.alert-link { 
+    position: relative; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    width: 38px; 
+    height: 38px; 
+    padding: 0; 
+    border: 1px 
+    solid var(--dark-background-color); 
+    background: var(--background-color); 
+    color: var(--text-color); 
+    font-size: 1.3rem; 
+    font-weight: 800; 
+    text-decoration: none; 
+}
+
+.alert-link strong { 
+    position: absolute; 
+    top: -7px; 
+    right: -7px; 
+    min-width: 18px; 
+    padding: 2px 4px; 
+    border-radius: 10px; 
+    background: var(--error-color); 
+    color: white; 
+    font-size: .68rem; 
+    text-align: center; 
+}
+
+.alert-toast { 
+    position: fixed; 
+    z-index: 10; 
+    top: 78px; 
+    right: 24px; 
+    width: min(360px, calc(100vw - 32px)); 
+    padding: 18px 20px; 
+    border-left: 5px solid var(--warning-color); 
+    background: var(--background-color); 
+    box-shadow: 0 8px 28px #0002; 
+    animation: alert-slide-in .25s ease-out; 
+}
+
+.alert-toast b, .alert-toast p { 
+    display: block; 
+    margin: 6px 0; 
+}
+
+.alert-toast p { 
+    color: var(--light-text-color); 
+}
+
+.alert-toast a { 
+    padding: 0; 
+    color: var(--accent-color-dark);
+}
+
+.alert-toast-close { 
+    position: absolute;
+    top: 6px; 
+    right: 8px; 
+    padding: 2px 7px; 
+    font-size: 1.2rem; 
+}
+.alert-toast-severity { 
+    color: var(--warning-color); 
+    font-size: .72rem; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+}
+
+.alert-critical { 
+    border-color: var(--error-color); 
+}
+
+.alert-critical .alert-toast-severity { 
+    color: var(--error-color); 
+}
+
+.alert-info { 
+    border-color: var(--accent-color-dark); 
+}
+
+.alert-info .alert-toast-severity { 
+    color: var(--accent-color-dark); 
+}
+
+.alerts-page { 
+    max-width: 920px; 
+    margin: 0 auto; 
+    padding: 42px 24px; 
+}
+
+.alerts-page-header { 
+    display: flex; 
+    align-items: end; 
+    justify-content: space-between; 
+    border-bottom: 2px solid var(--dark-background-color); 
+    margin-bottom: 28px;
+}
+
+.alerts-page h1 { 
+    margin: 4px 0 26px; 
+}
+
+.eyebrow {
+    color: var(--accent-color-dark);
+    font-size: .78rem; 
+    font-weight: 800; 
+    letter-spacing: .12em; 
+    text-transform: uppercase; 
+}
+
+.alerts-count { 
+    margin-bottom: 28px; 
+    color: var(--light-text-color); 
+}
+
+.alerts-section { 
+    margin-bottom: 38px; 
+}
+
+.alerts-section h2 { 
+    margin-bottom: 14px; 
+}
+
+.alerts-empty { 
+    padding: 24px 0; 
+    color: var(--light-text-color); 
+}
+
+.alert-row { 
+    display: flex; 
+    gap: 16px; 
+    align-items: flex-start; 
+    margin: 10px 0; 
+    padding: 16px; 
+    border-left: 5px solid var(--warning-color); 
+    background: color-mix(in srgb, var(--background-color), var(--dark-background-color) 35%); 
+}
+
+.alert-row-mark { 
+    display: grid; 
+    flex: 0 0 30px; 
+    height: 30px; 
+    place-items: center; 
+    border-radius: 50%; 
+    background: var(--warning-color); 
+    color: white; 
+    font-weight: 800; 
+}
+
+.alert-row.alert-critical { 
+    border-color: var(--error-color); 
+}
+
+.alert-row.alert-critical .alert-row-mark { 
+    background: var(--error-color); 
+}
+
+.alert-row-body { 
+    flex: 1; 
+    min-width: 0; 
+}
+
+.alert-row-meta { 
+    display: flex; 
+    justify-content: space-between; 
+    gap: 12px; 
+    color: var(--light-text-color); 
+    font-size: .75rem; 
+}
+
+.alert-row h3 { 
+    margin: 5px 0; 
+    color: var(--text-color); 
+}
+
+.alert-row p { 
+    margin: 0; 
+}
+
+.alert-acknowledge { 
+    align-self: center; 
+    background: var(--dark-color); 
+    color: white; 
+    white-space: nowrap; 
+}
+
+.alerts-history { 
+    opacity: .72; 
+}
+
+@keyframes alert-slide-in {
+    from { 
+        transform: translateX(25px); 
+        opacity: 0; 
+    } 
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    } 
+}
+@media (max-width: 600px) {
+    .alert-toast {
+        top: 70px; 
+        right: 16px; 
+    }
+
+    .alerts-page {
+        padding: 26px 16px;
+    }
+    .alert-row {
+        flex-wrap: wrap; 
+    }
+    .alert-acknowledge {
+        margin-left: 46px; 
+    }
+    .alerts-page-header {
+        align-items: start; 
+        flex-direction: column; 
+    }
+}

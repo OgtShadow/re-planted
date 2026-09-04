@@ -14,6 +14,8 @@ import TelemetryStats from './components/TelemetryStats/TelemetryStats'
 import TelemetryDetails from './components/TelemetryDetails/TelemetryDetails'
 import Contact from './components/InfoPages/Contact/Contact'
 import NotFoundPage from './components/InfoPages/NotFoundPage/NotFoundPage'
+import { AlertHistory, AlertCenter } from './components/Alerts/AlertCenter'
+import { AlertProvider } from './components/Alerts/AlertProvider'
 
 function App() {
   const [test, setTest] = useState('')
@@ -72,7 +74,8 @@ function App() {
 
   return (
     <BrowserRouter>
-        <Header test={test} activeUser={activeUser} onLogout={handleLogout} />
+        <AlertProvider userId={activeUser.id}>
+        <Header test={test} activeUser={activeUser} onLogout={handleLogout} alertCenter={<AlertCenter />} />
         <Routes>
           <Route path="/" element={
               <>
@@ -114,10 +117,13 @@ function App() {
             <Contact/>
           } />
 
+          <Route path="/alerts" element={<AlertHistory />} />
+
            <Route path="*" element={
             <NotFoundPage/>
           } />
         </Routes>
+        </AlertProvider>
       
     </BrowserRouter>
   )
