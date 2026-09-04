@@ -44,7 +44,7 @@ public static class ServiceCollectionExtensions
                     {
                         var accessToken = context.Request.Query["access_token"].ToString();
                         var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/plantHub"))
+                        if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/plantHub") || path.StartsWithSegments("/alertsHub")))
                         {
                             context.Token = accessToken;
                         }
@@ -79,6 +79,7 @@ public static class ServiceCollectionExtensions
         services.Configure<TelemetryCollectorOptions>(
             configuration.GetSection(TelemetryCollectorOptions.SectionName));
         services.AddHttpClient(nameof(TelemetryCollectorBackgroundService));
+        services.AddScoped<IAlertService, AlertService>();
         services.AddHostedService<TelemetryCollectorBackgroundService>();
 
         services.AddDbContext<AppDbContext>(options =>

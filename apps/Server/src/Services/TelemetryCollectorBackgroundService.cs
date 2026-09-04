@@ -81,17 +81,54 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
             }
         }
 
-        if (snapshots.Count == 0)
-        {
-            return;
-        }
-
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var alertService = scope.ServiceProvider.GetRequiredService<IAlertService>();
+
+        if (snapshots.Count == 0)
+        {
+            var users = await db.Users.Select(user => user.Id).ToListAsync(cancellationToken);
+            foreach (var userId in users)
+            {
+                await alertService.CreateIfActiveMissingAsync(db, userId, AlertTypes.MissingTelemetry,
+                    AlertSeverities.Warning, "Brak telemetrii", "Nie odebrano danych telemetrycznych z kontrolera.",
+                    "telemetry:missing", cancellationToken);
+            }
+            return;
+        }
 
         foreach (var snapshot in snapshots)
         {
             await UpsertSnapshotAsync(db, snapshot, cancellationToken);
+
+            var devices = await db.ActuatorDevices
+                .Where(device => device.ExternalDeviceId == snapshot.DeviceId && device.UserId > 0)
+                .Select(device => new { device.UserId, device.Name })
+                .ToListAsync(cancellationToken);
+            foreach (var device in devices)
+            {
+                if (snapshot.WaterLevelCm <= 5)
+                {
+                    await alertService.CreateIfActiveMissingAsync(db, device.UserId, AlertTypes.LowWater,
+                        AlertSeverities.Critical, "Niski poziom wody", $"Urządzenie {device.Name} zgłasza poziom wody {snapshot.WaterLevelCm} cm.",
+                        $"water:{snapshot.DeviceId}", cancellationToken);
+                }
+            }
+        }
+
+        var receivedDeviceIds = snapshots
+            .Select(snapshot => snapshot.DeviceId)
+            .Where(deviceId => !string.IsNullOrWhiteSpace(deviceId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var configuredDevices = await db.ActuatorDevices
+            .Where(device => device.IsEnabled && device.DeviceKind.ToLower() == "sensor")
+            .Select(device => new { device.UserId, device.Name, device.ExternalDeviceId })
+            .ToListAsync(cancellationToken);
+        foreach (var device in configuredDevices.Where(device => !receivedDeviceIds.Contains(device.ExternalDeviceId)))
+        {
+            await alertService.CreateIfActiveMissingAsync(db, device.UserId, AlertTypes.DeviceDisconnected,
+                AlertSeverities.Warning, "Urządzenie odłączone", $"Nie odebrano telemetrii z urządzenia {device.Name}.",
+                $"device:{device.ExternalDeviceId}", cancellationToken);
         }
 
         var retentionDays = Math.Clamp(options.RetentionDays, 1, 365);

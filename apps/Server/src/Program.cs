@@ -22,6 +22,7 @@ app.UseAuthorization();
 app.MapHub<PlantHub>("/plantHub");
 app.MapHub<UserHub>("/userHub");
 app.MapHub<TelemetryHub>("/telemetryHub");
+app.MapHub<AlertHub>("/alertsHub");
 app.MapServerEndpoints();
 if (!app.Environment.IsEnvironment("Testing"))
 {

@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<TelemetryBucket> TelemetryBuckets { get; set; }
     public DbSet<AutomationRule> AutomationRules { get; set; }
+    public DbSet<Alert> Alerts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -95,6 +96,21 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(r => r.UserId);
             entity.HasIndex(r => r.PlantId);
+        });
+
+        modelBuilder.Entity<Alert>(entity =>
+        {
+            entity.Property(alert => alert.Type).IsRequired();
+            entity.Property(alert => alert.Severity).IsRequired();
+            entity.Property(alert => alert.Title).IsRequired();
+            entity.Property(alert => alert.Message).IsRequired();
+            entity.Property(alert => alert.SourceKey).IsRequired();
+            entity.HasOne(alert => alert.User)
+                .WithMany()
+                .HasForeignKey(alert => alert.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(alert => new { alert.UserId, alert.SourceKey, alert.AcknowledgedAtUtc });
+            entity.HasIndex(alert => new { alert.UserId, alert.CreatedAtUtc });
         });
     }
 }

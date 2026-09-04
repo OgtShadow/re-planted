@@ -26,6 +26,7 @@ public static class WebApplicationExtensions
         app.MapActuatorDeviceEndpoints();
         app.MapAutomationRuleEndpoints();
         app.MapTelemetryEndpoints();
+        app.MapAlertEndpoints();
         app.MapUserEndpoints();
         return app;
     }
