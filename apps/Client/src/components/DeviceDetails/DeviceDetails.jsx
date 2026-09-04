@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DeviceEditWindow from '../DeviceEditWindow/DeviceEditWindow';
 import connectionManager, { userDevicesEndpoint, userPlantsEndpoint } from '../../connectionManager';
@@ -17,6 +17,13 @@ function DeviceDetails() {
     const [manualDurationSeconds, setManualDurationSeconds] = useState(2);
     const [manualStatus, setManualStatus] = useState('');
     const [isCommandPending, setIsCommandPending] = useState(false);
+    const executionTimerRef = useRef(null);
+
+    useEffect(() => () => {
+        if (executionTimerRef.current) {
+            window.clearTimeout(executionTimerRef.current);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,6 +87,13 @@ function DeviceDetails() {
                 durationMs: Number(manualDurationSeconds) * 1000,
             });
             setManualStatus('Komenda przyjęta przez kontroler. Oczekiwanie na wykonanie...');
+            if (executionTimerRef.current) {
+                window.clearTimeout(executionTimerRef.current);
+            }
+            executionTimerRef.current = window.setTimeout(() => {
+                setManualStatus('Wykonanie komendy zakończone.');
+                executionTimerRef.current = null;
+            }, Number(manualDurationSeconds) * 1000 + 1500);
         } catch (error) {
             setManualStatus(error?.message || 'Nie udało się wysłać komendy.');
         } finally {
@@ -92,6 +106,10 @@ function DeviceDetails() {
         setManualStatus('Wysyłanie zatrzymania awaryjnego...');
         try {
             await connectionManager.post(userDevicesEndpoint(`/${id}/manual/stop`));
+            if (executionTimerRef.current) {
+                window.clearTimeout(executionTimerRef.current);
+                executionTimerRef.current = null;
+            }
             setManualStatus('Zatrzymanie awaryjne przyjęte przez kontroler.');
         } catch (error) {
             setManualStatus(error?.message || 'Nie udało się zatrzymać urządzenia.');
@@ -202,7 +220,7 @@ function DeviceDetails() {
                         <option value={30}>30 sekund</option>
                     </select>
                     <div className="manual-control-actions">
-                        <button type="button" onClick={handleManualPump} disabled={!device.isEnabled || isCommandPending}>Uruchom pompę</button>
+                        <button type="button" onClick={handleManualPump} disabled={!device.isEnabled || isCommandPending}>Uruchom</button>
                         <button type="button" className="emergency-stop" onClick={handleEmergencyStop} disabled={isCommandPending}>STOP</button>
                     </div>
                     {manualStatus ? <p className="manual-status" role="status">{manualStatus}</p> : null}
