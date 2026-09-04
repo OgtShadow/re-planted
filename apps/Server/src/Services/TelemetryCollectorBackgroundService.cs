@@ -15,6 +15,7 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
     private readonly ILogger<TelemetryCollectorBackgroundService> logger;
     private readonly IHubContext<TelemetryHub> telemetryHub;
     private readonly TelemetryCollectorOptions options;
+    private readonly Dictionary<string, int> missedTelemetryCycles = new(StringComparer.OrdinalIgnoreCase);
 
     public TelemetryCollectorBackgroundService(
         IServiceScopeFactory scopeFactory,
@@ -119,16 +120,33 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
         var receivedDeviceIds = snapshots
             .Select(snapshot => snapshot.DeviceId)
             .Where(deviceId => !string.IsNullOrWhiteSpace(deviceId))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Select(NormalizeIdentifier)
+            .ToList();
         var configuredDevices = await db.ActuatorDevices
             .Where(device => device.IsEnabled && device.DeviceKind.ToLower() == "sensor")
             .Select(device => new { device.UserId, device.Name, device.ExternalDeviceId })
             .ToListAsync(cancellationToken);
-        foreach (var device in configuredDevices.Where(device => !receivedDeviceIds.Contains(device.ExternalDeviceId)))
+        foreach (var device in configuredDevices)
         {
+            var deviceKey = NormalizeIdentifier(device.ExternalDeviceId);
+            var received = receivedDeviceIds.Any(receivedId => IsMatchingDeviceId(deviceKey, receivedId));
+            if (received)
+            {
+                missedTelemetryCycles.Remove(deviceKey);
+                continue;
+            }
+
+            missedTelemetryCycles[deviceKey] = missedTelemetryCycles.TryGetValue(deviceKey, out var missed)
+                ? missed + 1
+                : 1;
+            if (missedTelemetryCycles[deviceKey] < 2)
+            {
+                continue;
+            }
+
             await alertService.CreateIfActiveMissingAsync(db, device.UserId, AlertTypes.DeviceDisconnected,
                 AlertSeverities.Warning, "Urządzenie odłączone", $"Nie odebrano telemetrii z urządzenia {device.Name}.",
-                $"device:{device.ExternalDeviceId}", cancellationToken);
+                $"device:{deviceKey}", cancellationToken);
         }
 
         var retentionDays = Math.Clamp(options.RetentionDays, 1, 365);
@@ -207,5 +225,17 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
     private static DateTime TruncateToMinute(DateTime valueUtc)
     {
         return new DateTime(valueUtc.Year, valueUtc.Month, valueUtc.Day, valueUtc.Hour, valueUtc.Minute, 0, DateTimeKind.Utc);
+    }
+
+    private static string NormalizeIdentifier(string value)
+    {
+        return value.Trim().ToLowerInvariant();
+    }
+
+    private static bool IsMatchingDeviceId(string configuredId, string receivedId)
+    {
+        return configuredId.Length > 0 && (configuredId == receivedId
+            || receivedId.StartsWith(configuredId + "-", StringComparison.Ordinal)
+            || configuredId.StartsWith(receivedId + "-", StringComparison.Ordinal));
     }
 }
