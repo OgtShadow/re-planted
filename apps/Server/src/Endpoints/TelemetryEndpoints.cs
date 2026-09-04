@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using RePlanted.Server.Contracts.Telemetry;
 using RePlanted.Server.Data;
+using RePlanted.Server.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -14,6 +15,23 @@ public static class TelemetryEndpoints
         var telemetry = app.MapGroup("/api/users/{userId:int}/telemetry")
             .WithTags("Telemetry")
             .RequireAuthorization();
+
+        telemetry.MapPost("/refresh", async (
+            int userId,
+            ClaimsPrincipal principal,
+            ITelemetryRefreshService refreshService,
+            CancellationToken cancellationToken) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var snapshots = await refreshService.RefreshAsync(cancellationToken);
+            return Results.Ok(snapshots);
+        })
+        .WithSummary("Fetch and store the latest sensor readings immediately")
+        .Produces<List<SensorTelemetrySnapshot>>(StatusCodes.Status200OK);
 
         telemetry.MapGet("/trends", [Authorize] async (
             int userId,

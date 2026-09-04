@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import connectionManager, { userTelemetryEndpoint } from '../../connectionManager';
+import connectionManager, { userTelemetryEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import TelemetryChartCard from './TelemetryChartCard';
 import TelemetrySeriesComparison from './TelemetrySeriesComparison';
 import TelemetryPointsList from './TelemetryPointsList';
@@ -18,6 +18,7 @@ function TelemetryDetails() {
   const [response, setResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const hasRequestedInitialRefresh = useRef(false);
 
   const selectedSeriesParam = searchParams.get('series') || NUMERIC_SERIES[0].key;
   const selectedPlantId = searchParams.get('plantId') || '';
@@ -30,6 +31,10 @@ function TelemetryDetails() {
     setError('');
 
     try {
+      if (!hasRequestedInitialRefresh.current) {
+        hasRequestedInitialRefresh.current = true;
+        await connectionManager.post(userTelemetryRefreshEndpoint());
+      }
       const params = new URLSearchParams();
       params.set('hours', String(hours));
       params.set('maxPoints', '400');

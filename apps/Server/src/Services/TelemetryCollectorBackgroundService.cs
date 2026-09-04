@@ -8,7 +8,12 @@ using Server.Hubs;
 
 namespace RePlanted.Server.Services;
 
-public sealed class TelemetryCollectorBackgroundService : BackgroundService
+public interface ITelemetryRefreshService
+{
+    Task<IReadOnlyList<SensorTelemetrySnapshot>> RefreshAsync(CancellationToken cancellationToken);
+}
+
+public sealed class TelemetryCollectorBackgroundService : BackgroundService, ITelemetryRefreshService
 {
     private readonly IServiceScopeFactory scopeFactory;
     private readonly IHttpClientFactory httpClientFactory;
@@ -39,7 +44,7 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
         {
             try
             {
-                await PollAndStoreSnapshotAsync(client, stoppingToken);
+                await RefreshAsync(stoppingToken, client);
             }
             catch (Exception ex)
             {
@@ -51,7 +56,13 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
         }
     }
 
-    private async Task PollAndStoreSnapshotAsync(HttpClient client, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<SensorTelemetrySnapshot>> RefreshAsync(CancellationToken cancellationToken)
+    {
+        var client = httpClientFactory.CreateClient(nameof(TelemetryCollectorBackgroundService));
+        return RefreshAsync(cancellationToken, client);
+    }
+
+    private async Task<IReadOnlyList<SensorTelemetrySnapshot>> RefreshAsync(CancellationToken cancellationToken, HttpClient client)
     {
         var endpoint = BuildSensorsUri();
         var snapshots = new List<SensorTelemetrySnapshot>();
@@ -95,7 +106,7 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
                     AlertSeverities.Warning, "Brak telemetrii", "Nie odebrano danych telemetrycznych z kontrolera.",
                     "telemetry:missing", cancellationToken);
             }
-            return;
+            return snapshots;
         }
 
         foreach (var snapshot in snapshots)
@@ -156,6 +167,7 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService
 
         await db.SaveChangesAsync(cancellationToken);
         await telemetryHub.Clients.All.SendAsync("TelemetryUpdated", snapshots, cancellationToken);
+        return snapshots;
     }
 
     private static async Task UpsertSnapshotAsync(AppDbContext db, SensorTelemetrySnapshot snapshot, CancellationToken cancellationToken)

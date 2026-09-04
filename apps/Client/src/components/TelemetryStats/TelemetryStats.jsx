@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import connectionManager, { userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint } from '../../connectionManager';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import connectionManager, { userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../connectionManager';
@@ -85,6 +85,7 @@ function TelemetryStats() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [liveSnapshots, setLiveSnapshots] = useState([]);
+  const hasRequestedInitialRefresh = useRef(false);
 
   const loadFilters = useCallback(async () => {
     try {
@@ -127,6 +128,13 @@ function TelemetryStats() {
     setError('');
 
     try {
+      if (!hasRequestedInitialRefresh.current) {
+        hasRequestedInitialRefresh.current = true;
+        const snapshots = await connectionManager.post(userTelemetryRefreshEndpoint());
+        if (Array.isArray(snapshots)) {
+          setLiveSnapshots(snapshots);
+        }
+      }
       const params = new URLSearchParams();
       params.set('hours', String(hours));
       params.set('maxPoints', '240');

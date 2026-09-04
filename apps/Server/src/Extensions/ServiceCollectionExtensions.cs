@@ -80,7 +80,9 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(TelemetryCollectorOptions.SectionName));
         services.AddHttpClient(nameof(TelemetryCollectorBackgroundService));
         services.AddScoped<IAlertService, AlertService>();
-        services.AddHostedService<TelemetryCollectorBackgroundService>();
+        services.AddSingleton<TelemetryCollectorBackgroundService>();
+        services.AddSingleton<ITelemetryRefreshService>(serviceProvider => serviceProvider.GetRequiredService<TelemetryCollectorBackgroundService>());
+        services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<TelemetryCollectorBackgroundService>());
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));

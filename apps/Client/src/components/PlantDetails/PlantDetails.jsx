@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import connectionManager, { API_BASE_URL, userPlantsEndpoint } from '../../connectionManager';
+import connectionManager, { API_BASE_URL, userPlantsEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import StatusDot from '../StatusDot/StatusDot';
 import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
@@ -64,6 +64,13 @@ function PlantDetails() {
 
         connection.start().catch((error) => {
             console.error('PlantDetails telemetry SignalR connection failed:', error);
+        });
+        connectionManager.post(userTelemetryRefreshEndpoint()).then((snapshots) => {
+            if (Array.isArray(snapshots)) {
+                setLiveSnapshots(snapshots);
+            }
+        }).catch((error) => {
+            console.error('PlantDetails telemetry refresh failed:', error);
         });
 
         return () => {

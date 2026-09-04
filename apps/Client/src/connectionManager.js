@@ -95,6 +95,8 @@ const userTelemetryEndpoint = (suffix = "", userId = getActiveUserId()) => {
   return `/api/users/${userId}/telemetry${suffix}`;
 };
 
+const userTelemetryRefreshEndpoint = (userId = getActiveUserId()) => userTelemetryEndpoint('/refresh', userId);
+
 const userAlertsEndpoint = (suffix = "", userId = getActiveUserId()) => {
   if (!Number.isInteger(userId) || userId <= 0) {
     throw new Error("No active user session");
@@ -222,5 +224,6 @@ export {
   userLoginEndpoint,
   userByIdEndpoint,
   userTelemetryEndpoint,
+  userTelemetryRefreshEndpoint,
   userAlertsEndpoint,
 };
