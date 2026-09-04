@@ -14,6 +14,9 @@ function DeviceDetails() {
     const [assignMessage, setAssignMessage] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [manualDurationSeconds, setManualDurationSeconds] = useState(2);
+    const [manualStatus, setManualStatus] = useState('');
+    const [isCommandPending, setIsCommandPending] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -63,6 +66,37 @@ function DeviceDetails() {
             await refreshDevice();
         } catch (error) {
             setAssignMessage(error?.message || 'Nie udało się odpiąć urządzenia od rośliny.');
+        }
+    };
+
+    const handleManualPump = async () => {
+        if (isSensorDevice || !device.isEnabled || isCommandPending) return;
+        if (!window.confirm(`Uruchomić pompę na ${manualDurationSeconds} s?`)) return;
+
+        setIsCommandPending(true);
+        setManualStatus('Wysyłanie komendy do urządzenia...');
+        try {
+            await connectionManager.post(userDevicesEndpoint(`/${id}/manual/pump`), {
+                durationMs: Number(manualDurationSeconds) * 1000,
+            });
+            setManualStatus('Komenda przyjęta przez kontroler. Oczekiwanie na wykonanie...');
+        } catch (error) {
+            setManualStatus(error?.message || 'Nie udało się wysłać komendy.');
+        } finally {
+            setIsCommandPending(false);
+        }
+    };
+
+    const handleEmergencyStop = async () => {
+        setIsCommandPending(true);
+        setManualStatus('Wysyłanie zatrzymania awaryjnego...');
+        try {
+            await connectionManager.post(userDevicesEndpoint(`/${id}/manual/stop`));
+            setManualStatus('Zatrzymanie awaryjne przyjęte przez kontroler.');
+        } catch (error) {
+            setManualStatus(error?.message || 'Nie udało się zatrzymać urządzenia.');
+        } finally {
+            setIsCommandPending(false);
         }
     };
 
@@ -133,7 +167,7 @@ function DeviceDetails() {
                         {device.plants.map((plant) => (
                             <li key={plant.id}>
                                 <button type="button" className="link-like" onClick={() => navigate(`/plant/${plant.id}`)}>
-                                    {plant.name} ({plant.species})
+                                    {plant.name}
                                 </button>
                                 <button type="button" onClick={() => handleUnassignPlant(plant.id)}>Odepnij</button>
                             </li>
@@ -154,6 +188,27 @@ function DeviceDetails() {
                 </div>
                 {assignMessage ? <p>{assignMessage}</p> : null}
             </div>
+            {!isSensorDevice ? (
+                <section className="info-item" aria-labelledby="manual-control-title">
+                    <div>
+                        <h3>Sterowanie ręczne</h3>
+                    </div>
+                    <p>Czas pracy</p>
+                    <select id="manual-duration" value={manualDurationSeconds} onChange={(event) => setManualDurationSeconds(Number(event.target.value))} disabled={!device.isEnabled || isCommandPending}>
+                        <option value={1}>1 sekunda</option>
+                        <option value={2}>2 sekundy</option>
+                        <option value={5}>5 sekund</option>
+                        <option value={10}>10 sekund</option>
+                        <option value={30}>30 sekund</option>
+                    </select>
+                    <div className="manual-control-actions">
+                        <button type="button" onClick={handleManualPump} disabled={!device.isEnabled || isCommandPending}>Uruchom pompę</button>
+                        <button type="button" className="emergency-stop" onClick={handleEmergencyStop} disabled={isCommandPending}>STOP</button>
+                    </div>
+                    {manualStatus ? <p className="manual-status" role="status">{manualStatus}</p> : null}
+                    {!device.isEnabled ? <p className="manual-safety-note">Sterowanie zablokowane, ponieważ urządzenie jest wyłączone.</p> : null}
+                </section>
+            ) : null}
             <div className="edit-device-container">
             <button className="edit-device-button" onClick={() => setIsEditing(true)}>Edit Device</button>
             </div>

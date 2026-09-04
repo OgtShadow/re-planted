@@ -85,7 +85,7 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
             return false;
         }
 
-        if (durationMs <= 0)
+        if (durationMs < 0 || (durationMs == 0 && state))
         {
             _logger.LogWarning("Pominięto publikację komendy MQTT, ponieważ durationMs={DurationMs} jest nieprawidłowe.", durationMs);
             return false;

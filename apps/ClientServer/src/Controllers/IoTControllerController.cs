@@ -157,4 +157,22 @@ public sealed class IoTControllerController : ControllerBase
             Topic = $"replanted/commands/{deviceId}"
         });
     }
+
+    [HttpPost("devices/{deviceId}/stop")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public async Task<ActionResult> StopPumpWithMqtt(int clientId, string deviceId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return BadRequest(new { response = "Identyfikator urządzenia jest wymagany." });
+        }
+
+        var published = await _mqttBridgeService.PublishActuatorCommandAsync(deviceId, "pump", false, 0, cancellationToken);
+        if (!published)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy zatrzymania MQTT." });
+        }
+
+        return Accepted(new { ClientId = clientId, DeviceId = deviceId, State = "stopped" });
+    }
 }

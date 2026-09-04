@@ -16,6 +16,12 @@ builder.Services.AddServerServices(builder.Configuration);
 var app = builder.Build();
 
 app.UseServerSwagger();
+app.UseExceptionHandler(exceptionApp => exceptionApp.Run(async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new { response = "Wewnętrzny błąd serwera." });
+}));
 app.UseCors(ServiceCollectionExtensions.AllowClientPolicy);
 app.UseAuthentication();
 app.UseAuthorization();

@@ -135,6 +135,17 @@ const DeviceParametersSeter = ({ device, setDevice }) => {
         </li>
 
         <li>
+          <label>
+            <input
+              type="checkbox"
+              checked={device?.isEnabled !== false}
+              onChange={(e) => updateDeviceField('isEnabled', e.target.checked)}
+            />
+            Urządzenie aktywne
+          </label>
+        </li>
+
+        <li>
           <label>Czujniki urządzenia</label>
           <div>
             {(catalog.sensorFields || []).map((sensorField) => (

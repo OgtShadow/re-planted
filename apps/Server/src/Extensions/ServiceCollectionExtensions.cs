@@ -75,6 +75,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddHttpClient<RePlanted.Server.Services.ConnectionManager>();
+        services.AddTransient<ManualControlService>();
 
         services.Configure<TelemetryCollectorOptions>(
             configuration.GetSection(TelemetryCollectorOptions.SectionName));

@@ -5,6 +5,7 @@ using RePlanted.Server.Contracts;
 using RePlanted.Server.Contracts.Devices;
 using RePlanted.Server.Data;
 using RePlanted.Server.Models;
+using RePlanted.Server.Services;
 using Server.Hubs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -364,6 +365,56 @@ public static class ActuatorDeviceEndpoints
             .WithSummary("Ensure ESP mock device")
             .WithDescription("Ensures a multi-sensor ESP mock device exists for the user.")
             .Produces(StatusCodes.Status200OK);
+
+        devices.MapPost("/{id:int}/manual/pump", async (
+            int userId,
+            int id,
+            ManualPumpRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            ManualControlService controlService,
+            CancellationToken cancellationToken) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId)) return Results.Forbid();
+            var device = await db.ActuatorDevices.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+            if (device is null) return Results.NotFound();
+            if (!string.Equals(device.DeviceKind, DeviceKindActuator, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { Response = "Sterowanie ręczne jest dostępne tylko dla aktuatorów." });
+            if (!device.IsEnabled || string.IsNullOrWhiteSpace(device.ExternalDeviceId))
+                return Results.BadRequest(new { Response = "Urządzenie jest wyłączone lub nie ma identyfikatora MQTT." });
+            if (request.DurationMs is < 100 or > 30000)
+                return Results.BadRequest(new { Response = "Czas pracy musi być między 100 ms a 30 s." });
+
+            var result = await controlService.StartPumpAsync(userId, device.ExternalDeviceId, request.DurationMs, cancellationToken);
+            return result.Success
+                ? Results.Accepted(value: new { DeviceId = device.Id, DurationMs = request.DurationMs, Status = "accepted" })
+                : Results.Json(new { Response = result.Error }, statusCode: result.StatusCode);
+        })
+            .WithSummary("Run an actuator manually")
+            .Produces(StatusCodes.Status202Accepted)
+            .Produces(StatusCodes.Status400BadRequest);
+
+        devices.MapPost("/{id:int}/manual/stop", async (
+            int userId,
+            int id,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            ManualControlService controlService,
+            CancellationToken cancellationToken) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId)) return Results.Forbid();
+            var device = await db.ActuatorDevices.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+            if (device is null) return Results.NotFound();
+            if (string.IsNullOrWhiteSpace(device.ExternalDeviceId))
+                return Results.BadRequest(new { Response = "Urządzenie nie ma identyfikatora MQTT." });
+
+            var result = await controlService.StopPumpAsync(userId, device.ExternalDeviceId, cancellationToken);
+            return result.Success
+                ? Results.Accepted(value: new { DeviceId = device.Id, Status = "stopped" })
+                : Results.Json(new { Response = result.Error }, statusCode: result.StatusCode);
+        })
+            .WithSummary("Stop an actuator immediately")
+            .Produces(StatusCodes.Status202Accepted);
 
         devices.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {

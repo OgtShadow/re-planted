@@ -161,7 +161,14 @@ class ConnectionManager {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorBody = await response.text();
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const parsedError = JSON.parse(errorBody);
+          errorMessage = parsedError.response || parsedError.Response || parsedError.title || errorMessage;
+        } catch {
+        }
+        throw new Error(errorMessage);
       }
       if (response.status === 204) {
         return null;

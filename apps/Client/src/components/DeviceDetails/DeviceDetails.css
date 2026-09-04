@@ -8,7 +8,7 @@
     flex-direction: column;
 }
 
-.back-button {
+.device-details-container button.back-button{
     background: none;
     border: none;
     color: var(--accent-color-dark);
@@ -18,6 +18,11 @@
     text-align: left;
     display: block;
     padding: 0;
+}
+
+.device-details-container button.back-button:hover{
+    background: none;
+    transform:none;
 }
 
 .device-details-header {
@@ -47,7 +52,7 @@
     margin-bottom: 30px;
 }
 
-.edit-device-button {
+.device-details-container button.edit-device-button {
     width: 80%;
     padding: 15px;
     font-size: 1.2em;
@@ -58,11 +63,9 @@
     align-items: center;
 }
 
-.edit-device-button:hover {
+.device-details-container button.edit-device-button:hover {
     background-color: var(--accent-color-light);
     color: var(--accent-color-dark);
-    transform: scale(1.1);
-    transition: transform 0.2s ease-in-out;
 }
 
 .relation-box {
@@ -111,7 +114,15 @@
     position: relative;
 }
 
-.assign-row button:hover {
+.device-details-container button {
+    background: var(--dark-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.device-details-container button:hover {
     background-color: var(--light-color);
     color: var(--text-color);
     transform: scale(1.1);
@@ -143,10 +154,35 @@
     margin: 0 0 10px;
     font-size: 0.9em;
     font-weight: bold;
-    color:var(--dark-background-color);
 }
 
 .info-item p, .info-item ul {
     margin: 0;
     color: var(--background-color);
+}
+
+.manual-control-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.emergency-stop {
+    background: var(--error-color) !important;
+    color: white;
+    font-weight: bold;
+}
+
+.emergency-stop:hover {
+    background: var(--accent-color-dark) !important;
+    color: white !important;
+}
+
+.manual-status {
+    color: var(--accent-color-dark) !important;
+    font-weight: bold;
+}
+
+.manual-safety-note {
+    color: var(--error-color) !important;
 }
