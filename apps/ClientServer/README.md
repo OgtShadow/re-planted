@@ -94,3 +94,24 @@ Ręczna synchronizacja również wymaga poprawnego pobrania topologii i reguł; 
 ## Ochrona pliku
 
 Snapshot zawiera konfigurację urządzeń i reguły, dlatego katalog `data` powinien mieć prawa dostępowe ograniczone do procesu `ClientServer`. W środowisku Docker należy przechowywać go na prywatnym, trwałym wolumenie i nie publikować pliku `controller-state.json` w repozytorium.
+
+## Test działania bez głównego Servera
+
+Test `UsesLastValidSnapshotAndPublishesCommandWhenMainServerIsOffline` znajduje się w [apps/Server.Tests/UnitTest1.cs](../Server.Tests/UnitTest1.cs). Jest to test cyklu `IoTControllerBackgroundService` z prawdziwym silnikiem reguł, ale z kontrolowanymi adapterami urządzeń.
+
+Scenariusz testu:
+
+1. Do `ControllerStateStore` zostaje wpisany ważny snapshot zawierający roślinę i aktywną regułę podlewania.
+2. Fikcyjny klient głównego Servera zwraca `null` dla topologii, reguł i konfiguracji, czyli symuluje odłączenie sieci WAN.
+3. Fikcyjny klient telemetrii zwraca wilgotność gleby poniżej progu oraz bezpieczny poziom wody.
+4. Uruchamiany jest prawdziwy `IoTControllerBackgroundService`.
+5. Test czeka na publikację komendy przez adapter MQTT.
+6. Sprawdzane są identyfikator urządzenia, komenda `pump`, stan `true` i czas działania `2000 ms`.
+
+Uruchomienie testu:
+
+```powershell
+dotnet test apps/Server.Tests/Server.Tests.csproj --filter UsesLastValidSnapshotAndPublishesCommandWhenMainServerIsOffline
+```
+
+Sukces oznacza, że brak odpowiedzi głównego Servera nie usuwa lokalnej konfiguracji i że kontroler nadal wykonuje przeznaczoną regułę przez MQTT. Test nie wymaga uruchomionego Servera, PostgreSQL, brokera MQTT ani fizycznego ESP32. Nie zastępuje testu sprzętowego, ale weryfikuje najważniejszy kontrakt offline pomiędzy snapshotem, telemetrią, silnikiem reguł i adapterem komend.

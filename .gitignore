@@ -1,3 +1,24 @@
 .env
 .env.local
 docs
+
+# .NET build output and IDE state
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Node and frontend build caches
+**/node_modules/
+**/.vite/
+**/.cache/
+coverage/
+**/coverage/
+
+# Test and local runtime output
+**/TestResults/
+*.trx
+*.coverage
+apps/ClientServer/data/
+*.tmp

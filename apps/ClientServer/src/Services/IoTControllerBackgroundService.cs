@@ -1,6 +1,4 @@
 using ClientServer.Contracts;
-using ClientServer.Hubs;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
 namespace ClientServer.Services;
@@ -12,7 +10,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     private readonly IMqttBridgeService _mqttBridgeService;
     private readonly IAutomationRuleEngine _ruleEngine;
     private readonly IControllerStateStore _stateStore;
-    private readonly IHubContext<ControllerHub> _hubContext;
+    private readonly IControllerTelemetryPublisher _telemetryPublisher;
     private readonly IoTControllerOptions _options;
     private readonly OfflineModeOptions _offlineOptions;
     private readonly ILogger<IoTControllerBackgroundService> _logger;
@@ -24,7 +22,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         IMqttBridgeService mqttBridgeService,
         IAutomationRuleEngine ruleEngine,
         IControllerStateStore stateStore,
-        IHubContext<ControllerHub> hubContext,
+        IControllerTelemetryPublisher telemetryPublisher,
         IOptions<IoTControllerOptions> options,
         IOptions<OfflineModeOptions> offlineOptions,
         ILogger<IoTControllerBackgroundService> logger)
@@ -34,7 +32,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         _mqttBridgeService = mqttBridgeService;
         _ruleEngine = ruleEngine;
         _stateStore = stateStore;
-        _hubContext = hubContext;
+        _telemetryPublisher = telemetryPublisher;
         _options = options.Value;
         _offlineOptions = offlineOptions.Value;
         _logger = logger;
@@ -195,7 +193,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 
     private async Task PublishTelemetryAsync(int clientId, ControllerTelemetryDto telemetry, CancellationToken cancellationToken)
     {
-        await _hubContext.Clients.All.SendAsync("TelemetryUpdated", telemetry, cancellationToken);
+        await _telemetryPublisher.PublishAsync(telemetry, cancellationToken);
         _logger.LogInformation("Zaktualizowano telemetrię dla klienta {ClientId}.", clientId);
     }
 }
