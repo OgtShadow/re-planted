@@ -29,6 +29,9 @@ public sealed class IoTControllerOptions
     public int SoakTimeSeconds { get; set; } = 60;
     public int LowWaterThresholdCm { get; set; } = 2;
     public int MoistureThresholdBufferPercent { get; set; } = 5;
+    public int MaxPumpRunSeconds { get; set; } = 30;
+    public int TelemetryTimeoutSeconds { get; set; } = 5;
+    public int MaxTelemetryAgeSeconds { get; set; } = 30;
 }
 
 public sealed class MqttOptions

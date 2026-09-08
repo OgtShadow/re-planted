@@ -9,6 +9,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     private readonly IMockDeviceClient _mockDeviceClient;
     private readonly IMqttBridgeService _mqttBridgeService;
     private readonly IAutomationRuleEngine _ruleEngine;
+    private readonly IPumpSafetyGuard _pumpSafetyGuard;
     private readonly IControllerStateStore _stateStore;
     private readonly IControllerTelemetryPublisher _telemetryPublisher;
     private readonly IoTControllerOptions _options;
@@ -21,6 +22,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         IMockDeviceClient mockDeviceClient,
         IMqttBridgeService mqttBridgeService,
         IAutomationRuleEngine ruleEngine,
+        IPumpSafetyGuard pumpSafetyGuard,
         IControllerStateStore stateStore,
         IControllerTelemetryPublisher telemetryPublisher,
         IOptions<IoTControllerOptions> options,
@@ -31,6 +33,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         _mockDeviceClient = mockDeviceClient;
         _mqttBridgeService = mqttBridgeService;
         _ruleEngine = ruleEngine;
+        _pumpSafetyGuard = pumpSafetyGuard;
         _stateStore = stateStore;
         _telemetryPublisher = telemetryPublisher;
         _options = options.Value;
@@ -100,13 +103,24 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
         pumpStateMachine.Refresh(nowUtc);
 
-        var telemetry = await _mockDeviceClient.ReadTelemetryAsync(
-            currentTopology.ClientId,
-            pumpStateMachine.Phase,
-            null,
-            pumpStateMachine.WarningMessage,
-            pumpStateMachine.SoakUntilUtc,
-            cancellationToken);
+        using var telemetryTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        telemetryTimeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(_options.TelemetryTimeoutSeconds, 1, 60)));
+        ControllerTelemetryDto? telemetry;
+        try
+        {
+            telemetry = await _mockDeviceClient.ReadTelemetryAsync(
+                currentTopology.ClientId,
+                pumpStateMachine.Phase,
+                null,
+                pumpStateMachine.WarningMessage,
+                pumpStateMachine.SoakUntilUtc,
+                telemetryTimeout.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Odczyt telemetrii przekroczył limit czasu. Pomijam cykl sterowania.");
+            return;
+        }
 
         if (telemetry is null)
         {
@@ -127,19 +141,26 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             foreach (var decision in decisions)
             {
                 var isPumpAction = decision.State && string.Equals(decision.Command, "pump", StringComparison.OrdinalIgnoreCase);
-                if (isPumpAction && IsWaterLevelTooLow(telemetry.WaterLevelCm))
+                var durationMs = Math.Max(1, decision.DurationSeconds) * 1000;
+                if (isPumpAction)
                 {
-                    warningMessage = $"Brak wody w zbiorniku. Zablokowano regułę dla rośliny {decision.Rule.PlantName}.";
-                    _logger.LogWarning(warningMessage);
-                    pumpStateMachine.MarkBlocked(warningMessage);
-                    continue;
+                    var safety = _pumpSafetyGuard.ValidateStart(clientId, durationMs, telemetry);
+                    if (!safety.Allowed)
+                    {
+                        warningMessage = safety.RejectionReason;
+                        _logger.LogWarning("Zablokowano automatyczne uruchomienie pompy dla reguły {RuleId}: {Reason}", decision.Rule.Id, safety.RejectionReason);
+                        pumpStateMachine.MarkBlocked(safety.RejectionReason ?? "Pompa zablokowana przez zabezpieczenie.");
+                        continue;
+                    }
+
+                    durationMs = safety.DurationMs;
                 }
 
                 var published = await _mqttBridgeService.PublishActuatorCommandAsync(
                     decision.ActuatorExternalDeviceId,
                     decision.Command,
                     decision.State,
-                    Math.Max(1, decision.DurationSeconds) * 1000,
+                    durationMs,
                     cancellationToken);
 
                 if (!published)
@@ -184,11 +205,6 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             .Where(id => id > 0)
             .Distinct()
             .ToList();
-    }
-
-    private bool IsWaterLevelTooLow(int waterLevelCm)
-    {
-        return waterLevelCm <= Math.Max(0, _options.LowWaterThresholdCm);
     }
 
     private async Task PublishTelemetryAsync(int clientId, ControllerTelemetryDto telemetry, CancellationToken cancellationToken)

@@ -12,17 +12,20 @@ public sealed class IoTControllerController : ControllerBase
     private readonly IControllerStateStore _stateStore;
     private readonly IMainServerTopologyClient _topologyClient;
     private readonly IMqttBridgeService _mqttBridgeService;
+    private readonly IPumpSafetyGuard _pumpSafetyGuard;
     private readonly ILogger<IoTControllerController> _logger;
 
     public IoTControllerController(
         IControllerStateStore stateStore,
         IMainServerTopologyClient topologyClient,
         IMqttBridgeService mqttBridgeService,
+        IPumpSafetyGuard pumpSafetyGuard,
         ILogger<IoTControllerController> logger)
     {
         _stateStore = stateStore;
         _topologyClient = topologyClient;
         _mqttBridgeService = mqttBridgeService;
+        _pumpSafetyGuard = pumpSafetyGuard;
         _logger = logger;
     }
 
@@ -165,7 +168,13 @@ public sealed class IoTControllerController : ControllerBase
             return BadRequest(new { response = "Pole durationMs musi być większe od zera." });
         }
 
-        var published = await _mqttBridgeService.PublishPumpCommandAsync(deviceId, request.DurationMs, cancellationToken);
+        var safety = _pumpSafetyGuard.ValidateStart(clientId, request.DurationMs);
+        if (!safety.Allowed)
+        {
+            return Conflict(new { response = safety.RejectionReason });
+        }
+
+        var published = await _mqttBridgeService.PublishPumpCommandAsync(deviceId, safety.DurationMs, cancellationToken);
         if (!published)
         {
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy MQTT do urządzenia." });
@@ -177,7 +186,7 @@ public sealed class IoTControllerController : ControllerBase
         {
             ClientId = clientId,
             DeviceId = deviceId,
-            request.DurationMs,
+            DurationMs = safety.DurationMs,
             Topic = $"replanted/commands/{deviceId}"
         });
     }
