@@ -1,4 +1,7 @@
 using ClientServer.Contracts;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace ClientServer.Services;
@@ -6,7 +9,8 @@ namespace ClientServer.Services;
 public interface IMainServerTopologyClient
 {
     Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ControllerAutomationRuleDto>> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ControllerAutomationRuleDto>?> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken);
+    Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken);
     Task NotifyRuleTriggeredAsync(int clientId, int ruleId, CancellationToken cancellationToken);
 }
 
@@ -15,18 +19,44 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
     private readonly HttpClient _httpClient;
     private readonly MainServerApiOptions _options;
     private readonly IJwtTokenProvider _jwtTokenProvider;
+    private readonly OfflineModeOptions _offlineOptions;
     private readonly ILogger<MainServerTopologyClient> _logger;
 
     public MainServerTopologyClient(
         HttpClient httpClient,
         IOptions<MainServerApiOptions> options,
+        IOptions<OfflineModeOptions> offlineOptions,
         IJwtTokenProvider jwtTokenProvider,
         ILogger<MainServerTopologyClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _offlineOptions = offlineOptions.Value;
         _jwtTokenProvider = jwtTokenProvider;
         _logger = logger;
+    }
+
+    public async Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken)
+    {
+        var topology = await GetTopologyAsync(clientId, cancellationToken);
+        var rules = await GetAutomationRulesAsync(clientId, cancellationToken);
+        if (topology is null || rules is null)
+        {
+            return null;
+        }
+
+        var fetchedAtUtc = DateTime.UtcNow;
+        var versionPayload = JsonSerializer.Serialize(new { topology, rules });
+        var version = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(versionPayload))).ToLowerInvariant();
+        var validity = TimeSpan.FromMinutes(Math.Clamp(_offlineOptions.SnapshotValidityMinutes, 1, 10080));
+
+        return new ControllerConfigurationSnapshot(
+            clientId,
+            version,
+            fetchedAtUtc,
+            fetchedAtUtc.Add(validity),
+            topology with { SyncedAtUtc = fetchedAtUtc },
+            rules);
     }
 
     public async Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken)
@@ -62,7 +92,7 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         }
     }
 
-    public async Task<IReadOnlyList<ControllerAutomationRuleDto>> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ControllerAutomationRuleDto>?> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken)
     {
         try
         {
@@ -74,13 +104,13 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Synchronizacja reguł automatyzacji nie powiodła się dla klienta {ClientId}. Kod: {StatusCode}", clientId, response.StatusCode);
-                return [];
+                return null;
             }
 
             var rules = await response.Content.ReadFromJsonAsync<List<AutomationRuleDto>>(cancellationToken);
             if (rules is null)
             {
-                return [];
+                return null;
             }
 
             return rules.Select(MapAutomationRule).ToList();
@@ -88,7 +118,7 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Nie udało się zsynchronizować reguł automatyzacji z głównym serwerem dla klienta {ClientId}.", clientId);
-            return [];
+            return null;
         }
     }
 

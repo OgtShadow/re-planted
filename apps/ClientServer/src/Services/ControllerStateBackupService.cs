@@ -7,6 +7,7 @@ public sealed class ControllerStateBackupSnapshot
     public DateTime SavedAtUtc { get; set; }
     public List<ClientServer.Contracts.ControllerTopologyDto> Topologies { get; set; } = new();
     public List<ClientServer.Contracts.ControllerTelemetryDto> Telemetry { get; set; } = new();
+    public List<ClientServer.Contracts.ControllerConfigurationSnapshot> Configurations { get; set; } = new();
 }
 
 public sealed class ControllerStateBackupService : BackgroundService
@@ -63,19 +64,30 @@ public sealed class ControllerStateBackupService : BackgroundService
             return;
         }
 
-        await using var stream = File.OpenRead(filePath);
-        var snapshot = await JsonSerializer.DeserializeAsync<ControllerStateBackupSnapshot>(stream, _jsonOptions, cancellationToken);
-        if (snapshot is null)
+        try
         {
-            return;
-        }
+            await using var stream = File.OpenRead(filePath);
+            var snapshot = await JsonSerializer.DeserializeAsync<ControllerStateBackupSnapshot>(stream, _jsonOptions, cancellationToken);
+            if (snapshot is null)
+            {
+                return;
+            }
 
-        _stateStore.RestoreSnapshot(snapshot);
-        _logger.LogInformation(
-            "Odtworzono backup kontrolera z {FilePath} (klientów: {Clients}, telemetria: {TelemetryCount}).",
-            filePath,
-            snapshot.Topologies.Count,
-            snapshot.Telemetry.Count);
+            _stateStore.RestoreSnapshot(snapshot);
+            _logger.LogInformation(
+                "Odtworzono backup kontrolera z {FilePath} (klientów: {Clients}, telemetria: {TelemetryCount}).",
+                filePath,
+                snapshot.Topologies.Count,
+                snapshot.Telemetry.Count);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Plik backupu kontrolera {FilePath} zawiera niepoprawny JSON. Stan zostanie pobrany ponownie.", filePath);
+        }
+        catch (IOException ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się odczytać backupu kontrolera {FilePath}. Stan zostanie pobrany ponownie.", filePath);
+        }
     }
 
     private async Task PersistSnapshotAsync(CancellationToken cancellationToken)

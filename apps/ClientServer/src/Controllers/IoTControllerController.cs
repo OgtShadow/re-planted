@@ -82,15 +82,39 @@ public sealed class IoTControllerController : ControllerBase
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<ControllerTopologyDto>> Sync(int clientId, CancellationToken cancellationToken)
     {
-        var topology = await _topologyClient.GetTopologyAsync(clientId, cancellationToken);
-        if (topology is null)
+        var configuration = await _topologyClient.GetConfigurationAsync(clientId, cancellationToken);
+        if (configuration is null)
         {
-            _logger.LogWarning("Nie udało się zsynchronizować topologii dla klienta {ClientId}.", clientId);
-            return StatusCode(StatusCodes.Status502BadGateway, new { response = "Nie udało się zsynchronizować topologii z głównym serwerem." });
+            _logger.LogWarning("Nie udało się zsynchronizować konfiguracji dla klienta {ClientId}.", clientId);
+            return StatusCode(StatusCodes.Status502BadGateway, new { response = "Nie udało się zsynchronizować topologii i reguł z głównym serwerem." });
         }
 
-        _stateStore.UpdateTopology(clientId, topology with { SyncedAtUtc = DateTime.UtcNow });
+        _stateStore.UpdateConfiguration(configuration);
         return Ok(_stateStore.GetTopology(clientId));
+    }
+
+    /// <summary>Returns the cached configuration version and offline validity window.</summary>
+    [HttpGet("configuration")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<object> GetConfiguration(int clientId)
+    {
+        var configuration = _stateStore.GetConfiguration(clientId);
+        if (configuration is null)
+        {
+            return Ok(new { clientId, available = false, offline = false });
+        }
+
+        var isExpired = configuration.ExpiresAtUtc <= DateTime.UtcNow;
+        return Ok(new
+        {
+            configuration.ClientId,
+            configuration.Version,
+            configuration.FetchedAtUtc,
+            configuration.ExpiresAtUtc,
+            configuration.Rules.Count,
+            Offline = isExpired,
+            AutomationEnabled = !isExpired
+        });
     }
 
     /// <summary>Returns the operational state of the controller and its soak timer.</summary>

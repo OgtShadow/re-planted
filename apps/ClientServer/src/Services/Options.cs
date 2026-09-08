@@ -57,6 +57,15 @@ public sealed class ControllerStateBackupOptions
     public string FilePath { get; set; } = "data/controller-state.json";
 }
 
+public sealed class OfflineModeOptions
+{
+    public const string SectionName = "OfflineMode";
+
+    public bool Enabled { get; set; } = true;
+    public int SnapshotValidityMinutes { get; set; } = 1440;
+    public bool ContinueWithExpiredSnapshot { get; set; }
+}
+
 public sealed class JwtOptions
 {
     public const string SectionName = "Jwt";

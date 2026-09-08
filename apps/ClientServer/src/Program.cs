@@ -19,6 +19,7 @@ builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSectio
 builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
 builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
 builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
+builder.Services.Configure<OfflineModeOptions>(builder.Configuration.GetSection(OfflineModeOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();

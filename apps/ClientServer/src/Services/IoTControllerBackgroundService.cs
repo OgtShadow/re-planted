@@ -14,6 +14,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     private readonly IControllerStateStore _stateStore;
     private readonly IHubContext<ControllerHub> _hubContext;
     private readonly IoTControllerOptions _options;
+    private readonly OfflineModeOptions _offlineOptions;
     private readonly ILogger<IoTControllerBackgroundService> _logger;
     private bool _reportedEmptyClientSet;
 
@@ -25,6 +26,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         IControllerStateStore stateStore,
         IHubContext<ControllerHub> hubContext,
         IOptions<IoTControllerOptions> options,
+        IOptions<OfflineModeOptions> offlineOptions,
         ILogger<IoTControllerBackgroundService> logger)
     {
         _topologyClient = topologyClient;
@@ -34,6 +36,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         _stateStore = stateStore;
         _hubContext = hubContext;
         _options = options.Value;
+        _offlineOptions = offlineOptions.Value;
         _logger = logger;
     }
 
@@ -78,19 +81,24 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 
     private async Task RunCycleForClientAsync(int clientId, CancellationToken cancellationToken)
     {
-        var topology = await _topologyClient.GetTopologyAsync(clientId, cancellationToken);
-        if (topology is not null)
+        var downloadedConfiguration = await _topologyClient.GetConfigurationAsync(clientId, cancellationToken);
+        if (downloadedConfiguration is not null)
         {
-            _stateStore.UpdateTopology(clientId, topology);
+            _stateStore.UpdateConfiguration(downloadedConfiguration);
         }
 
-        var currentTopology = _stateStore.GetTopology(clientId);
+        var configuration = _stateStore.GetConfiguration(clientId);
+        var currentTopology = configuration?.Topology ?? _stateStore.GetTopology(clientId);
         if (currentTopology is null || currentTopology.Plants.Count == 0)
         {
             return;
         }
 
         var nowUtc = DateTime.UtcNow;
+        var configurationExpired = configuration is null || configuration.ExpiresAtUtc <= nowUtc;
+        var offlineAutomationAllowed = configuration is not null &&
+            (!configurationExpired || (_offlineOptions.Enabled && _offlineOptions.ContinueWithExpiredSnapshot));
+
         var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
         pumpStateMachine.Refresh(nowUtc);
 
@@ -110,7 +118,11 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         string? activePlantName = null;
         var warningMessage = pumpStateMachine.WarningMessage;
 
-        var rules = await _topologyClient.GetAutomationRulesAsync(clientId, cancellationToken);
+        var rules = offlineAutomationAllowed ? configuration!.Rules : [];
+        if (configurationExpired)
+        {
+            warningMessage ??= "Konfiguracja automatyzacji wygasła. Sterowanie automatyczne jest w trybie bezpiecznej degradacji.";
+        }
         if (rules.Count > 0 && !pumpStateMachine.IsInSoak(nowUtc))
         {
             var decisions = _ruleEngine.Evaluate(rules, telemetry, nowUtc);

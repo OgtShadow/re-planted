@@ -35,6 +35,15 @@ public sealed record ControllerTopologyDto(
     DateTime SyncedAtUtc,
     IReadOnlyList<ControllerPlantDto> Plants);
 
+/// <summary>Atomic, locally persisted controller configuration used during main-server outages.</summary>
+public sealed record ControllerConfigurationSnapshot(
+    int ClientId,
+    string Version,
+    DateTime FetchedAtUtc,
+    DateTime ExpiresAtUtc,
+    ControllerTopologyDto Topology,
+    IReadOnlyList<ControllerAutomationRuleDto> Rules);
+
 /// <summary>Represents the latest aggregated telemetry snapshot produced by the IoT Controller.</summary>
 public sealed record ControllerTelemetryDto(
     string DeviceId,
