@@ -69,6 +69,12 @@ public sealed class OfflineControllerTests
                 DateTime.UtcNow)),
             new CapturingMqttBridge(commandPublished),
             new AutomationRuleEngine(),
+            new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions
+            {
+                MaxPumpRunSeconds = 30,
+                MaxTelemetryAgeSeconds = 30,
+                LowWaterThresholdCm = 2
+            })),
             stateStore,
             new CapturingTelemetryPublisher(),
             Options.Create(new IoTControllerOptions
@@ -96,6 +102,51 @@ public sealed class OfflineControllerTests
         Assert.Equal(2000, command.DurationMs);
     }
 
+    [Fact]
+    public void PumpSafetyGuardClampsMaximumDurationAndBlocksLowWater()
+    {
+        var stateStore = new ControllerStateStore();
+        var guard = new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions
+        {
+            MaxPumpRunSeconds = 3,
+            MaxTelemetryAgeSeconds = 30,
+            LowWaterThresholdCm = 2
+        }));
+        var telemetry = new ControllerTelemetryDto("sensor-1", 20, 22, 50, 10, false, false, DateTime.UtcNow, 1, "Idle", null, null, DateTime.UtcNow);
+
+        var clamped = guard.ValidateStart(1, 10000, telemetry);
+        var blocked = guard.ValidateStart(1, 1000, telemetry with { WaterLevelCm = 2 });
+
+        Assert.True(clamped.Allowed);
+        Assert.Equal(3000, clamped.DurationMs);
+        Assert.False(blocked.Allowed);
+    }
+
+    [Fact]
+    public async Task HungTelemetryReadDoesNotBlockControllerCycle()
+    {
+        var stateStore = new ControllerStateStore();
+        stateStore.UpdateTopology(1, new ControllerTopologyDto(1, DateTime.UtcNow, [new ControllerPlantDto(1, "Plant", "Species", new ControllerPlantParametersDto(1, 1, 2, 1, 1, 2), [])]));
+        var commandPublished = new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new IoTControllerBackgroundService(
+            new OfflineMainServerClient(),
+            new HungTelemetryClient(),
+            new CapturingMqttBridge(commandPublished),
+            new AutomationRuleEngine(),
+            new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions { TelemetryTimeoutSeconds = 1 })),
+            stateStore,
+            new CapturingTelemetryPublisher(),
+            Options.Create(new IoTControllerOptions { ClientIds = [1], TelemetryTimeoutSeconds = 1 }),
+            Options.Create(new OfflineModeOptions()),
+            NullLogger<IoTControllerBackgroundService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(1200));
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.False(commandPublished.Task.IsCompleted);
+    }
+
     private sealed record PublishedCommand(string DeviceId, string Command, bool State, int DurationMs);
 
     private sealed class OfflineMainServerClient : IMainServerTopologyClient
@@ -116,6 +167,17 @@ public sealed class OfflineControllerTests
             => Task.FromResult<ControllerTelemetryDto?>(_telemetry with { ClientId = clientId });
 
         public Task<bool> TurnPumpOnAsync(int durationSeconds, CancellationToken cancellationToken) => Task.FromResult(true);
+    }
+
+    private sealed class HungTelemetryClient : IMockDeviceClient
+    {
+        public async Task<ControllerTelemetryDto?> ReadTelemetryAsync(int clientId, PumpControlPhase phase, string? activePlantName, string? warningMessage, DateTime? soakUntilUtc, CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return null;
+        }
+
+        public Task<bool> TurnPumpOnAsync(int durationSeconds, CancellationToken cancellationToken) => Task.FromResult(false);
     }
 
     private sealed class CapturingMqttBridge : IMqttBridgeService

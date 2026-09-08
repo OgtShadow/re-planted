@@ -115,3 +115,20 @@ dotnet test apps/Server.Tests/Server.Tests.csproj --filter UsesLastValidSnapshot
 ```
 
 Sukces oznacza, że brak odpowiedzi głównego Servera nie usuwa lokalnej konfiguracji i że kontroler nadal wykonuje przeznaczoną regułę przez MQTT. Test nie wymaga uruchomionego Servera, PostgreSQL, brokera MQTT ani fizycznego ESP32. Nie zastępuje testu sprzętowego, ale weryfikuje najważniejszy kontrakt offline pomiędzy snapshotem, telemetrią, silnikiem reguł i adapterem komend.
+
+## Zabezpieczenia pompy w ClientServer
+
+`ClientServer` stosuje `PumpSafetyGuard` przed każdą komendą uruchamiającą pompę, zarówno z reguły automatycznej, jak i z endpointu ręcznego. Dostępne zabezpieczenia:
+
+- `IoTController:MaxPumpRunSeconds` ogranicza maksymalny czas komendy; domyślnie do 30 sekund.
+- `IoTController:LowWaterThresholdCm` blokuje uruchomienie przy zbyt niskim poziomie wody.
+- `IoTController:MaxTelemetryAgeSeconds` blokuje pompę przy braku świeżej telemetrii.
+- `IoTController:TelemetryTimeoutSeconds` kończy oczekiwanie na zawieszony odczyt telemetrii zamiast blokować kontroler.
+
+Testy `PumpSafetyGuardClampsMaximumDurationAndBlocksLowWater` i `HungTelemetryReadDoesNotBlockControllerCycle` sprawdzają te zachowania:
+
+```powershell
+dotnet test apps/Server.Tests/Server.Tests.csproj --filter "FullyQualifiedName~OfflineControllerTests"
+```
+
+Zabezpieczenia po stronie `ClientServer` nie zastępują watchdogu ESP32 ani fizycznego odcięcia przekaźnika. Końcowe zabezpieczenie po publikacji komendy musi nadal znajdować się w firmware lub układzie sprzętowym.
