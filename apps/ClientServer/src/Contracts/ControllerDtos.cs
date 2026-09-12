@@ -99,6 +99,11 @@ public sealed record CommandPayload(
 
 public sealed record PumpCommandRequest(int DurationMs);
 
+public sealed record ActuatorCommandRequest(
+    string Command,
+    bool State,
+    int DurationMs);
+
 /// <summary>Represents a persistent automation rule synchronized from the main server.</summary>
 public sealed record ControllerAutomationRuleDto(
     int Id,

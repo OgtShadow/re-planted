@@ -85,9 +85,12 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
             return false;
         }
 
-        if (durationMs < 0 || (durationMs == 0 && state))
+        var normalizedCommand = string.IsNullOrWhiteSpace(command) ? "pump" : command.Trim().ToLowerInvariant();
+        var isPump = string.Equals(normalizedCommand, "pump", StringComparison.OrdinalIgnoreCase);
+
+        if (durationMs < 0 || (isPump && state && durationMs == 0))
         {
-            _logger.LogWarning("Pominięto publikację komendy MQTT, ponieważ durationMs={DurationMs} jest nieprawidłowe.", durationMs);
+            _logger.LogWarning("Pominięto publikację komendy MQTT, ponieważ durationMs={DurationMs} jest nieprawidłowe dla komendy {Command}.", durationMs, normalizedCommand);
             return false;
         }
 
@@ -97,7 +100,7 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
             return false;
         }
 
-        var payload = new CommandPayload(deviceId, string.IsNullOrWhiteSpace(command) ? "pump" : command, state, durationMs, DateTime.UtcNow);
+        var payload = new CommandPayload(deviceId, normalizedCommand, state, durationMs, DateTime.UtcNow);
         var topic = _options.CommandsTopicTemplate.Replace("{deviceId}", deviceId, StringComparison.OrdinalIgnoreCase);
         var payloadJson = JsonSerializer.Serialize(payload, _jsonOptions);
 

@@ -1,6 +1,7 @@
 using ClientServer.Contracts;
 using ClientServer.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ClientServer.Controllers;
 
@@ -13,6 +14,7 @@ public sealed class IoTControllerController : ControllerBase
     private readonly IMainServerTopologyClient _topologyClient;
     private readonly IMqttBridgeService _mqttBridgeService;
     private readonly IPumpSafetyGuard _pumpSafetyGuard;
+    private readonly IoTControllerOptions _options;
     private readonly ILogger<IoTControllerController> _logger;
 
     public IoTControllerController(
@@ -20,12 +22,14 @@ public sealed class IoTControllerController : ControllerBase
         IMainServerTopologyClient topologyClient,
         IMqttBridgeService mqttBridgeService,
         IPumpSafetyGuard pumpSafetyGuard,
+        IOptions<IoTControllerOptions> options,
         ILogger<IoTControllerController> logger)
     {
         _stateStore = stateStore;
         _topologyClient = topologyClient;
         _mqttBridgeService = mqttBridgeService;
         _pumpSafetyGuard = pumpSafetyGuard;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -155,6 +159,7 @@ public sealed class IoTControllerController : ControllerBase
     [HttpPost("devices/{deviceId}/pump")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult> RunPumpWithMqtt(int clientId, string deviceId, [FromBody] PumpCommandRequest request, CancellationToken cancellationToken)
     {
@@ -180,7 +185,11 @@ public sealed class IoTControllerController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy MQTT do urządzenia." });
         }
 
-        _logger.LogInformation("Wysłano komendę MQTT uruchomienia pompy dla urządzenia {DeviceId} na {DurationMs} ms.", deviceId, request.DurationMs);
+        var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
+        pumpStateMachine.BeginWatering("Sterowanie ręczne");
+        pumpStateMachine.BeginSoak(DateTime.UtcNow, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
+
+        _logger.LogInformation("Wysłano komendę MQTT uruchomienia pompy dla urządzenia {DeviceId} na {DurationMs} ms.", deviceId, safety.DurationMs);
 
         return Accepted(new
         {
@@ -193,6 +202,8 @@ public sealed class IoTControllerController : ControllerBase
 
     [HttpPost("devices/{deviceId}/stop")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult> StopPumpWithMqtt(int clientId, string deviceId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(deviceId))
@@ -206,6 +217,85 @@ public sealed class IoTControllerController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy zatrzymania MQTT." });
         }
 
+        var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
+        pumpStateMachine.MarkIdle();
+
         return Accepted(new { ClientId = clientId, DeviceId = deviceId, State = "stopped" });
+    }
+
+    [HttpPost("devices/{deviceId}/command")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult> ExecuteActuatorCommand(int clientId, string deviceId, [FromBody] ActuatorCommandRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            return BadRequest(new { response = "Identyfikator urządzenia jest wymagany." });
+        }
+
+        var command = string.IsNullOrWhiteSpace(request.Command) ? "pump" : request.Command.Trim().ToLowerInvariant();
+        var durationMs = request.DurationMs;
+        var isPump = string.Equals(command, "pump", StringComparison.OrdinalIgnoreCase);
+
+        if (isPump)
+        {
+            if (request.State)
+            {
+                if (durationMs <= 0)
+                {
+                    return BadRequest(new { response = "Pole durationMs musi być większe od zera dla uruchomienia pompy." });
+                }
+
+                var safety = _pumpSafetyGuard.ValidateStart(clientId, durationMs);
+                if (!safety.Allowed)
+                {
+                    return Conflict(new { response = safety.RejectionReason });
+                }
+
+                durationMs = safety.DurationMs;
+            }
+            else
+            {
+                durationMs = 0;
+            }
+        }
+        else if (durationMs < 0)
+        {
+            return BadRequest(new { response = "Pole durationMs nie może być ujemne." });
+        }
+
+        var published = await _mqttBridgeService.PublishActuatorCommandAsync(deviceId, command, request.State, durationMs, cancellationToken);
+        if (!published)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { response = "Nie udało się wysłać komendy MQTT do urządzenia." });
+        }
+
+        var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
+        if (isPump)
+        {
+            if (request.State)
+            {
+                pumpStateMachine.BeginWatering("Sterowanie ręczne");
+                pumpStateMachine.BeginSoak(DateTime.UtcNow, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
+            }
+            else
+            {
+                pumpStateMachine.MarkIdle();
+            }
+        }
+
+        _logger.LogInformation("Wysłano komendę MQTT {Command} (stan={State}) dla urządzenia {DeviceId} na {DurationMs} ms.", command, request.State, deviceId, durationMs);
+
+        return Accepted(new
+        {
+            ClientId = clientId,
+            DeviceId = deviceId,
+            Command = command,
+            State = request.State,
+            DurationMs = durationMs,
+            Topic = $"replanted/commands/{deviceId}"
+        });
     }
 }

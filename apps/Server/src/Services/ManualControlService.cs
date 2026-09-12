@@ -48,6 +48,30 @@ public sealed class ManualControlService(IHttpClientFactory httpClientFactory, I
         }
     }
 
+    public async Task<(bool Success, int StatusCode, string? Error)> ExecuteCommandAsync(
+        int userId,
+        string deviceId,
+        string command,
+        bool state,
+        int durationMs,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient(nameof(ManualControlService));
+            var baseUrl = (configuration["ClientServerBaseUrl"] ?? "http://localhost:8082").TrimEnd('/');
+            using var response = await client.PostAsJsonAsync(
+                $"{baseUrl}/api/client-server/controllers/{userId}/devices/{Uri.EscapeDataString(deviceId)}/command",
+                new ManualCommandRequest { Command = command, State = state, DurationMs = durationMs },
+                cancellationToken);
+            return await ReadResultAsync(response, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return (false, StatusCodes.Status503ServiceUnavailable, "Kontroler IoT jest niedostępny.");
+        }
+    }
+
     private static async Task<(bool Success, int StatusCode, string? Error)> ReadResultAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)

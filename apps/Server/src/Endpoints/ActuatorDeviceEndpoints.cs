@@ -416,6 +416,43 @@ public static class ActuatorDeviceEndpoints
             .WithSummary("Stop an actuator immediately")
             .Produces(StatusCodes.Status202Accepted);
 
+        devices.MapPost("/{id:int}/manual/command", async (
+            int userId,
+            int id,
+            ManualCommandRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            ManualControlService controlService,
+            CancellationToken cancellationToken) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId)) return Results.Forbid();
+            var device = await db.ActuatorDevices.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+            if (device is null) return Results.NotFound();
+            if (!string.Equals(device.DeviceKind, DeviceKindActuator, StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { Response = "Sterowanie ręczne jest dostępne tylko dla aktuatorów." });
+            if (!device.IsEnabled || string.IsNullOrWhiteSpace(device.ExternalDeviceId))
+                return Results.BadRequest(new { Response = "Urządzenie jest wyłączone lub nie ma identyfikatora MQTT." });
+
+            var command = string.IsNullOrWhiteSpace(request.Command) ? "pump" : request.Command.Trim().ToLowerInvariant();
+            if (string.Equals(command, "pump", StringComparison.OrdinalIgnoreCase) && request.State)
+            {
+                if (request.DurationMs is < 100 or > 30000)
+                    return Results.BadRequest(new { Response = "Czas pracy pompy musi być między 100 ms a 30 s." });
+            }
+            else if (request.DurationMs < 0)
+            {
+                return Results.BadRequest(new { Response = "Czas pracy nie może być ujemny." });
+            }
+
+            var result = await controlService.ExecuteCommandAsync(userId, device.ExternalDeviceId, command, request.State, request.DurationMs, cancellationToken);
+            return result.Success
+                ? Results.Accepted(value: new { DeviceId = device.Id, Command = command, State = request.State, DurationMs = request.DurationMs, Status = "accepted" })
+                : Results.Json(new { Response = result.Error }, statusCode: result.StatusCode);
+        })
+            .WithSummary("Execute an actuator command manually over MQTT")
+            .Produces(StatusCodes.Status202Accepted)
+            .Produces(StatusCodes.Status400BadRequest);
+
         devices.MapDelete("/{id:int}", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<UserHub> hubContext) =>
         {
             if (!IsRequestUserAuthorized(principal, userId))

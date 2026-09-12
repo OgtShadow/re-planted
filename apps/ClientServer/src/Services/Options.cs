@@ -16,7 +16,6 @@ public sealed class MockDeviceApiOptions
 
     public string BaseUrl { get; set; } = "http://localhost:8085";
     public string SensorsPath { get; set; } = "/sensors";
-    public string PumpCommandPath { get; set; } = "/command/pump";
 }
 
 public sealed class IoTControllerOptions
