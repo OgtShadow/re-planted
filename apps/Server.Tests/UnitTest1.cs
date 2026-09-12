@@ -147,6 +147,113 @@ public sealed class OfflineControllerTests
         Assert.False(commandPublished.Task.IsCompleted);
     }
 
+    [Fact]
+    public async Task ManualPumpCommandUsesMqttBridgeAndUpdatesStateMachine()
+    {
+        var clientId = 1;
+        var deviceId = "esp32-node-01";
+        var stateStore = new ControllerStateStore();
+        stateStore.UpdateTelemetry(clientId, new ControllerTelemetryDto(
+            "sensor-1", 20, 22, 50, 10, false, false, DateTime.UtcNow, clientId, "Idle", null, null, DateTime.UtcNow));
+
+        var commandPublished = new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mqttBridge = new CapturingMqttBridge(commandPublished);
+        var safetyGuard = new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions
+        {
+            MaxPumpRunSeconds = 10,
+            MaxTelemetryAgeSeconds = 30,
+            LowWaterThresholdCm = 2
+        }));
+
+        var controller = new ClientServer.Controllers.IoTControllerController(
+            stateStore,
+            new OfflineMainServerClient(),
+            mqttBridge,
+            safetyGuard,
+            Options.Create(new IoTControllerOptions { SoakTimeSeconds = 30 }),
+            NullLogger<ClientServer.Controllers.IoTControllerController>.Instance);
+
+        var actionResult = await controller.RunPumpWithMqtt(clientId, deviceId, new PumpCommandRequest(5000), CancellationToken.None);
+        var acceptedResult = Assert.IsType<Microsoft.AspNetCore.Mvc.AcceptedResult>(actionResult);
+        Assert.NotNull(acceptedResult.Value);
+
+        var command = await commandPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(deviceId, command.DeviceId);
+        Assert.Equal("pump", command.Command);
+        Assert.True(command.State);
+        Assert.Equal(5000, command.DurationMs);
+
+        var machine = stateStore.GetPumpStateMachine(clientId);
+        Assert.Equal(PumpControlPhase.Soaking, machine.Phase);
+        Assert.Equal("Sterowanie ręczne", machine.ActivePlantName);
+    }
+
+    [Fact]
+    public async Task ManualActuatorCommandExecutesOverMqttBridge()
+    {
+        var clientId = 1;
+        var deviceId = "esp32-lamp-01";
+        var stateStore = new ControllerStateStore();
+        var commandPublished = new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mqttBridge = new CapturingMqttBridge(commandPublished);
+        var safetyGuard = new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions()));
+
+        var controller = new ClientServer.Controllers.IoTControllerController(
+            stateStore,
+            new OfflineMainServerClient(),
+            mqttBridge,
+            safetyGuard,
+            Options.Create(new IoTControllerOptions()),
+            NullLogger<ClientServer.Controllers.IoTControllerController>.Instance);
+
+        var actionResult = await controller.ExecuteActuatorCommand(
+            clientId,
+            deviceId,
+            new ActuatorCommandRequest("lamp", true, 0),
+            CancellationToken.None);
+
+        var acceptedResult = Assert.IsType<Microsoft.AspNetCore.Mvc.AcceptedResult>(actionResult);
+        Assert.NotNull(acceptedResult.Value);
+
+        var command = await commandPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(deviceId, command.DeviceId);
+        Assert.Equal("lamp", command.Command);
+        Assert.True(command.State);
+        Assert.Equal(0, command.DurationMs);
+    }
+
+    [Fact]
+    public async Task ManualEmergencyStopExecutesOverMqttBridge()
+    {
+        var clientId = 1;
+        var deviceId = "esp32-node-01";
+        var stateStore = new ControllerStateStore();
+        var commandPublished = new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mqttBridge = new CapturingMqttBridge(commandPublished);
+        var safetyGuard = new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions()));
+
+        var controller = new ClientServer.Controllers.IoTControllerController(
+            stateStore,
+            new OfflineMainServerClient(),
+            mqttBridge,
+            safetyGuard,
+            Options.Create(new IoTControllerOptions()),
+            NullLogger<ClientServer.Controllers.IoTControllerController>.Instance);
+
+        var actionResult = await controller.StopPumpWithMqtt(clientId, deviceId, CancellationToken.None);
+        var acceptedResult = Assert.IsType<Microsoft.AspNetCore.Mvc.AcceptedResult>(actionResult);
+        Assert.NotNull(acceptedResult.Value);
+
+        var command = await commandPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Equal(deviceId, command.DeviceId);
+        Assert.Equal("pump", command.Command);
+        Assert.False(command.State);
+        Assert.Equal(0, command.DurationMs);
+
+        var machine = stateStore.GetPumpStateMachine(clientId);
+        Assert.Equal(PumpControlPhase.Idle, machine.Phase);
+    }
+
     private sealed record PublishedCommand(string DeviceId, string Command, bool State, int DurationMs);
 
     private sealed class OfflineMainServerClient : IMainServerTopologyClient
@@ -165,8 +272,6 @@ public sealed class OfflineControllerTests
 
         public Task<ControllerTelemetryDto?> ReadTelemetryAsync(int clientId, PumpControlPhase phase, string? activePlantName, string? warningMessage, DateTime? soakUntilUtc, CancellationToken cancellationToken)
             => Task.FromResult<ControllerTelemetryDto?>(_telemetry with { ClientId = clientId });
-
-        public Task<bool> TurnPumpOnAsync(int durationSeconds, CancellationToken cancellationToken) => Task.FromResult(true);
     }
 
     private sealed class HungTelemetryClient : IMockDeviceClient
@@ -176,8 +281,6 @@ public sealed class OfflineControllerTests
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return null;
         }
-
-        public Task<bool> TurnPumpOnAsync(int durationSeconds, CancellationToken cancellationToken) => Task.FromResult(false);
     }
 
     private sealed class CapturingMqttBridge : IMqttBridgeService
