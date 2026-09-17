@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DeviceProfile from "../DeviceProfile/DeviceProfile";
-import connectionManager, { API_BASE_URL, userDevicesEndpoint } from "../../connectionManager";
+import connectionManager, { API_BASE_URL, getSignalRAccessToken, userDevicesEndpoint } from "../../connectionManager";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import './DeviceList.css'
 import AddButton from "../AddButton/AddButton";
@@ -22,7 +22,7 @@ function DeviceList() {
       fetchDevices();
 
       const connection = new HubConnectionBuilder()
-          .withUrl(`${API_BASE_URL}/userHub`)
+          .withUrl(`${API_BASE_URL}/userHub`, { accessTokenFactory: getSignalRAccessToken })
           .withAutomaticReconnect()
           .build();
 

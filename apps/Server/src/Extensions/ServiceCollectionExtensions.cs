@@ -44,7 +44,11 @@ public static class ServiceCollectionExtensions
                     {
                         var accessToken = context.Request.Query["access_token"].ToString();
                         var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/plantHub") || path.StartsWithSegments("/alertsHub")))
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments("/plantHub") ||
+                             path.StartsWithSegments("/userHub") ||
+                             path.StartsWithSegments("/telemetryHub") ||
+                             path.StartsWithSegments("/alertsHub")))
                         {
                             context.Token = accessToken;
                         }

@@ -72,7 +72,7 @@ public static class AutomationRuleEndpoints
 
             db.AutomationRules.Add(rule);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("AutomationRulesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("AutomationRulesUpdated");
 
             return Results.Ok(new { Response = $"Dodano regułę automatyzacji dla rośliny {rule.PlantId}", Id = rule.Id, UserId = rule.UserId });
         })
@@ -99,7 +99,7 @@ public static class AutomationRuleEndpoints
 
             rule.UpdatedAtUtc = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("AutomationRulesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("AutomationRulesUpdated");
 
             return Results.Ok(new { Response = $"Zaktualizowano regułę automatyzacji {rule.Id}", Id = rule.Id, UserId = rule.UserId });
         })
@@ -121,7 +121,7 @@ public static class AutomationRuleEndpoints
 
             db.AutomationRules.Remove(rule);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("AutomationRulesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("AutomationRulesUpdated");
 
             return Results.Ok(new { Response = $"Usunięto regułę automatyzacji {rule.Id}", Id = rule.Id, UserId = userId });
         })

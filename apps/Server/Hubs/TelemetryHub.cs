@@ -2,6 +2,6 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Server.Hubs;
 
-public class TelemetryHub : Hub
+public class TelemetryHub : UserHubAuthorization
 {
 }

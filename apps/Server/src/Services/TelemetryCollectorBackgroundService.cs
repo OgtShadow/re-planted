@@ -166,7 +166,21 @@ public sealed class TelemetryCollectorBackgroundService : BackgroundService, ITe
         db.TelemetryBuckets.RemoveRange(staleBuckets);
 
         await db.SaveChangesAsync(cancellationToken);
-        await telemetryHub.Clients.All.SendAsync("TelemetryUpdated", snapshots, cancellationToken);
+        var deviceOwners = await db.ActuatorDevices
+            .Where(device => device.UserId > 0 && device.ExternalDeviceId != null)
+            .Select(device => new { device.UserId, device.ExternalDeviceId })
+            .ToListAsync(cancellationToken);
+
+        foreach (var userSnapshots in snapshots
+            .Join(deviceOwners,
+                snapshot => NormalizeIdentifier(snapshot.DeviceId),
+                device => NormalizeIdentifier(device.ExternalDeviceId!),
+                (snapshot, device) => new { device.UserId, Snapshot = snapshot })
+            .GroupBy(item => item.UserId))
+        {
+            await telemetryHub.Clients.Group(UserHubAuthorization.GroupName(userSnapshots.Key))
+                .SendAsync("TelemetryUpdated", userSnapshots.Select(item => item.Snapshot).ToList(), cancellationToken);
+        }
         return snapshots;
     }
 

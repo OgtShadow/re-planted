@@ -43,6 +43,8 @@ const getAuthToken = () => {
   }
 };
 
+const getSignalRAccessToken = () => getAuthToken() || '';
+
 const setAuthToken = (token) => {
   if (!token) {
     return;
@@ -224,6 +226,7 @@ export {
   setActiveUserId,
   clearActiveUserId,
   getAuthToken,
+  getSignalRAccessToken,
   setAuthToken,
   clearAuthToken,
   userPlantsEndpoint,

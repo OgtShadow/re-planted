@@ -76,7 +76,7 @@ public static class PlantEndpoints
             await db.SaveChangesAsync();
             Console.WriteLine($"Dodano roślinę: {newPlant.Name}, {newPlant.Species}");
 
-            await hubContext.Clients.All.SendAsync("PlantsUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("PlantsUpdated");
 
             return Results.Ok(new
             {
@@ -125,7 +125,7 @@ public static class PlantEndpoints
             }
 
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("PlantsUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("PlantsUpdated");
 
             return Results.Ok(new { Response = $"Zaktualizowano roślinę: {plant.Name}", Id = plant.Id, UserId = plant.UserId });
         })
@@ -147,7 +147,7 @@ public static class PlantEndpoints
 
             db.Plants.Remove(plant);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("PlantsUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("PlantsUpdated");
 
             return Results.Ok(new { Response = $"Usunięto roślinę: {plant.Name}", Id = plant.Id, UserId = userId });
         })

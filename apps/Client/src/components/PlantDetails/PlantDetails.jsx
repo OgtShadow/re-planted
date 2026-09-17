@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import connectionManager, { API_BASE_URL, userPlantsEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
+import connectionManager, { API_BASE_URL, getSignalRAccessToken, userPlantsEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import StatusDot from '../StatusDot/StatusDot';
 import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
@@ -50,7 +50,7 @@ function PlantDetails() {
 
     useEffect(() => {
         const connection = new HubConnectionBuilder()
-            .withUrl(`${API_BASE_URL}/telemetryHub`)
+            .withUrl(`${API_BASE_URL}/telemetryHub`, { accessTokenFactory: getSignalRAccessToken })
             .withAutomaticReconnect()
             .build();
 

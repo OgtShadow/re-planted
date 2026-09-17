@@ -206,7 +206,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Add(device);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -239,7 +239,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Add(device);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -285,7 +285,7 @@ public static class ActuatorDeviceEndpoints
             device.IsEnabled = mapped.IsEnabled;
 
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -331,7 +331,7 @@ public static class ActuatorDeviceEndpoints
             device.IsEnabled = mapped.IsEnabled;
 
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -469,7 +469,7 @@ public static class ActuatorDeviceEndpoints
 
             db.ActuatorDevices.Remove(device);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new
             {
@@ -508,7 +508,7 @@ public static class ActuatorDeviceEndpoints
             {
                 device.Plants.Add(plant);
                 await db.SaveChangesAsync();
-                await hubContext.Clients.All.SendAsync("DevicesUpdated");
+                await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
             }
 
             return Results.Ok(new { Response = "Przypisano urządzenie do rośliny", DeviceId = deviceId, PlantId = plantId });
@@ -541,7 +541,7 @@ public static class ActuatorDeviceEndpoints
 
             device.Plants.Remove(plant);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("DevicesUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("DevicesUpdated");
 
             return Results.Ok(new { Response = "Odpięto urządzenie od rośliny", DeviceId = deviceId, PlantId = plantId });
         })

@@ -114,7 +114,7 @@ public static class UserEndpoints
 
             await ActuatorDeviceEndpoints.EnsureEspMockDeviceAsync(db, user.Id);
 
-            await hubContext.Clients.All.SendAsync("UsersUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(user.Id)).SendAsync("UsersUpdated");
 
             return Results.Ok(new { Response = $"Added user: {user.Username}" });
         })
@@ -136,7 +136,7 @@ public static class UserEndpoints
             user.Username = updatedUser.Username;
             user.Email = updatedUser.Email;
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("UsersUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(id)).SendAsync("UsersUpdated");
 
             return Results.Ok(new { Response = $"Updated user: {user.Username}" });
         })
@@ -157,7 +157,7 @@ public static class UserEndpoints
             if (user is null) return Results.NotFound();
             db.Users.Remove(user);
             await db.SaveChangesAsync();
-            await hubContext.Clients.All.SendAsync("UsersUpdated");
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(id)).SendAsync("UsersUpdated");
 
             return Results.Ok(new { Response = $"Deleted user: {user.Username}", Id = user.Id });
         })

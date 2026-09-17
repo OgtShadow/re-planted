@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import connectionManager, { userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
+import connectionManager, { getSignalRAccessToken, userDevicesEndpoint, userPlantsEndpoint, userTelemetryEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../connectionManager';
@@ -183,7 +183,7 @@ function TelemetryStats() {
 
   useEffect(() => {
     const connection = new HubConnectionBuilder()
-      .withUrl(`${API_BASE_URL}/telemetryHub`)
+      .withUrl(`${API_BASE_URL}/telemetryHub`, { accessTokenFactory: getSignalRAccessToken })
       .withAutomaticReconnect()
       .build();
 
@@ -207,7 +207,7 @@ function TelemetryStats() {
 
   useEffect(() => {
     const connection = new HubConnectionBuilder()
-      .withUrl(`${API_BASE_URL}/userHub`)
+      .withUrl(`${API_BASE_URL}/userHub`, { accessTokenFactory: getSignalRAccessToken })
       .withAutomaticReconnect()
       .build();
 
