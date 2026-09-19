@@ -168,6 +168,19 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
         return _latestTelemetry.TryGetValue(deviceId, out telemetry);
     }
 
+    public bool TryGetLatestTelemetryForClient(ControllerTopologyDto topology, out TelemetryPayload? telemetry)
+    {
+        telemetry = topology.Plants
+            .SelectMany(plant => plant.Devices)
+            .Where(device => string.Equals(device.DeviceKind, "sensor", StringComparison.OrdinalIgnoreCase))
+            .Select(device => _latestTelemetry.TryGetValue(device.ExternalDeviceId, out var value) ? value : null)
+            .Where(value => value is not null)
+            .OrderByDescending(value => value!.TimestampUtc)
+            .FirstOrDefault();
+
+        return telemetry is not null;
+    }
+
     private async Task ConnectAndSubscribeAsync(CancellationToken cancellationToken)
     {
         var clientId = string.IsNullOrWhiteSpace(_options.ClientId)

@@ -1,0 +1,76 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: replanted_mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - replanted-edge
+    restart: unless-stopped
+
+  app_client:
+    build:
+      context: ./apps/ClientServer
+      dockerfile: Dockerfile
+    container_name: replanted_app_client
+    ports:
+      - "${APP_CLIENT_PORT:-8082}:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - MainServerApi__BaseUrl=${MAIN_SERVER_BASE_URL}
+      - MainServerApi__PlantsPath=/api/users/{clientId}/plants
+      - MainServerApi__AutomationRulesPath=/api/users/{clientId}/automation-rules
+      - MainServerApi__AutomationRuleTriggerPath=/api/users/{clientId}/automation-rules/{ruleId}/trigger
+      - ServerApi__BaseUrl=${MAIN_SERVER_BASE_URL}
+      - ServerApi__CommunicationPath=/communication-test
+      - MockDeviceApi__BaseUrl=${MOCK_DEVICE_BASE_URL:-http://localhost:8085}
+      - MockDeviceApi__SensorsPath=/sensors
+      - IoTController__ClientIds__0=${IOT_CLIENT_ID:-1}
+      - IoTController__TelemetrySource=Mqtt
+      - IoTController__PollingIntervalSeconds=15
+      - IoTController__PumpRunSeconds=2
+      - IoTController__SoakTimeSeconds=60
+      - IoTController__LowWaterThresholdCm=2
+      - IoTController__MoistureThresholdBufferPercent=5
+      - IoTController__MaxPumpRunSeconds=30
+      - IoTController__TelemetryTimeoutSeconds=5
+      - IoTController__MaxTelemetryAgeSeconds=30
+      - Mqtt__Enabled=true
+      - Mqtt__BrokerHost=mosquitto
+      - Mqtt__BrokerPort=1883
+      - Mqtt__ClientId=${MQTT_CLIENT_ID:-re-planted-client-server-pi}
+      - Mqtt__TelemetryTopicFilter=replanted/telemetry/+/+
+      - Mqtt__CommandsTopicTemplate=replanted/commands/{deviceId}
+      - Mqtt__DiscoveryRegisterTopic=replanted/discovery/register
+      - Mqtt__NodeConfigTopicTemplate=replanted/node/{deviceId}/config
+      - Mqtt__KeepAliveSeconds=30
+      - Mqtt__ReconnectDelaySeconds=5
+      - Mqtt__QosLevel=1
+      - Mdns__Enabled=true
+      - Mdns__InstanceName=${MDNS_INSTANCE_NAME:-replanted-iot-controller}
+      - Mdns__ServiceType=_mqtt._tcp
+      - ControllerStateBackup__Enabled=true
+      - ControllerStateBackup__SaveIntervalSeconds=60
+      - ControllerStateBackup__FilePath=/app/data/controller-state.json
+      - OfflineMode__Enabled=true
+      - OfflineMode__SnapshotValidityMinutes=1440
+      - OfflineMode__ContinueWithExpiredSnapshot=false
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER:-re-planted-server}
+      - Jwt__Audience=${JWT_AUDIENCE:-re-planted-client}
+      - Serilog__MinimumLevel__Default=${LOG_LEVEL:-Information}
+    volumes:
+      - ./apps/ClientServer/data:/app/data
+      - ./apps/ClientServer/logs:/app/logs
+    depends_on:
+      mosquitto:
+        condition: service_started
+    networks:
+      - replanted-edge
+    restart: unless-stopped
+
+networks:
+  replanted-edge:
+    driver: bridge

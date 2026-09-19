@@ -2,6 +2,8 @@ namespace ClientServer.Services;
 
 public sealed class ServerApiOptions
 {
-    public string BaseUrl { get; set; } = "http://app:{{SERVER_PORT}}";
+    public const string SectionName = "ServerApi";
+
+    public string BaseUrl { get; set; } = "http://localhost:8080";
     public string CommunicationPath { get; set; } = "/communication-test";
 }

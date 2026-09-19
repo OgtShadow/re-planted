@@ -303,6 +303,12 @@ public sealed class OfflineControllerTests
             telemetry = null;
             return false;
         }
+
+        public bool TryGetLatestTelemetryForClient(ControllerTopologyDto topology, out TelemetryPayload? telemetry)
+        {
+            telemetry = null;
+            return false;
+        }
     }
 
     private sealed class CapturingTelemetryPublisher : IControllerTelemetryPublisher

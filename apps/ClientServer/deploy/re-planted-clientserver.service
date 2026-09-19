@@ -1,0 +1,18 @@
+[Unit]
+Description=Re-Planted ClientServer IoT Controller
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/re-planted-clientserver
+ExecStart=/opt/re-planted-clientserver/ClientServer
+EnvironmentFile=/etc/re-planted-clientserver/clientserver.env
+Restart=always
+RestartSec=5
+User=replanted
+Group=replanted
+SyslogIdentifier=re-planted-clientserver
+
+[Install]
+WantedBy=multi-user.target

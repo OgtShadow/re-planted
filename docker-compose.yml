@@ -61,6 +61,8 @@ services:
     environment:
       - MainServerApi__BaseUrl=http://app:8080
       - MainServerApi__PlantsPath=/api/users/{clientId}/plants
+      - ServerApi__BaseUrl=http://app:8080
+      - ServerApi__CommunicationPath=/communication-test
       - MockDeviceApi__BaseUrl=http://sensor-mock:8085
       - MockDeviceApi__SensorsPath=/sensors
       - IoTController__ClientIds__0=1
@@ -88,6 +90,9 @@ services:
       - Jwt__Key=dev-only-super-secret-key-change-me-please-12345
       - Jwt__Issuer=re-planted-server
       - Jwt__Audience=re-planted-client
+    volumes:
+      - ./apps/ClientServer/data:/app/data
+      - ./apps/ClientServer/logs:/app/logs
     depends_on:
       app:
         condition: service_started

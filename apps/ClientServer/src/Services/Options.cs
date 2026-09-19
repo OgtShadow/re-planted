@@ -23,6 +23,7 @@ public sealed class IoTControllerOptions
     public const string SectionName = "IoTController";
 
     public List<int> ClientIds { get; set; } = new();
+    public string TelemetrySource { get; set; } = "Mock";
     public int PollingIntervalSeconds { get; set; } = 15;
     public int PumpRunSeconds { get; set; } = 2;
     public int SoakTimeSeconds { get; set; } = 60;

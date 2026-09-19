@@ -1,70 +1,102 @@
 using System.Reflection;
 using ClientServer.Services;
 using ClientServer.Hubs;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+	.WriteTo.Console()
+	.CreateBootstrapLogger();
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+try
 {
-	var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-	var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-	options.IncludeXmlComments(xmlPath);
-});
-builder.Services.AddSignalR();
+	var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSection(MainServerApiOptions.SectionName));
-builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSection(MockDeviceApiOptions.SectionName));
-builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
-builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
-builder.Services.Configure<MdnsOptions>(builder.Configuration.GetSection(MdnsOptions.SectionName));
-builder.Services.Configure<DeviceRegistrationOptions>(builder.Configuration.GetSection(DeviceRegistrationOptions.SectionName));
-builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
-builder.Services.Configure<OfflineModeOptions>(builder.Configuration.GetSection(OfflineModeOptions.SectionName));
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+	builder.Host.UseSerilog((context, services, configuration) => configuration
+		.ReadFrom.Configuration(context.Configuration)
+		.ReadFrom.Services(services)
+		.Enrich.FromLogContext());
 
-builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
-builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
-builder.Services.AddSingleton<IAutomationRuleEngine, AutomationRuleEngine>();
-builder.Services.AddSingleton<IPumpSafetyGuard, PumpSafetyGuard>();
-builder.Services.AddSingleton<IControllerTelemetryPublisher, ControllerTelemetryPublisher>();
-builder.Services.AddSingleton<IDeviceRegistrationStore, DeviceRegistrationStore>();
-builder.Services.AddSingleton<MqttBridgeService>();
-builder.Services.AddSingleton<IMqttBridgeService>(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
+	builder.Services.AddControllers();
+	builder.Services.AddEndpointsApiExplorer();
+	builder.Services.AddSwaggerGen(options =>
+	{
+		var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+		var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+		options.IncludeXmlComments(xmlPath);
+	});
+	builder.Services.AddSignalR();
 
-builder.Services.AddHttpClient<IMainServerTopologyClient, MainServerTopologyClient>((serviceProvider, client) =>
+	builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSection(MainServerApiOptions.SectionName));
+	builder.Services.Configure<ServerApiOptions>(builder.Configuration.GetSection(ServerApiOptions.SectionName));
+	builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSection(MockDeviceApiOptions.SectionName));
+	builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
+	builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
+	builder.Services.Configure<MdnsOptions>(builder.Configuration.GetSection(MdnsOptions.SectionName));
+	builder.Services.Configure<DeviceRegistrationOptions>(builder.Configuration.GetSection(DeviceRegistrationOptions.SectionName));
+	builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
+	builder.Services.Configure<OfflineModeOptions>(builder.Configuration.GetSection(OfflineModeOptions.SectionName));
+	builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+
+	builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
+	builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
+	builder.Services.AddSingleton<IAutomationRuleEngine, AutomationRuleEngine>();
+	builder.Services.AddSingleton<IPumpSafetyGuard, PumpSafetyGuard>();
+	builder.Services.AddSingleton<IControllerTelemetryPublisher, ControllerTelemetryPublisher>();
+	builder.Services.AddSingleton<IDeviceRegistrationStore, DeviceRegistrationStore>();
+	builder.Services.AddSingleton<MqttBridgeService>();
+	builder.Services.AddSingleton<IMqttBridgeService>(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
+
+	builder.Services.AddHttpClient<IMainServerTopologyClient, MainServerTopologyClient>((serviceProvider, client) =>
+	{
+		var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MainServerApiOptions>>().Value;
+		client.BaseAddress = new Uri(options.BaseUrl);
+		client.Timeout = TimeSpan.FromSeconds(10);
+	});
+
+	builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProvider, client) =>
+	{
+		var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MockDeviceApiOptions>>().Value;
+		client.BaseAddress = new Uri(options.BaseUrl);
+		client.Timeout = TimeSpan.FromSeconds(10);
+	});
+
+	builder.Services.AddHttpClient<IServerProbeService, ServerProbeService>((serviceProvider, client) =>
+	{
+		var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServerApiOptions>>().Value;
+		client.BaseAddress = new Uri(options.BaseUrl);
+		client.Timeout = TimeSpan.FromSeconds(10);
+	});
+
+	builder.Services.AddHostedService<ControllerStateBackupService>();
+	builder.Services.AddHostedService<IoTControllerBackgroundService>();
+	builder.Services.AddHostedService<MdnsBroadcastService>();
+	builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
+
+	var app = builder.Build();
+
+	app.UseSerilogRequestLogging();
+
+	app.UseSwagger();
+	app.UseSwaggerUI();
+
+	app.MapGet("/", () => Results.Ok(new
+	{
+		service = "ClientServer",
+		status = "ok",
+		docs = "/swagger"
+	}));
+
+	app.MapControllers();
+	app.MapHub<ControllerHub>("/controllerHub");
+
+	app.Run();
+}
+catch (Exception ex) when (ex is not HostAbortedException)
 {
-	var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MainServerApiOptions>>().Value;
-	client.BaseAddress = new Uri(options.BaseUrl);
-	client.Timeout = TimeSpan.FromSeconds(10);
-});
-
-builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProvider, client) =>
+	Log.Fatal(ex, "ClientServer zakończył działanie z powodu nieobsłużonego błędu podczas uruchamiania.");
+	throw;
+}
+finally
 {
-	var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MockDeviceApiOptions>>().Value;
-	client.BaseAddress = new Uri(options.BaseUrl);
-	client.Timeout = TimeSpan.FromSeconds(10);
-});
-
-builder.Services.AddHostedService<ControllerStateBackupService>();
-builder.Services.AddHostedService<IoTControllerBackgroundService>();
-builder.Services.AddHostedService<MdnsBroadcastService>();
-builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
-
-var app = builder.Build();
-
-app.UseSwagger();
-app.UseSwaggerUI();
-
-app.MapGet("/", () => Results.Ok(new
-{
-	service = "ClientServer",
-	status = "ok",
-	docs = "/swagger"
-}));
-
-app.MapControllers();
-app.MapHub<ControllerHub>("/controllerHub");
-
-app.Run();
+	Log.CloseAndFlush();
+}

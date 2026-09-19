@@ -1,4 +1,5 @@
 .env
+.env.*
 .env.local
 docs
 
@@ -11,7 +12,7 @@ docs
 
 # Node and frontend build caches
 **/node_modules/
-**/.vite/
+**/.vite/S
 **/.cache/
 coverage/
 **/coverage/
@@ -21,4 +22,5 @@ coverage/
 *.trx
 *.coverage
 apps/ClientServer/data/
+apps/ClientServer/publish/
 *.tmp

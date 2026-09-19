@@ -108,13 +108,20 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         ControllerTelemetryDto? telemetry;
         try
         {
-            telemetry = await _mockDeviceClient.ReadTelemetryAsync(
-                currentTopology.ClientId,
-                pumpStateMachine.Phase,
-                null,
-                pumpStateMachine.WarningMessage,
-                pumpStateMachine.SoakUntilUtc,
-                telemetryTimeout.Token);
+            if (string.Equals(_options.TelemetrySource, "Mqtt", StringComparison.OrdinalIgnoreCase))
+            {
+                telemetry = ReadMqttTelemetry(currentTopology, clientId, pumpStateMachine);
+            }
+            else
+            {
+                telemetry = await _mockDeviceClient.ReadTelemetryAsync(
+                    currentTopology.ClientId,
+                    pumpStateMachine.Phase,
+                    null,
+                    pumpStateMachine.WarningMessage,
+                    pumpStateMachine.SoakUntilUtc,
+                    telemetryTimeout.Token);
+            }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -197,6 +204,33 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 
         _stateStore.UpdateTelemetry(clientId, enrichedTelemetry);
         await PublishTelemetryAsync(currentTopology.ClientId, enrichedTelemetry, cancellationToken);
+    }
+
+    private ControllerTelemetryDto? ReadMqttTelemetry(
+        ControllerTopologyDto topology,
+        int clientId,
+        PumpControlStateMachine pumpStateMachine)
+    {
+        if (!_mqttBridgeService.TryGetLatestTelemetryForClient(topology, out var payload) || payload is null)
+        {
+            _logger.LogWarning("Brak telemetrii MQTT dla sensorów klienta {ClientId}.", clientId);
+            return null;
+        }
+
+        return new ControllerTelemetryDto(
+            payload.DeviceId,
+            payload.SoilMoisture ?? 0,
+            payload.Temperature ?? 0,
+            payload.Humidity ?? 0,
+            payload.WaterLevel ?? 0,
+            payload.PumpState ?? false,
+            payload.LampState ?? false,
+            payload.TimestampUtc,
+            clientId,
+            pumpStateMachine.Phase.ToString(),
+            null,
+            pumpStateMachine.WarningMessage,
+            DateTime.UtcNow);
     }
 
     private IReadOnlyList<int> ResolveClientIds()
