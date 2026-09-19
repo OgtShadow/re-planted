@@ -11,7 +11,22 @@ namespace ClientServer.Services;
 
 public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, IAsyncDisposable
 {
+    private static readonly IReadOnlyDictionary<string, string> CapabilityAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["soilmoisture"] = "soilMoistureAnalog",
+        ["soil_moisture"] = "soilMoistureAnalog",
+        ["light"] = "lightIsDark",
+        ["light_sensor"] = "lightIsDark",
+        ["waterlevel"] = "waterLevelCm",
+        ["water_level"] = "waterLevelCm",
+        ["waterpump"] = "pump",
+        ["water_pump"] = "pump",
+        ["lamp"] = "light"
+    };
+
     private readonly MqttOptions _options;
+    private readonly DeviceRegistrationOptions _registrationOptions;
+    private readonly IDeviceRegistrationStore _registrationStore;
     private readonly ILogger<MqttBridgeService> _logger;
     private readonly IMqttClient _mqttClient;
     private readonly SemaphoreSlim _publishGate = new(1, 1);
@@ -20,9 +35,15 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
     {
         PropertyNameCaseInsensitive = true
     };
-    public MqttBridgeService(IOptions<MqttOptions> options, ILogger<MqttBridgeService> logger)
+    public MqttBridgeService(
+        IOptions<MqttOptions> options,
+        IOptions<DeviceRegistrationOptions> registrationOptions,
+        IDeviceRegistrationStore registrationStore,
+        ILogger<MqttBridgeService> logger)
     {
         _options = options.Value;
+        _registrationOptions = registrationOptions.Value;
+        _registrationStore = registrationStore;
         _logger = logger;
         _mqttClient = new MqttFactory().CreateMqttClient();
         _mqttClient.ApplicationMessageReceivedAsync += OnApplicationMessageReceivedAsync;
@@ -173,10 +194,18 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
                 topicFilter.WithTopic(_options.TelemetryTopicFilter);
                 topicFilter.WithQualityOfServiceLevel(MapQos(_options.QosLevel));
             })
+            .WithTopicFilter(topicFilter =>
+            {
+                topicFilter.WithTopic(_options.DiscoveryRegisterTopic);
+                topicFilter.WithQualityOfServiceLevel(MapQos(_options.QosLevel));
+            })
             .Build();
 
         await _mqttClient.SubscribeAsync(subscribeOptions, cancellationToken);
-        _logger.LogInformation("Zasubskrybowano temat telemetrii MQTT: {TopicFilter}.", _options.TelemetryTopicFilter);
+        _logger.LogInformation(
+            "Zasubskrybowano tematy MQTT: telemetria={TelemetryFilter}, rejestracja={RegisterTopic}.",
+            _options.TelemetryTopicFilter,
+            _options.DiscoveryRegisterTopic);
     }
 
     private Task OnConnectedAsync(MqttClientConnectedEventArgs _)
@@ -196,6 +225,11 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
         if (args.ApplicationMessage.Topic is null)
         {
             return Task.CompletedTask;
+        }
+
+        if (string.Equals(args.ApplicationMessage.Topic, _options.DiscoveryRegisterTopic, StringComparison.OrdinalIgnoreCase))
+        {
+            return HandleDeviceRegistrationAsync(args.ApplicationMessage.PayloadSegment);
         }
 
         var topicSegments = args.ApplicationMessage.Topic.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -253,6 +287,118 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
         }
 
         return Task.CompletedTask;
+    }
+
+    private async Task HandleDeviceRegistrationAsync(ReadOnlyMemory<byte> payloadSegment)
+    {
+        if (payloadSegment.Length == 0)
+        {
+            return;
+        }
+
+        DeviceRegistrationRequest? request;
+        try
+        {
+            var payloadJson = Encoding.UTF8.GetString(payloadSegment.Span);
+            request = JsonSerializer.Deserialize<DeviceRegistrationRequest>(payloadJson, _jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się przetworzyć zgłoszenia rejestracji urządzenia MQTT.");
+            return;
+        }
+
+        if (request is null || string.IsNullOrWhiteSpace(request.DeviceId))
+        {
+            _logger.LogWarning("Odrzucono zgłoszenie rejestracji urządzenia - brak identyfikatora deviceId.");
+            return;
+        }
+
+        var capabilities = NormalizeCapabilities(request.Capabilities);
+        _registrationStore.RegisterOrUpdate(request.DeviceId, capabilities);
+        _logger.LogInformation(
+            "Zarejestrowano urządzenie {DeviceId} z możliwościami: {Capabilities}.",
+            request.DeviceId,
+            string.Join(", ", capabilities));
+
+        await PublishRegistrationAckAsync(request.DeviceId, capabilities);
+    }
+
+    private async Task PublishRegistrationAckAsync(string deviceId, IReadOnlyList<string> capabilities)
+    {
+        if (!_mqttClient.IsConnected)
+        {
+            _logger.LogWarning("Nie udało się wysłać potwierdzenia rejestracji dla {DeviceId} - brak połączenia z brokerem.", deviceId);
+            return;
+        }
+
+        var schedule = new DeviceOfflineScheduleDto(
+            _registrationOptions.DefaultWateringIntervalHours,
+            _registrationOptions.DefaultSoilMoistureMinThreshold,
+            _registrationOptions.DefaultSoilMoistureMaxThreshold,
+            _registrationOptions.DefaultLightOnHour,
+            _registrationOptions.DefaultLightOffHour,
+            _registrationOptions.DefaultTelemetryIntervalSeconds);
+
+        var acknowledgement = new DeviceRegistrationAckDto(deviceId, "registered", capabilities, schedule, DateTime.UtcNow);
+        var topic = _options.NodeConfigTopicTemplate.Replace("{deviceId}", deviceId, StringComparison.OrdinalIgnoreCase);
+        var payloadJson = JsonSerializer.Serialize(acknowledgement, _jsonOptions);
+
+        await _publishGate.WaitAsync();
+        try
+        {
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(payloadJson)
+                .WithQualityOfServiceLevel(MapQos(_options.QosLevel))
+                .WithRetainFlag(true)
+                .Build();
+
+            var result = await _mqttClient.PublishAsync(message);
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Broker MQTT odrzucił potwierdzenie rejestracji dla {DeviceId}.", deviceId);
+                return;
+            }
+
+            _logger.LogInformation("Wysłano konfigurację trybu offline do urządzenia {DeviceId} na temat {Topic}.", deviceId, topic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się wysłać potwierdzenia rejestracji dla {DeviceId}.", deviceId);
+        }
+        finally
+        {
+            _publishGate.Release();
+        }
+    }
+
+    private static IReadOnlyList<string> NormalizeCapabilities(IReadOnlyList<string>? capabilities)
+    {
+        if (capabilities is null || capabilities.Count == 0)
+        {
+            return [];
+        }
+
+        var normalized = new List<string>(capabilities.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var capability in capabilities)
+        {
+            if (string.IsNullOrWhiteSpace(capability))
+            {
+                continue;
+            }
+
+            var trimmed = capability.Trim();
+            var canonical = CapabilityAliases.TryGetValue(trimmed, out var mapped) ? mapped : trimmed;
+            if (seen.Add(canonical))
+            {
+                normalized.Add(canonical);
+            }
+        }
+
+        return normalized;
     }
 
     public async ValueTask DisposeAsync()

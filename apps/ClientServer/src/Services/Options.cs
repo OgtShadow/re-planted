@@ -45,9 +45,34 @@ public sealed class MqttOptions
     public string? Password { get; set; }
     public string TelemetryTopicFilter { get; set; } = "replanted/telemetry/+/+";
     public string CommandsTopicTemplate { get; set; } = "replanted/commands/{deviceId}";
+    public string DiscoveryRegisterTopic { get; set; } = "replanted/discovery/register";
+    public string NodeConfigTopicTemplate { get; set; } = "replanted/node/{deviceId}/config";
     public int KeepAliveSeconds { get; set; } = 30;
     public int ReconnectDelaySeconds { get; set; } = 5;
     public int QosLevel { get; set; } = 1;
+}
+
+/// <summary>mDNS advertisement settings so ESP32 nodes can locate the MQTT broker without manual configuration.</summary>
+public sealed class MdnsOptions
+{
+    public const string SectionName = "Mdns";
+
+    public bool Enabled { get; set; } = true;
+    public string InstanceName { get; set; } = "replanted-iot-controller";
+    public string ServiceType { get; set; } = "_mqtt._tcp";
+}
+
+/// <summary>Default offline (Fail-safe) schedule handed to newly registered ESP32 nodes.</summary>
+public sealed class DeviceRegistrationOptions
+{
+    public const string SectionName = "DeviceRegistration";
+
+    public int DefaultWateringIntervalHours { get; set; } = 24;
+    public int DefaultSoilMoistureMinThreshold { get; set; } = 300;
+    public int DefaultSoilMoistureMaxThreshold { get; set; } = 700;
+    public int DefaultLightOnHour { get; set; } = 6;
+    public int DefaultLightOffHour { get; set; } = 20;
+    public int DefaultTelemetryIntervalSeconds { get; set; } = 60;
 }
 
 public sealed class ControllerStateBackupOptions

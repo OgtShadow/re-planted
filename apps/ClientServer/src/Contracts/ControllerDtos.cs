@@ -126,3 +126,32 @@ public sealed record ControllerAutomationRuleDto(
     int CooldownMinutes,
     string Status,
     DateTime? LastTriggeredUtc);
+
+/// <summary>Handshake payload sent by an ESP32 node on first contact with the discovery topic.</summary>
+public sealed record DeviceRegistrationRequest(
+    string DeviceId,
+    IReadOnlyList<string> Capabilities);
+
+/// <summary>Base offline schedule persisted to ESP32 non-volatile memory to sustain Fail-safe mode.</summary>
+public sealed record DeviceOfflineScheduleDto(
+    int WateringIntervalHours,
+    int SoilMoistureMinThreshold,
+    int SoilMoistureMaxThreshold,
+    int LightOnHour,
+    int LightOffHour,
+    int TelemetryIntervalSeconds);
+
+/// <summary>Registration acknowledgement published back to the node's config topic.</summary>
+public sealed record DeviceRegistrationAckDto(
+    string DeviceId,
+    string Status,
+    IReadOnlyList<string> Capabilities,
+    DeviceOfflineScheduleDto Schedule,
+    DateTime IssuedAtUtc);
+
+/// <summary>Represents a device currently known to the IoT Controller's in-memory registry.</summary>
+public sealed record RegisteredDeviceDto(
+    string DeviceId,
+    IReadOnlyList<string> Capabilities,
+    DateTime FirstSeenUtc,
+    DateTime LastSeenUtc);

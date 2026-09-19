@@ -77,9 +77,14 @@ services:
       - Mqtt__ClientId=re-planted-client-server
       - Mqtt__TelemetryTopicFilter=replanted/telemetry/+/+
       - Mqtt__CommandsTopicTemplate=replanted/commands/{deviceId}
+      - Mqtt__DiscoveryRegisterTopic=replanted/discovery/register
+      - Mqtt__NodeConfigTopicTemplate=replanted/node/{deviceId}/config
       - Mqtt__KeepAliveSeconds=30
       - Mqtt__ReconnectDelaySeconds=5
       - Mqtt__QosLevel=1
+      - Mdns__Enabled=true
+      - Mdns__InstanceName=replanted-iot-controller
+      - Mdns__ServiceType=_mqtt._tcp
       - Jwt__Key=dev-only-super-secret-key-change-me-please-12345
       - Jwt__Issuer=re-planted-server
       - Jwt__Audience=re-planted-client

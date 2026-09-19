@@ -18,6 +18,8 @@ builder.Services.Configure<MainServerApiOptions>(builder.Configuration.GetSectio
 builder.Services.Configure<MockDeviceApiOptions>(builder.Configuration.GetSection(MockDeviceApiOptions.SectionName));
 builder.Services.Configure<IoTControllerOptions>(builder.Configuration.GetSection(IoTControllerOptions.SectionName));
 builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
+builder.Services.Configure<MdnsOptions>(builder.Configuration.GetSection(MdnsOptions.SectionName));
+builder.Services.Configure<DeviceRegistrationOptions>(builder.Configuration.GetSection(DeviceRegistrationOptions.SectionName));
 builder.Services.Configure<ControllerStateBackupOptions>(builder.Configuration.GetSection(ControllerStateBackupOptions.SectionName));
 builder.Services.Configure<OfflineModeOptions>(builder.Configuration.GetSection(OfflineModeOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
@@ -27,6 +29,7 @@ builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
 builder.Services.AddSingleton<IAutomationRuleEngine, AutomationRuleEngine>();
 builder.Services.AddSingleton<IPumpSafetyGuard, PumpSafetyGuard>();
 builder.Services.AddSingleton<IControllerTelemetryPublisher, ControllerTelemetryPublisher>();
+builder.Services.AddSingleton<IDeviceRegistrationStore, DeviceRegistrationStore>();
 builder.Services.AddSingleton<MqttBridgeService>();
 builder.Services.AddSingleton<IMqttBridgeService>(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
 
@@ -46,6 +49,7 @@ builder.Services.AddHttpClient<IMockDeviceClient, MockDeviceClient>((serviceProv
 
 builder.Services.AddHostedService<ControllerStateBackupService>();
 builder.Services.AddHostedService<IoTControllerBackgroundService>();
+builder.Services.AddHostedService<MdnsBroadcastService>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<MqttBridgeService>());
 
 var app = builder.Build();
