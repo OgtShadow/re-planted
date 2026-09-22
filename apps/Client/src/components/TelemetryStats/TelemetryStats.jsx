@@ -3,65 +3,11 @@ import connectionManager, { getSignalRAccessToken, userDevicesEndpoint, userPlan
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../connectionManager';
+import TelemetryFilters from './TelemetryFilters';
+import LiveTelemetry from './LiveTelemetry';
+import TelemetryDeviceCard from './TelemetryDeviceCard';
+import { NUMERIC_SERIES, LIGHT_SERIES, LIVE_SNAPSHOT_TTL_MS, buildPath } from './telemetryStatsUtils';
 import './TelemetryStats.css';
-
-const NUMERIC_SERIES = [
-  // raw value is a 3-digit fixed-point reading (e.g. 235 => 23.5°C)
-  { key: 'temperatureAvg', label: 'Temperatura', unit: '°C', color: '#1f77b4', min: 0, max: 50, transform: (raw) => raw / 10 },
-  // raw value is a 3-digit fixed-point reading (e.g. 580 => 58.0%)
-  { key: 'humidityAvg', label: 'Wilgotność powietrza', unit: '%', color: '#2ca02c', min: 0, max: 100, transform: (raw) => raw / 10 },
-  // raw ADC reading 0-4000, inverted: 0 = 100% moist, 4000 = 0% moist
-  { key: 'soilMoistureAvg', label: 'Wilgotność gleby', unit: '%', color: '#8c564b', min: 0, max: 100, transform: (raw) => 100 - (raw / 4000) * 100 },
-  { key: 'waterLevelAvg', label: 'Poziom wody (cm)', unit: 'cm', color: '#17becf', min: 0, max: 20, transform: (raw) => raw },
-];
-
-const LIGHT_SERIES = { key: 'lightOnPercent', label: 'Światło ON (%)', unit: '%', color: '#f39c12', min: 0, max: 100, transform: (raw) => raw };
-const LIVE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
-
-function buildPath(points, selectedKey, minY, maxY, transform = (raw) => raw) {
-  if (!points.length) {
-    return '';
-  }
-
-  const width = 1000;
-  const height = 280;
-  const safeRange = Math.max(1, maxY - minY);
-
-  return points
-    .map((point, index) => {
-      const x = points.length === 1 ? 0 : (index / (points.length - 1)) * width;
-      const y = height - ((transform(Number(point[selectedKey] ?? 0)) - minY) / safeRange) * height;
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
-function formatValue(value, unit) {
-  if (!Number.isFinite(value)) {
-    return '-';
-  }
-
-  if (unit === 'cm') {
-    return `${value.toFixed(1)} cm`;
-  }
-
-  if (unit === '%') {
-    return `${value.toFixed(1)}%`;
-  }
-
-  if (unit === '°C') {
-    return `${value.toFixed(1)}°C`;
-  }
-
-  return value.toFixed(1);
-}
-
-function formatMinutes(totalMinutes) {
-  const rounded = Math.max(0, Math.round(totalMinutes));
-  const hours = Math.floor(rounded / 60);
-  const minutes = rounded % 60;
-  return `${hours}h ${minutes}m`;
-}
 
 function normalizeIdentifier(value) {
   return (value || '').trim().toLowerCase();
@@ -77,7 +23,6 @@ function TelemetryStats() {
   const [hours, setHours] = useState(6);
   const [plants, setPlants] = useState([]);
   const [devices, setDevices] = useState([]);
-  const [sensorFields, setSensorFields] = useState(['soilMoistureAnalog', 'lightIsDark', 'temperature', 'humidity', 'waterLevelCm']);
   const [selectedPlantId, setSelectedPlantId] = useState('');
   const [selectedSensorField, setSelectedSensorField] = useState('soilMoistureAnalog');
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -107,7 +52,6 @@ function TelemetryStats() {
       }
 
       if (Array.isArray(catalogResult?.sensorFields) && catalogResult.sensorFields.length > 0) {
-        setSensorFields(catalogResult.sensorFields);
         setSelectedSensorField((current) => (
           catalogResult.sensorFields.includes(current)
             ? current
@@ -329,10 +273,6 @@ function TelemetryStats() {
     });
   }, [responses]);
 
-  const totalPoints = useMemo(() => {
-    return chartCards.reduce((sum, card) => sum + (card.points?.length ?? 0), 0);
-  }, [chartCards]);
-
   const deviceOptions = useMemo(() => {
     return devices
       .filter((device) => (device.deviceKind || '').toLowerCase() === 'sensor')
@@ -394,59 +334,22 @@ function TelemetryStats() {
   return (
     <section className="telemetry-stats">
       <div className="telemetry-card">
-        <div className="telemetry-filters">
-        <label htmlFor="hours-window">Zakres:</label>
-        <select id="hours-window" value={hours} onChange={(event) => setHours(Number(event.target.value))}>
-          <option value={1}>Ostatnia 1h</option>
-          <option value={6}>Ostatnie 6h</option>
-          <option value={12}>Ostatnie 12h</option>
-          <option value={24}>Ostatnie 24h</option>
-          <option value={72}>Ostatnie 72h</option>
-        </select>
-
-        <label htmlFor="plant-filter">Roślina:</label>
-        <select id="plant-filter" value={selectedPlantId} onChange={(event) => setSelectedPlantId(event.target.value)}>
-          <option value="">Wszystkie / bez filtra</option>
-          {plants.map((plant) => (
-            <option key={plant.id} value={plant.id}>
-              {plant.name}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor="device-filter">Urządzenie:</label>
-        <select id="device-filter" value={selectedDeviceId} onChange={(event) => setSelectedDeviceId(event.target.value)}>
-          <option value="">Wszystkie sensory</option>
-          {deviceOptions.map((device) => (
-            <option key={device.id} value={device.externalDeviceId}>
-              {device.name} ({device.externalDeviceId || 'brak external id'})
-            </option>
-          ))}
-        </select>
-
-        <button className="button-secondary" type="button" onClick={loadTelemetry} disabled={isLoading}>
-          {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
-        </button>
-      </div>
+        <TelemetryFilters
+          hours={hours}
+          onHoursChange={setHours}
+          plants={plants}
+          selectedPlantId={selectedPlantId}
+          onPlantChange={setSelectedPlantId}
+          deviceOptions={deviceOptions}
+          selectedDeviceId={selectedDeviceId}
+          onDeviceChange={setSelectedDeviceId}
+          onRefresh={loadTelemetry}
+          isLoading={isLoading}
+        />
         </div>
 
       {error ? <p className="telemetry-error">{error}</p> : null}
-
-      {liveRowsByDevice.length > 0 ? (
-        <div className="telemetry-card">
-          <strong>Live stream czujników</strong>
-          {liveRowsByDevice.map((entry) => (
-            <div key={`${entry.snapshotDeviceId}-${entry.snapshot.timestamp || entry.snapshot.Timestamp}`} className="telemetry-live-row">
-              <span>{entry.snapshotDeviceId}</span>
-              <span>gleba: {entry.snapshot.soilMoistureAnalog ?? entry.snapshot.SoilMoistureAnalog}</span>
-              <span>temp: {entry.snapshot.temperature ?? entry.snapshot.Temperature}</span>
-              <span>wilg: {entry.snapshot.humidity ?? entry.snapshot.Humidity}</span>
-              <span>woda: {entry.snapshot.waterLevelCm ?? entry.snapshot.WaterLevelCm} cm</span>
-              <span>{new Date(entry.snapshot.timestamp || entry.snapshot.Timestamp || Date.now()).toLocaleTimeString()}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      <LiveTelemetry rows={liveRowsByDevice} />
 
       {!chartCards.length ? (
         <p className="telemetry-empty">Brak danych telemetrycznych dla wybranego zakresu.</p>
@@ -454,87 +357,12 @@ function TelemetryStats() {
         <div className="telemetry-chart-overview">
           <div className="telemetry-device-grid">
             {chartCards.map((chartCard) => (
-              <section className="telemetry-card" key={`${chartCard.response.externalDeviceId}-${chartCard.response.deviceId}`}>
-                <div className="telemetry-device-meta">
-                  <div className="telemetry-device-title-row">
-                    <h3>{chartCard.response.deviceName || chartCard.response.externalDeviceId || chartCard.response.deviceId || 'Urządzenie'}</h3>
-                    <span className={`telemetry-status-badge telemetry-status-${getDeviceStatus(chartCard).key}`}>
-                      {getDeviceStatus(chartCard).label}
-                    </span>
-                  </div>
-                  <div>
-                    <span>Telemetry id: {chartCard.response.deviceId || 'brak'}</span>
-                    <span>External id: {chartCard.response.externalDeviceId || 'brak'}</span>
-                    <span>Rośliny: {chartCard.response.plantNames?.length ? chartCard.response.plantNames.join(', ') : 'brak przypisania'}</span>
-                    <span>Próbki: {chartCard.points.length}</span>
-                    <span>Bucket: co {chartCard.response.intervalMinutes ?? 1} min</span>
-                  </div>
-                </div>
-
-                {!chartCard.points.length ? (
-                  <p className="telemetry-empty">Brak próbek telemetrycznych dla tego urządzenia w wybranym zakresie.</p>
-                ) : (
-                  <div className="telemetry-series-grid">
-                    {chartCard.numericCards.map((series) => (
-                      <article
-                        className="telemetry-series-item"
-                        key={`${chartCard.response.deviceId}-${series.key}`}
-                        style={{ '--series-color': series.color }}
-                        onClick={() => navigate(`/telemetry/${chartCard.response.deviceId || chartCard.response.externalDeviceId || 'unknown'}?series=${series.key}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}
-                      >
-                        <h3>{series.label}</h3>
-                        <svg viewBox="0 0 1000 320" className="telemetry-chart" role="img" aria-label={`Wykres serii ${series.label}`}>
-                          <line x1="0" y1="280" x2="1000" y2="280" className="axis" />
-                          <line x1="0" y1="0" x2="0" y2="280" className="axis" />
-                          <path d={series.path} stroke={series.color} strokeWidth="3" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-                        </svg>
-                        <div className="telemetry-summary">
-                          <div>
-                            <strong>Aktualnie:</strong> {formatValue(series.latest, series.unit)}
-                          </div>
-                          <div>
-                            <strong>Średnia:</strong> {formatValue(series.averageValue, series.unit)}
-                          </div>
-                          <div>
-                            <strong>Min:</strong> {formatValue(series.minValue, series.unit)}
-                          </div>
-                          <div>
-                            <strong>Max:</strong> {formatValue(series.maxValue, series.unit)}
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-
-                    {chartCard.lightCard ? (
-                      <article
-                        className="telemetry-series-item telemetry-light-item"
-                        onClick={() => navigate(`/telemetry/${chartCard.response.deviceId || chartCard.response.externalDeviceId || 'unknown'}?series=${chartCard.lightCard.key}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}
-                      >
-                        <h3>Światło (ON/OFF)</h3>
-                        <svg viewBox="0 0 1000 320" className="telemetry-chart" role="img" aria-label="Wykres udziału czasu światła ON">
-                          <line x1="0" y1="280" x2="1000" y2="280" className="axis" />
-                          <line x1="0" y1="0" x2="0" y2="280" className="axis" />
-                          <path d={chartCard.lightCard.path} stroke={chartCard.lightCard.color} strokeWidth="3" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-                        </svg>
-                        <div className="telemetry-summary">
-                          <div>
-                            <strong>ON:</strong> {formatMinutes(chartCard.lightCard.onMinutes)}
-                          </div>
-                          <div>
-                            <strong>OFF:</strong> {formatMinutes(chartCard.lightCard.offMinutes)}
-                          </div>
-                          <div>
-                            <strong>Udział ON:</strong> {formatValue(chartCard.lightCard.onShare, '%')}
-                          </div>
-                          <div>
-                            <strong>Średnia ON:</strong> {formatValue(chartCard.lightCard.averagePercent, '%')}
-                          </div>
-                        </div>
-                      </article>
-                    ) : null}
-                  </div>
-                )}
-              </section>
+              <TelemetryDeviceCard
+                key={`${chartCard.response.externalDeviceId}-${chartCard.response.deviceId}`}
+                chartCard={chartCard}
+                status={getDeviceStatus(chartCard)}
+                onSeriesClick={(deviceId, seriesKey) => navigate(`/telemetry/${deviceId}?series=${seriesKey}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}
+              />
             ))}
           </div>
         </div>
