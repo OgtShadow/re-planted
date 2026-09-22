@@ -97,11 +97,10 @@ function PlantDetails() {
 
     return (
         <div className="plant-details-container">
-            <button className="button-secondary back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
-
             <div className="plant-img">
                 <img src={plantImage} alt={plant.name} />
             </div>
+             <button className="button-secondary back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
             <div className="plant-details-header">
                 <h1>{plant.name}</h1>
             </div>
