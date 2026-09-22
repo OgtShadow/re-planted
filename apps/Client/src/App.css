@@ -1,5 +1,11 @@
+@import './colors.css';
+
 .app-layout {
-	--nav-width: 360px;
+	--nav-width: 250px;
+	position: relative;
+	display: flow-root;
+	min-height: 100vh;
+	background-color: var(--dark-color);
 }
 
 .auth-loading {
@@ -12,7 +18,25 @@
 }
 
 .app-content {
-	margin-left: var(--nav-width);
+	box-sizing: border-box;
+	min-height: calc(100vh - 88px);
+	margin: 64px 24px 24px calc(var(--nav-width) + 24px);
+	padding: 24px;
+	border-radius: 24px;
+	border: 2px solid var(--border-color);
+	background-color: var(--background-color);
+}
+
+.app-toolbar {
+	position: absolute;
+	top: 16px;
+	right: 24px;
+	z-index: 11;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+	height: 38px;
 }
 
 a:hover {
@@ -23,6 +47,13 @@ a:hover {
 
 @media (max-width: 720px) {
 	.app-content {
-		margin-left: 0;
+		min-height: calc(100vh - 32px);
+		margin: 16px;
+		padding: 16px;
+	}
+
+	.app-toolbar {
+		top: 8px;
+		right: 16px;
 	}
 }

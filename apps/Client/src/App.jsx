@@ -16,17 +16,11 @@ import Contact from './components/InfoPages/Contact/Contact'
 import NotFoundPage from './components/InfoPages/NotFoundPage/NotFoundPage'
 import { AlertHistory, AlertCenter } from './components/Alerts/AlertCenter'
 import { AlertProvider } from './components/Alerts/AlertProvider'
+import UserSettings from './components/UserSettings/UserSettings'
 
 function App() {
-  const [test, setTest] = useState('')
   const [activeUser, setActiveUser] = useState(null)
   const [isSessionChecked, setIsSessionChecked] = useState(false)
-
-  useEffect(() => {
-    connectionManager.getText('/communication-test')
-      .then(data => setTest(data))
-      .catch(error => console.error('Failed to fetch:', error))
-  }, [])
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -76,7 +70,11 @@ function App() {
     <BrowserRouter>
         <AlertProvider userId={activeUser.id}>
         <div className="app-layout">
-          <Nav test={test} activeUser={activeUser} onLogout={handleLogout} alertCenter={<AlertCenter />} />
+          <Nav />
+          <div className="app-toolbar">
+            <AlertCenter />
+            <UserSettings activeUser={activeUser} onLogout={handleLogout} />
+          </div>
           <div className="app-content">
             <Routes>
           <Route path="/" element={

@@ -1,4 +1,4 @@
-@import './colors.css';
+
 
 body {
   margin: 0;
@@ -16,25 +16,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  color: var(--accent-color-dark);
-}
-a:hover {
-  color: var(--accent-color-light);
-}
 
-h1 {
-  font-size: 3.2em;
-  color: var(--text-color);
-}
 
-h2 {
-  font-size: 1.5em;
-  color: var(--text-color);
-}
 
 button,input,textarea,a {
-  outline: ;
+  outline: none;
   font-size: 0.8em;
   padding: 10px 15px;
   border-radius: 5px;
