@@ -393,12 +393,7 @@ function TelemetryStats() {
 
   return (
     <section className="telemetry-stats">
-      <div className="telemetry-stats-header">
-        <h2>Statystyki telemetryczne</h2>
-        <p>Każde urządzenie sensoryczne ma własne wykresy i listę przypisanych roślin.</p>
-      </div>
-
-      <div className="telemetry-controls">
+      <div className="telemetry-card">
         <label htmlFor="hours-window">Zakres:</label>
         <select id="hours-window" value={hours} onChange={(event) => setHours(Number(event.target.value))}>
           <option value={1}>Ostatnia 1h</option>
@@ -414,15 +409,6 @@ function TelemetryStats() {
           {plants.map((plant) => (
             <option key={plant.id} value={plant.id}>
               {plant.name}
-            </option>
-          ))}
-        </select>
-
-        <label htmlFor="sensor-filter">Czujnik:</label>
-        <select id="sensor-filter" value={selectedSensorField} onChange={(event) => setSelectedSensorField(event.target.value)}>
-          {sensorFields.map((field) => (
-            <option key={field} value={field}>
-              {field}
             </option>
           ))}
         </select>
@@ -445,7 +431,7 @@ function TelemetryStats() {
       {error ? <p className="telemetry-error">{error}</p> : null}
 
       {liveRowsByDevice.length > 0 ? (
-        <div className="telemetry-live-card">
+        <div className="telemetry-card">
           <strong>Live stream czujników</strong>
           {liveRowsByDevice.map((entry) => (
             <div key={`${entry.snapshotDeviceId}-${entry.snapshot.timestamp || entry.snapshot.Timestamp}`} className="telemetry-live-row">
@@ -463,16 +449,10 @@ function TelemetryStats() {
       {!chartCards.length ? (
         <p className="telemetry-empty">Brak danych telemetrycznych dla wybranego zakresu.</p>
       ) : (
-        <div className="telemetry-chart-card telemetry-chart-overview">
-          <div className="telemetry-chart-meta">
-            <span>Urządzenia na wykresach: {chartCards.length}</span>
-            <span>Łączna liczba próbek: {totalPoints}</span>
-            <span>Zakres: ostatnie {hours}h</span>
-          </div>
-
+        <div className="telemetry-chart-overview">
           <div className="telemetry-device-grid">
             {chartCards.map((chartCard) => (
-              <section className="telemetry-device-card" key={`${chartCard.response.externalDeviceId}-${chartCard.response.deviceId}`}>
+              <section className="telemetry-card" key={`${chartCard.response.externalDeviceId}-${chartCard.response.deviceId}`}>
                 <div className="telemetry-device-meta">
                   <div className="telemetry-device-title-row">
                     <h3>{chartCard.response.deviceName || chartCard.response.externalDeviceId || chartCard.response.deviceId || 'Urządzenie'}</h3>
@@ -497,6 +477,7 @@ function TelemetryStats() {
                       <article
                         className="telemetry-series-item"
                         key={`${chartCard.response.deviceId}-${series.key}`}
+                        style={{ '--series-color': series.color }}
                         onClick={() => navigate(`/telemetry/${chartCard.response.deviceId || chartCard.response.externalDeviceId || 'unknown'}?series=${series.key}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}
                       >
                         <h3>{series.label}</h3>
@@ -523,7 +504,10 @@ function TelemetryStats() {
                     ))}
 
                     {chartCard.lightCard ? (
-                      <article className="telemetry-series-item telemetry-light-item">
+                      <article
+                        className="telemetry-series-item telemetry-light-item"
+                        onClick={() => navigate(`/telemetry/${chartCard.response.deviceId || chartCard.response.externalDeviceId || 'unknown'}?series=${chartCard.lightCard.key}&hours=${hours}&plantId=${selectedPlantId}&sensorField=${selectedSensorField}`)}
+                      >
                         <h3>Światło (ON/OFF)</h3>
                         <svg viewBox="0 0 1000 320" className="telemetry-chart" role="img" aria-label="Wykres udziału czasu światła ON">
                           <line x1="0" y1="280" x2="1000" y2="280" className="axis" />

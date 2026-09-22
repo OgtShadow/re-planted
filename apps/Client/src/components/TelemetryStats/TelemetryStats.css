@@ -1,56 +1,20 @@
 .telemetry-stats {
-    padding: 1rem;
+    padding: 0rem 1rem;
 }
 
-.telemetry-stats-header h2 {
-    margin-bottom: 0.25rem;
-}
-
-.telemetry-stats-header p {
-    margin-top: 0;
-    color: var(--light-text-color);
-}
-
-.telemetry-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 1rem 0;
-}
-
-.telemetry-controls select {
-    min-width: 150px;
-}
-
-.telemetry-chart-card {
-    border: 1px solid var(--dark-background-color);
+.telemetry-card {
+	min-width: 0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--background-color), white 35%);
+    background: var(--dark-background-color);
     padding: 0.75rem;
-}
-
-.telemetry-chart-overview {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
+    margin: 0.75rem 0;
 }
 
 .telemetry-device-grid {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-}
-
-.telemetry-device-card {
-    border: 1px solid var(--dark-background-color);
-    border-radius: 8px;
-    padding: 0.75rem;
-    background: color-mix(in srgb, var(--background-color), white 18%);
-}
-
-.telemetry-device-meta h3 {
-    margin: 0 0 0.35rem;
 }
 
 .telemetry-device-title-row {
@@ -102,12 +66,13 @@
 
 .telemetry-series-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.8rem;
 }
 
 .telemetry-series-item {
-    border: 1px solid var(--dark-background-color);
+	min-width: 0;
+    border: 1px solid color-mix(in srgb, var(--series-color, var(--dark-background-color)), var(--dark-background-color) 40%);
     border-radius: 6px;
     padding: 0.6rem;
     background: color-mix(in srgb, var(--background-color), white 22%);
@@ -122,18 +87,11 @@
     border-color: color-mix(in srgb, #f39c12, var(--dark-background-color) 40%);
 }
 
-.telemetry-chart-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    font-size: 0.9rem;
-    color: var(--light-text-color);
-    margin-bottom: 0.5rem;
-}
-
 .telemetry-chart {
+	display: block;
     width: 100%;
     height: auto;
+	max-width: 100%;
     max-height: 220px;
     background: var(--background-color);
     border-radius: 4px;
@@ -158,14 +116,6 @@
 
 .telemetry-empty {
     color: var(--light-text-color);
-}
-
-.telemetry-live-card {
-    border: 1px solid var(--dark-background-color);
-    border-radius: 8px;
-    padding: 0.7rem;
-    margin-bottom: 0.9rem;
-    background: color-mix(in srgb, var(--background-color), white 30%);
 }
 
 .telemetry-live-row {
