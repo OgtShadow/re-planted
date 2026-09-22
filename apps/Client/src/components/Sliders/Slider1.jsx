@@ -12,7 +12,10 @@ function Slider1({ text, value, onChange, max, min }) {
   return (
     <Box sx={{ width: '100%' }}>
       <p>{text}</p>
-      <Slider 
+      <Slider
+        sx={{
+          color: 'var(--dark-color)',
+        }}
         value={value || max || 100} 
         min={min || 0}
         max={max || 100}

@@ -17,6 +17,9 @@ function Slider2({ text, value, onChange, min, max }) {
     <Box sx={{ width: '100%' }}>
       <p>{text}</p>
       <Slider
+          sx={{
+            color: 'var(--dark-color)',
+          }}
           getAriaLabel={() => text}
           value={value || [0, 100]}
           onChange={handleChange}

@@ -6,6 +6,7 @@ import './App.css'
 import connectionManager, { clearActiveUserId, clearAuthToken, getActiveUserId, getAuthToken, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
 import PlantDetails from './components/PlantDetails/PlantDetails'
+import PlantEditWindow from './components/PlantEditWindow/PlantEditWindow'
 import Nav from './components/Nav/Nav'
 import PlantAdd from './components/PlantAdd/PlantAdd'
 import Login from './components/login/Login'
@@ -92,6 +93,10 @@ function App() {
 
           <Route path="/plant/:id" element={
             <PlantDetails/> 
+          } />
+
+          <Route path="/plant/:id/edit" element={
+            <PlantEditWindow/>
           } />
 
             <Route path="/device/:id" element={

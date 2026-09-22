@@ -7,10 +7,16 @@
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    background: var(--dark-background-color);
 }
 
 .parameters-seter .light-schedule-inputs label {
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+
+button.parameters-seter-button {
+    background: var(--dark-background-color);
 }

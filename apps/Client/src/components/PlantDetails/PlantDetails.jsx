@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import connectionManager, { API_BASE_URL, getSignalRAccessToken, userPlantsEndpoint, userTelemetryRefreshEndpoint } from '../../connectionManager';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import StatusDot from '../StatusDot/StatusDot';
-import PlantEditWindow from '../PlantEditWindow/PlantEditWindow';
 import './PlantDetails.css';
 import defaultPlantImage from '../../resources/plant.jpg';
 
@@ -12,7 +11,6 @@ function PlantDetails() {
     const navigate = useNavigate();
     const [plant, setPlant] = useState(null);
     const [liveSnapshots, setLiveSnapshots] = useState([]);
-    const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const plantImage = plant?.imageUrl || defaultPlantImage;
 
@@ -30,23 +28,6 @@ function PlantDetails() {
 
         fetchPlant();
     }, [id]);
-
-    const handleEditClose = (response) => {
-        setIsEditing(false);
-        if (response) {
-            try {
-                 const parsed = JSON.parse(response);
-                 const responseText = parsed.Response || parsed.response;
-                 if (parsed && typeof parsed === 'object' && responseText && responseText.includes("Usunięto")) {
-                     navigate("/");
-                     return;
-                 }
-            } catch (error) { 
-                console.error("Failed to parse response:", error);
-            }
-            connectionManager.get(userPlantsEndpoint(`/${id}`)).then(setPlant);
-        }
-    };
 
     useEffect(() => {
         const connection = new HubConnectionBuilder()
@@ -187,10 +168,8 @@ function PlantDetails() {
                 
             
                 <div className="plant-info-item">
-                    <button className="secondary-button edit-plant-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
+                    <button className="button-secondary edit-plant-button" onClick={() => navigate(`/plant/${id}/edit`)}>Edit Plant</button>
                 </div>
-
-            {isEditing && <PlantEditWindow plant={plant} onClose={handleEditClose} />}
         </div>
     );
 }

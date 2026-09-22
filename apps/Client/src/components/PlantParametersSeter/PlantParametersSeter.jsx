@@ -82,7 +82,6 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
     
     return (
         <div className="parameters-seter">
-            <h2>Ustaw Parametry</h2>
             <ul style={{ listStyle: 'none', padding: 0 }}>
                 
                 <Slider2
@@ -128,7 +127,7 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
                                 onChange={handleLightScheduleChange('lightScheduleEnd')}
                             />
                         </label>
-                        <button className="button-secondary" type="button" onClick={handleClearLightSchedule}>Bez ograniczenia</button>
+                        <button className="button-secondary parameters-seter-button" type="button" onClick={handleClearLightSchedule}>Bez ograniczenia</button>
                     </div>
                 </div>
 
