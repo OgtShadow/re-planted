@@ -36,14 +36,6 @@
 .login-button {
   width: 100%;
   margin-top: 8px;
-  font-weight: 600;
-  background-color: var(--dark-color);
-  color: var(--background-color);
-}
-
-.login-button :hover {
-  background-color: var(--light-color);
-  color: var(--accent-color);
 }
 
 .error-message {

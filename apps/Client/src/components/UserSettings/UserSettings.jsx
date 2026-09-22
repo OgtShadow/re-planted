@@ -9,7 +9,7 @@ export const UserSettings = ({ activeUser, onLogout }) => {
             </summary>
             <div className="user-options">
                 <span className="user-options-title">Ustawienia użytkownika</span>
-                <button type="button" className="logout-button" onClick={onLogout}>Wyloguj</button>
+                <button type="button" className="button-primary logout-button" onClick={onLogout}>Wyloguj</button>
             </div>
         </details>
     );

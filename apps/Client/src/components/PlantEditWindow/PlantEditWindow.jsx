@@ -96,8 +96,8 @@ function PlantEditWindow({ plant, onClose }) {
                 <PlantParametersSeter plant={editedPlant} setPlant={setEditedPlant} />
                 
                 <div className="button-group">
-                    <button type="submit">Save Changes</button>
-                    <button type="button" className="delete" onClick={handleDeletePlant}>Delete Plant</button>
+                    <button className="button-primary" type="submit">Save Changes</button>
+                    <button className="button-secondary delete" type="button" onClick={handleDeletePlant}>Delete Plant</button>
                 </div>
             </form>
         </div>

@@ -144,7 +144,7 @@ function DeviceDetails() {
 
     return (
         <div className="device-details-container">
-            <button className="back-button" onClick={() => navigate("/devices")}>&larr; Back to List</button>
+            <button className="button-secondary back-button" onClick={() => navigate("/devices")}>&larr; Back to List</button>
             
             <div className="device-details-header">
                 <h1>{device.name}</h1>
@@ -184,10 +184,10 @@ function DeviceDetails() {
                     <ul className="relation-list">
                         {device.plants.map((plant) => (
                             <li key={plant.id}>
-                                <button type="button" className="link-like" onClick={() => navigate(`/plant/${plant.id}`)}>
+                                <button type="button" className="button-secondary link-like" onClick={() => navigate(`/plant/${plant.id}`)}>
                                     {plant.name}
                                 </button>
-                                <button type="button" onClick={() => handleUnassignPlant(plant.id)}>Odepnij</button>
+                                <button type="button" className="button-secondary" onClick={() => handleUnassignPlant(plant.id)}>Odepnij</button>
                             </li>
                         ))}
                     </ul>
@@ -202,7 +202,7 @@ function DeviceDetails() {
                             <option key={plant.id} value={plant.id}>{plant.name} ({plant.species})</option>
                         ))}
                     </select>
-                    <button type="button" onClick={handleAssignPlant}>Przypisz</button>
+                    <button type="button" className="button-primary" onClick={handleAssignPlant}>Przypisz</button>
                 </div>
                 {assignMessage ? <p>{assignMessage}</p> : null}
             </div>
@@ -220,15 +220,15 @@ function DeviceDetails() {
                         <option value={30}>30 sekund</option>
                     </select>
                     <div className="manual-control-actions">
-                        <button type="button" onClick={handleManualPump} disabled={!device.isEnabled || isCommandPending}>Uruchom</button>
-                        <button type="button" className="emergency-stop" onClick={handleEmergencyStop} disabled={isCommandPending}>STOP</button>
+                        <button type="button" className="button-primary" onClick={handleManualPump} disabled={!device.isEnabled || isCommandPending}>Uruchom</button>
+                        <button type="button" className="button-secondary emergency-stop" onClick={handleEmergencyStop} disabled={isCommandPending}>STOP</button>
                     </div>
                     {manualStatus ? <p className="manual-status" role="status">{manualStatus}</p> : null}
                     {!device.isEnabled ? <p className="manual-safety-note">Sterowanie zablokowane, ponieważ urządzenie jest wyłączone.</p> : null}
                 </section>
             ) : null}
             <div className="edit-device-container">
-            <button className="edit-device-button" onClick={() => setIsEditing(true)}>Edit Device</button>
+            <button className="button-primary edit-device-button" onClick={() => setIsEditing(true)}>Edit Device</button>
             </div>
 
             {isEditing && <DeviceEditWindow device={device} onClose={handleEditClose} />}

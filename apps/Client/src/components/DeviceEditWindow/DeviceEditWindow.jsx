@@ -68,8 +68,8 @@ function DeviceEditWindow({ device, onClose }) {
                 <DeviceParametersSeter device={editedDevice} setDevice={setEditedDevice} />
                 
                 <div className="button-group">
-                    <button type="submit">Save Changes</button>
-                    <button type="button" className="delete" onClick={handleDeleteDevice}>Delete Device</button>
+                    <button className="button-primary" type="submit">Save Changes</button>
+                    <button className="button-secondary delete" type="button" onClick={handleDeleteDevice}>Delete Device</button>
                 </div>
             </form>
         </div>

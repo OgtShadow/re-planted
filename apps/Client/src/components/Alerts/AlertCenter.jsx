@@ -16,7 +16,7 @@ export function AlertCenter() {
       </Link>
       {toast && (
         <aside className={`alert-toast alert-${toast.severity?.toLowerCase() || 'warning'}`} role="status">
-          <button type="button" className="alert-toast-close" onClick={dismissToast} aria-label="Zamknij">×</button>
+          <button type="button" className="button-secondary alert-toast-close" onClick={dismissToast} aria-label="Zamknij">×</button>
           <span className="alert-toast-severity">{severityLabel[toast.severity] || 'Alert'}</span>
           <b>{toast.title}</b>
           <p>{toast.message}</p>
@@ -55,7 +55,7 @@ function AlertRow({ alert, onAcknowledge }) {
     <article className={`alert-row alert-${alert.severity?.toLowerCase() || 'warning'}`}>
       <div className="alert-row-mark" aria-hidden="true">!</div>
       <div className="alert-row-body"><div className="alert-row-meta"><span>{severityLabel[alert.severity] || 'Alert'}</span><time>{new Date(alert.createdAtUtc).toLocaleString('pl-PL')}</time></div><h3>{alert.title}</h3><p>{alert.message}</p></div>
-      {onAcknowledge && <button type="button" className="alert-acknowledge" onClick={() => onAcknowledge(alert.id)}>Potwierdź</button>}
+      {onAcknowledge && <button type="button" className="button-secondary alert-acknowledge" onClick={() => onAcknowledge(alert.id)}>Potwierdź</button>}
     </article>
   );
 }

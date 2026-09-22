@@ -97,7 +97,7 @@ function PlantDetails() {
 
     return (
         <div className="plant-details-container">
-            <button className="back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
+            <button className="button-secondary back-button" onClick={() => navigate("/") }>&larr; Back to List</button>
 
             <div className="plant-img">
                 <img src={plantImage} alt={plant.name} />
@@ -131,7 +131,7 @@ function PlantDetails() {
                         {sensorDevices
                             .map((device) => (
                                 <li key={device.id}>
-                                    <button type="button" className="link-like" onClick={() => navigate(`/device/${device.id}`)}>
+                                    <button type="button" className="button-secondary link-like" onClick={() => navigate(`/device/${device.id}`)}>
                                         {device.name}
                                     </button>
                                     <span>{device.externalDeviceId || 'brak telemetry id'}</span>
@@ -169,7 +169,7 @@ function PlantDetails() {
                             .filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor')
                             .map((device) => (
                                 <li key={device.id}>
-                                    <button type="button" onClick={() => navigate(`/device/${device.id}`)}>
+                                    <button type="button" className="button-secondary" onClick={() => navigate(`/device/${device.id}`)}>
                                         {device.name}
                                     </button>
                                     <span>{device.targetParameter || 'brak celu'}</span>
@@ -182,7 +182,7 @@ function PlantDetails() {
                 </div>
             
 
-            <button className="edit-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
+            <button className="button-primary edit-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
 
             {isEditing && <PlantEditWindow plant={plant} onClose={handleEditClose} />}
         </div>

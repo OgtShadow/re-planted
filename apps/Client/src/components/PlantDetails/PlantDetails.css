@@ -6,20 +6,12 @@
 }
 
 .back-button {
-    background: none;
-    border: none;
     color: var(--accent-color-dark);
-    cursor: pointer;
     font-size: 1.1em;
     margin-bottom: 20px;
     text-align: left;
     display: block;
     padding: 0;
-}
-
-.back-button:hover {
-    text-decoration: none;
-    background: none;
 }
 
 .plant-img {
@@ -88,13 +80,6 @@
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--accent-color-dark);
-    color: white;
-}
-
-.edit-button:hover {
-    background-color: var(--accent-color-light);
-    color: var(--accent-color-dark);
 }
 
 .relation-list {
@@ -115,18 +100,7 @@
 }
 
 .relation-list button {
-    background: none;
-    border: none;
     color: var(--light-color);
-    cursor: pointer;
-    padding: 0;
-}
-
-.relation-list button:hover {
-    background: none;
-    border: none;
-    color: var(--light-color);
-    cursor: pointer;
     padding: 0;
 }
 

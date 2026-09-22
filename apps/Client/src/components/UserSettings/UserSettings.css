@@ -9,7 +9,6 @@
     text-align: center;
 
 }
-
 .user-settings summary {
     display: block;
     width: 100%;
@@ -43,16 +42,8 @@ summary:hover {
     text-shadow: 0px 0px 6px var(--background-color);
     transition: all 0.3s ease;
 }
-
 button.logout-button{
     cursor: pointer;
-    color: var(--background-color);
+    background: var(--dark-color);
     border: none;
-}
-
-button.logout-button:hover {
-    cursor: pointer;
-    color: var(--background-color);
-    text-shadow: 0px 0px 6px var(--background-color);
-    transition: all 0.3s ease;
 }

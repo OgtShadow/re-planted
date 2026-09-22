@@ -54,13 +54,4 @@
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--dark-color);
-    color: white;
-}
-
-.add-plant-button:hover {
-    background-color: var(--light-color);
-    color: var(--accent-color-dark);
-    scale: 1.1;
-    transition: transform 0.3s ease, scale 0.3s ease;
 }

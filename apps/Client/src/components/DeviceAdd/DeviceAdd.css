@@ -66,11 +66,4 @@
     width: 100%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--dark-color);
-    color: white;
-}
-
-.add-button:hover {
-    background-color: var(--light-color);
-    color: var(--accent-color-dark);
 }

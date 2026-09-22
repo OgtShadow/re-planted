@@ -49,6 +49,50 @@
 	height: 38px;
 }
 
+button.button-primary,
+button.button-secondary {
+	box-sizing: border-box;
+	cursor: pointer;
+	font-family: inherit;
+}
+
+button.button-primary {
+	color: var(--background-color);
+	font-weight: 700;
+}
+
+button.button-primary:hover {
+	color: var(--background-color);
+	text-shadow: 0 0 6px var(--background-color);
+}
+
+button.button-secondary {
+	color: var(--light-text-color);
+	font-weight: 400;
+	transition: none;
+}
+
+button.button-secondary:hover {
+	color: var(--light-text-color);
+	text-shadow: none;
+}
+
+button.button-secondary.delete {
+	background-color: var(--error-color);
+	color: var(--background-color);
+}
+
+button.button-secondary.delete:hover {
+	background-color: color-mix(in srgb, var(--error-color), black 50%);
+	color: var(--dark-background-color);
+}
+
+button.button-secondary:disabled,
+button.button-primary:disabled {
+	cursor: wait;
+	opacity: 0.7;
+}
+
 a:hover {
     cursor: pointer;
 	text-shadow: 0px 0px 6px var(--background-color);

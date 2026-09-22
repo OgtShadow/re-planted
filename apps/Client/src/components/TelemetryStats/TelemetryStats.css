@@ -19,18 +19,7 @@
 }
 
 .telemetry-filters button {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
     background: var(--dark-background-color);
-    font-size: 0.95rem;
-}
-
-.telemetry-device-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
 }
 
 .telemetry-device-title-row {

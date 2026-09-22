@@ -9,20 +9,12 @@
 }
 
 .device-details-container button.back-button{
-    background: none;
-    border: none;
     color: var(--accent-color-dark);
-    cursor: pointer;
     font-size: 1.1em;
     margin-bottom: 20px;
     text-align: left;
     display: block;
     padding: 0;
-}
-
-.device-details-container button.back-button:hover{
-    background: none;
-    transform:none;
 }
 
 .device-details-header {
@@ -56,16 +48,9 @@
     width: 80%;
     padding: 15px;
     font-size: 1.2em;
-    background-color: var(--accent-color-dark);
-    color: white;
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.device-details-container button.edit-device-button:hover {
-    background-color: var(--accent-color-light);
-    color: var(--accent-color-dark);
 }
 
 .relation-box {
@@ -105,35 +90,15 @@
 .assign-row button {
     padding: 8px 12px;
     border-radius: 5px;
-    border: none;
-    background: none;
-    color: white;
-    cursor: pointer;
     width: 15%;
     left: 10px;
     position: relative;
-}
-
-.device-details-container button {
-    background: var(--dark-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.device-details-container button:hover {
-    background-color: var(--light-color);
-    color: var(--text-color);
-    transform: scale(1.1);
-    transition: transform 0.2s ease-in-out;
 }
 
 .link-like {
     background: none;
     border: none;
     color: var(--light-color);
-    cursor: pointer;
     padding: 0;
 }
 

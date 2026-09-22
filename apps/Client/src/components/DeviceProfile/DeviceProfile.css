@@ -53,19 +53,8 @@ div .device-profile-header {
     position: relative;
     z-index: 1;
     background-color: var(--dark-background-color);
-    color: var(--text-color);
     width: 100%;
     margin-bottom: 10px;
-    cursor: pointer;
-}
-
-.device-profile button:hover {
-    text-shadow: 0 0 5px var(--text-color);
-}
-
-.device-profile button:disabled {
-    opacity: 0.7;
-    cursor: wait;
 }
 
 .device-profile-feedback {

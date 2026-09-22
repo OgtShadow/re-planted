@@ -99,7 +99,7 @@ function DeviceProfile({ device }) {
             value={selectedDuration}
             onChange={(event) => setSelectedDuration(Number(event.target.value))}
           />
-          <button type="button" onClick={handleActivate} disabled={isActivating}>
+          <button className="button-secondary" type="button" onClick={handleActivate} disabled={isActivating}>
             {isActivating ? 'Włączanie...' : `Włącz na ${selectedDuration} s`}
           </button>
         </>

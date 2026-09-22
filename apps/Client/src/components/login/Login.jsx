@@ -78,7 +78,7 @@ export default function Login({ onLoginSuccess }) {
             />
           </div>
 
-          <button type="submit" className="login-button">
+          <button type="submit" className="button-primary login-button">
             {isSubmitting ? 'Logowanie...' : 'Zaloguj się'}
           </button>
         </form>

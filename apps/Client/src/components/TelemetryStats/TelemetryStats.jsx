@@ -424,7 +424,7 @@ function TelemetryStats() {
           ))}
         </select>
 
-        <button type="button" onClick={loadTelemetry} disabled={isLoading}>
+        <button className="button-secondary" type="button" onClick={loadTelemetry} disabled={isLoading}>
           {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
         </button>
       </div>

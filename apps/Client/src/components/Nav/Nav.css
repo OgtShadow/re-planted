@@ -146,14 +146,7 @@
 .logout-button {
     width: 100%;
     border: 1px solid var(--background-color);
-    background-color: var(--dark-color);
-    color: var(--background-color);
     font-size: 0.8rem;
-}
-
-.logout-button:hover {
-    background-color: var(--light-color);
-    color: var(--text-color);
 }
 
 @media (max-width: 720px) {

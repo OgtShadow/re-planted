@@ -128,7 +128,7 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
                                 onChange={handleLightScheduleChange('lightScheduleEnd')}
                             />
                         </label>
-                        <button type="button" onClick={handleClearLightSchedule}>Bez ograniczenia</button>
+                        <button className="button-secondary" type="button" onClick={handleClearLightSchedule}>Bez ograniczenia</button>
                     </div>
                 </div>
 

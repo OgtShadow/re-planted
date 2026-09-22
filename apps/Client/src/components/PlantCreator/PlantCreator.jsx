@@ -33,7 +33,7 @@ function PlantCreator() {
         value={species}
         onChange={(e) => setSpecies(e.target.value)}
       />
-      <button onClick={handleCreatePlant}>Dodaj roślinę</button>
+      <button className="button-primary" onClick={handleCreatePlant}>Dodaj roślinę</button>
       <p>{response}</p>
     </div>
   );

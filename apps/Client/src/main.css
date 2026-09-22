@@ -35,9 +35,6 @@ button,a {
   cursor: pointer;
   transition: background-color 0.05s;
 }
-button:hover,a:hover {
-  background-color: var(--dark-background-color);
-}
 
 button.delete {
   background-color: var(--error-color);

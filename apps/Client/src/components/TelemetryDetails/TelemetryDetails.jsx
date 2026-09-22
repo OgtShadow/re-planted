@@ -153,7 +153,7 @@ function TelemetryDetails() {
 
   return (
     <section className="telemetry-details-page">
-      <button type="button" className="back-button" onClick={() => navigate('/stats')}>
+      <button type="button" className="button-secondary back-button" onClick={() => navigate('/stats')}>
         ← Powrót do statystyk
       </button>
 

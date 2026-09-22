@@ -316,10 +316,10 @@ function DeviceAdd() {
         ))}
       </div>
 
-      <button className="add-button" onClick={handleCreateDevice}>
+      <button className="button-primary add-button" onClick={handleCreateDevice}>
         Dodaj urządzenie
       </button>
-      <button className="add-button" type="button" onClick={handleAddDefaultEspMock}>
+      <button className="button-primary add-button" type="button" onClick={handleAddDefaultEspMock}>
         Dodaj domyślny ESP mock
       </button>
       <p>{response}</p>
