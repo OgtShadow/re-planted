@@ -105,43 +105,21 @@ function PlantDetails() {
                 <h1>{plant.name}</h1>
             </div>
             <div className="plant-info-grid">
-                <div className="info-item">
+                <div className="plant-info-item">
                     <h3 className="label">Planted Date:</h3>
                     <p className="value">{new Date(plant.plantedDate).toLocaleDateString()}</p>
                 </div>
-                <div className="info-item">
+                <div className="plant-info-item">
                     <h3 className="label">Last Watered:</h3>
                     <p className="value">{new Date(plant.lastWatered).toLocaleDateString()} {new Date(plant.lastWatered).toLocaleTimeString()}</p>
                 </div>
-                 <div className="info-item">
+                 <div className="plant-info-item">
                     <h3 className="label">Health Status:</h3>
                     <p className="value">{plant.healthStatus}</p>
                 </div>
             </div>
-            <div className="info-item">
-                    <h3 className="label">Species:</h3>
-                    <p className="value">{plant.species}</p>
-            </div>
 
-                <div className="info-item">
-                <h3>Przypisane sensory:</h3>
-                {sensorDevices.length > 0 ? (
-                    <ul className="relation-list">
-                        {sensorDevices
-                            .map((device) => (
-                                <li key={device.id}>
-                                    <button type="button" className="button-secondary link-like" onClick={() => navigate(`/device/${device.id}`)}>
-                                        {device.name}
-                                    </button>
-                                    <span>{device.externalDeviceId || 'brak telemetry id'}</span>
-                                </li>
-                            ))}
-                    </ul>
-                ) : (
-                    <p>Brak przypisanych sensorów.</p>
-                )}
-                </div>
-                <div className="info-item">
+            <div className="plant-info-item">
                 <h3>Dane live dla tej rośliny:</h3>
                 {plantLiveSnapshots.length > 0 ? (
                     <div className="plant-live-grid">
@@ -160,7 +138,32 @@ function PlantDetails() {
                     <p>Brak bieżących odczytów dla przypisanych sensorów.</p>
                 )}
                 </div>
-                <div className="info-item">
+
+            <div className="plant-info-item">
+                    <h3 className="label">Species:</h3>
+                    <p className="value">{plant.species}</p>
+            </div>
+                <div className="plant-relations-grid">
+                <div className="plant-info-item">
+                <h3>Przypisane sensory:</h3>
+                {sensorDevices.length > 0 ? (
+                    <ul className="relation-list">
+                        {sensorDevices
+                            .map((device) => (
+                                <li key={device.id}>
+                                    <button type="button" className="button-secondary link-like" onClick={() => navigate(`/device/${device.id}`)}>
+                                        {device.name}
+                                    </button>
+                                    <span>{device.externalDeviceId || 'brak telemetry id'}</span>
+                                </li>
+                            ))}
+                    </ul>
+                ) : (
+                    <p>Brak przypisanych sensorów.</p>
+                )}
+                </div>
+                
+                <div className="plant-info-item">
                 <h3>Przypisane actuatory:</h3>
                 {(plant.devices || []).filter((device) => (device.deviceKind || '').toLowerCase() !== 'sensor').length > 0 ? (
                     <ul className="relation-list">
@@ -179,9 +182,13 @@ function PlantDetails() {
                     <p>Brak przypisanych actuatorów.</p>
                 )}
                 </div>
-            
+                </div>
 
-            <button className="button-primary edit-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
+                
+            
+                <div className="plant-info-item">
+                    <button className="secondary-button edit-plant-button" onClick={() => setIsEditing(true)}>Edit Plant</button>
+                </div>
 
             {isEditing && <PlantEditWindow plant={plant} onClose={handleEditClose} />}
         </div>

@@ -1,10 +1,13 @@
 .plant-details-container {
+    box-sizing: border-box;
     width: 100%;
+    max-width: none;
     margin: 0 auto;
     padding: 16px;
 }
 
 .plant-img {
+    box-sizing: border-box;
     width: 100%;
     height: 240px;
     margin: 0 auto 16px;
@@ -32,34 +35,44 @@
 .plant-details-header h1 {
     margin: 0;
     font-size: clamp(1.6rem, 4vw, 2.4rem);
+    color: var(--text-color);
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .plant-info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 12px;
 }
 
-.info-item {
+.plant-relations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.plant-info-item {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 20px !important;
     padding: 14px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--dark-background-color);
 }
 
-.info-item h3 {
-    margin: 0;
+.plant-info-item h3 {
     color: var(--text-color);
-    font-size: 0.95rem;
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.info-item p,
-.info-item ul {
+.plant-info-item p,
+.plant-info-item ul {
     margin: 0;
     color: var(--light-text-color);
 }
@@ -77,11 +90,12 @@
     padding: 0;
 }
 
-.relation-list li {
+.relation-list li button {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    background-color: var(--dark-background-color);
     gap: 8px;
 }
 
@@ -102,6 +116,14 @@
     border-radius: 6px;
     background: var(--background-color);
     color: var(--light-text-color);
+}
+
+.edit-plant-button {
+    width: 100%;
+    margin-top: 8px;
+    background-color: var(--dark-background-color);
+    margin: 0;
+    padding: 0;
 }
 
 @media (max-width: 600px) {

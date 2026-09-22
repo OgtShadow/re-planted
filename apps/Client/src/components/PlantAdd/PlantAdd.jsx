@@ -39,11 +39,11 @@ function PlantAdd() {
   };
 
   return ( 
-<div className="plant-details-container">
+<div className="plant-add-container">
   <h1> Create Plant</h1>
-  <div className="plant-info-grid">
-    <div className="plant-info-section">
-    <div className="info-item">
+  <div className="plant-add-info-grid">
+    <div className="plant-add-info-section">
+    <div className="plant-add-info-item info-item">
       <input
         type="text"
         placeholder="Nazwa rośliny"
@@ -51,7 +51,7 @@ function PlantAdd() {
         onChange={(e) => setName(e.target.value)}
       />
     </div>
-    <div className="info-item">
+    <div className="plant-add-info-item info-item">
       <input
         type="text"
         placeholder="Gatunek rośliny"
@@ -60,7 +60,7 @@ function PlantAdd() {
       />
     </div>
     </div>
-    <div className="info-item">
+    <div className="plant-add-info-item info-item">
       <label htmlFor="plant-image">Zdjęcie rośliny</label>
       <input
         id="plant-image"
