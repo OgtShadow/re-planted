@@ -1,27 +1,174 @@
-.nav ul {
-    list-style: none;
+.nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--nav-width);
+    padding: 28px 18px;
+    box-sizing: border-box;
+    background: var(--dark-color);
+    z-index: 10;
     display: flex;
-    gap: 20px;
-}
-
-.nav div, .nav a {
-    text-decoration: none;
-    background-color: var(--dark-color);
-    color: var(--background-color);
-    font-weight: bold;
-    font-size: 1.1em;
+    flex-direction: column;
 }
 
 .nav a {
+    display: block;
+    color: var(--background-color);
+    background-color: var(--dark-color);
     text-decoration: none;
+    font-weight: 800;
+    font-size: 0.95rem;
 }
 
-.nav div:hover {
-    transform: scale(1.1);
-    transition: transform 0.3s ease;
+.nav a:hover {
+    color: var(--background-color);
+    background-color: var(--dark-color);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.95rem;
 }
 
-nav a:hover {
+.nav-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 10px 34px;
+}
+
+.nav-header a {
+    color: var(--background-color);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 2rem;
+}
+
+.nav-header a:hover {
+    color: var(--background-color);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 2rem;
+}
+
+.nav ul {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav .alert-link {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--background-color);
+    background-color: var(--dark-color);
+    text-decoration: none;
+    text-align: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    border-radius: 5px;
+}
+
+.nav li a {
+    padding: 11px 12px;
+    border-radius: 5px;
+}
+
+.nav-account {
+    display: grid;
+    gap: 14px;
+    margin-top: auto;
+}
+
+.user-session {
+    position: relative;
+}
+
+.user-settings {
+    position: relative;
+}
+
+.user-label {
+    overflow: hidden;
+    color: var(--background-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.user-label:hover {
+    overflow: hidden;
+    color: var(--background-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    text-shadow: 0px 0px 6px var(--background-color);
+    transition: all 0.3s ease;
+}
+
+.user-options {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid var(--light-color);
+    border-radius: 5px;
+    background-color: var(--dark-color);
+}
+
+.user-settings:not([open]) .user-options {
+    display: none;
+}
+
+.user-settings:hover .user-options,
+.user-settings:focus-within .user-options {
+    display: grid;
+}
+
+.user-options-title {
+    color: var(--background-color);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.logout-button {
+    width: 100%;
+    border: 1px solid var(--background-color);
+    background-color: var(--dark-color);
+    color: var(--background-color);
+    font-size: 0.8rem;
+}
+
+.logout-button:hover {
     background-color: var(--light-color);
     color: var(--text-color);
+}
+
+@media (max-width: 720px) {
+    .nav {
+        position: static;
+        width: auto;
+        padding: 16px;
+    }
+
+    .nav-brand {
+        margin: 0;
+    }
+
+    .nav ul {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .nav li a {
+        text-align: center;
+    }
+
+    .nav-account {
+        margin-top: 16px;
+    }
 }

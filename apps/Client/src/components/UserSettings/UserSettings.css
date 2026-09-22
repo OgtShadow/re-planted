@@ -1,0 +1,18 @@
+
+summary:hover {
+    cursor: pointer;
+    text-shadow: 0px 0px 6px var(--background-color);
+    transition: all 0.3s ease;
+}
+
+button.logout-button{
+    cursor: pointer;
+    color: var(--background-color);
+}
+
+button.logout-button:hover {
+    cursor: pointer;
+    color: var(--background-color);
+    text-shadow: 0px 0px 6px var(--background-color);
+    transition: all 0.3s ease;
+}

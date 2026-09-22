@@ -34,7 +34,7 @@ h2 {
 }
 
 button,input,textarea,a {
-  outline: none;
+  outline: ;
   font-size: 0.8em;
   padding: 10px 15px;
   border-radius: 5px;

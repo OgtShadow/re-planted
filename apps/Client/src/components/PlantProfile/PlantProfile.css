@@ -2,14 +2,11 @@
 
 div .plant-profile {
     width: 275px;
-    background-color: var(--dark-color);
+    background-color: var(--dark-background-color);
+    color: var(--text-color);
     border-radius: 10px;
     margin: 20px;
-}
-
-div .plant-profile:hover {
-    transform: scale(1.05);
-    transition: transform 0.3s ease;
+    border: 2px solid var(--border-color);
 }
 
 .plant-profile-image {
@@ -43,7 +40,7 @@ div .plant-profile-header {
 }
 
 .plant-profile h2 {
-    color: var(--background-color);
+    color: var(--text-color);
     margin-bottom: 10px;
     white-space: nowrap;
     overflow: hidden;
@@ -53,13 +50,6 @@ div .plant-profile-header {
 .plant-profile p {
     color: var(--dark-background-color);
     margin: 5px 0;
-}
-
-.plant-profile button {
-    background-color: var(--dark-color);
-    color: var(--dark-background-color);
-    margin-top: 10px;
-    width: 100%;
 }
 
 .plant-profile button:hover {

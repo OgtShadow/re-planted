@@ -6,7 +6,7 @@ import './App.css'
 import connectionManager, { clearActiveUserId, clearAuthToken, getActiveUserId, getAuthToken, userByIdEndpoint } from './connectionManager'
 import PlantList from './components/PlantList/PlantList'
 import PlantDetails from './components/PlantDetails/PlantDetails'
-import Header from './components/Header/Header'
+import Nav from './components/Nav/Nav'
 import PlantAdd from './components/PlantAdd/PlantAdd'
 import Login from './components/login/Login'
 import DeviceAdd from './components/DeviceAdd/DeviceAdd'
@@ -75,8 +75,10 @@ function App() {
   return (
     <BrowserRouter>
         <AlertProvider userId={activeUser.id}>
-        <Header test={test} activeUser={activeUser} onLogout={handleLogout} alertCenter={<AlertCenter />} />
-        <Routes>
+        <div className="app-layout">
+          <Nav test={test} activeUser={activeUser} onLogout={handleLogout} alertCenter={<AlertCenter />} />
+          <div className="app-content">
+            <Routes>
           <Route path="/" element={
               <>
                 <PlantList />
@@ -122,7 +124,9 @@ function App() {
            <Route path="*" element={
             <NotFoundPage/>
           } />
-        </Routes>
+            </Routes>
+          </div>
+        </div>
         </AlertProvider>
       
     </BrowserRouter>
