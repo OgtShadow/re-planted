@@ -11,6 +11,22 @@
     margin: 0.75rem 0;
 }
 
+.telemetry-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.telemetry-filters button {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: var(--dark-background-color);
+    font-size: 0.95rem;
+}
+
 .telemetry-device-grid {
     display: flex;
     flex-direction: column;
@@ -76,6 +92,7 @@
     border-radius: 6px;
     padding: 0.6rem;
     background: color-mix(in srgb, var(--background-color), white 22%);
+    cursor: pointer;
 }
 
 .telemetry-series-item h3 {

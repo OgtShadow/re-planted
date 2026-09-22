@@ -394,6 +394,7 @@ function TelemetryStats() {
   return (
     <section className="telemetry-stats">
       <div className="telemetry-card">
+        <div className="telemetry-filters">
         <label htmlFor="hours-window">Zakres:</label>
         <select id="hours-window" value={hours} onChange={(event) => setHours(Number(event.target.value))}>
           <option value={1}>Ostatnia 1h</option>
@@ -427,6 +428,7 @@ function TelemetryStats() {
           {isLoading ? 'Odświeżanie...' : 'Odśwież teraz'}
         </button>
       </div>
+        </div>
 
       {error ? <p className="telemetry-error">{error}</p> : null}
 
