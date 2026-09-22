@@ -1,7 +1,7 @@
 @import '../../colors.css';
 
 div .plant-profile {
-    width: 275px;
+    width: 300px;
     background-color: var(--dark-background-color);
     color: var(--text-color);
     border-radius: 10px;
@@ -13,12 +13,12 @@ div .plant-profile {
     width: 100%;
     height: 140px;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: 8px 8px 0 0;
     background: var(--background-color);
 }
 
 .plant-profile-body {
-    padding: 0px 15px;
+    margin: 0px 15px;
     height: 110px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -35,7 +35,7 @@ div .plant-profile {
 div .plant-profile-header {
     align-items: baseline;
     display: inline-flex;
-    width: 220px;
+    width: 270px;
     justify-content: space-between;
 }
 
@@ -48,11 +48,6 @@ div .plant-profile-header {
 }
 
 .plant-profile p {
-    color: var(--dark-background-color);
-    margin: 5px 0;
-}
-
-.plant-profile button:hover {
-    background-color: var(--light-color);
     color: var(--light-text-color);
+    margin: 5px 0;
 }

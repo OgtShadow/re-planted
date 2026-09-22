@@ -1,18 +1,24 @@
 @import '../../colors.css';
 
-div .device-profile-card {
-    width: 240px;
-    background-color: var(--dark-color);
-    padding: 12px 16px 16px 16px;
+div .device-profile {
+    width: 300px;
+    background-color: var(--dark-background-color);
+    color: var(--text-color);
     border-radius: 10px;
     margin: 20px;
-    color: var(--background-color);
+    border: 2px solid var(--border-color);
 }
 
-div .device-profile-card-header {
+div .device-profile-body {
+    margin: 0px 15px;
+    text-overflow: ellipsis;
+    overflow: visible;
+}
+
+div .device-profile-header {
     align-items: baseline;
     display: inline-flex;
-    width: 200px;
+    width: 270px;
     justify-content: space-between;
 }
 
@@ -23,17 +29,8 @@ div .device-profile-card-header {
     gap: 8px;
 }
 
-.device-profile-card h3 {
-    color: var(--background-color);
-    margin-bottom: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.device-profile-card p {
-    color: var(--dark-background-color);
-    margin: 5px 0;
+.device-profile p {
+    color: var(--light-text-color);
 }
 
 .device-profile-slider-label {
@@ -41,29 +38,32 @@ div .device-profile-card-header {
     margin-top: 10px;
     margin-bottom: 6px;
     font-size: 0.95rem;
-    color: var(--background-color);
+    color: var(--text-color);
 }
 
 .device-profile-slider {
+    display: block;
     width: 80%;
-    accent-color: var(--light-color);
+    accent-color: var(--dark-color);
+    cursor: ew-resize;
 }
 
-.device-profile-card button {
-    background-color: var(--dark-color);
-    color: var(--dark-background-color);
-    margin-top: 10px;
+.device-profile button {
+    display: block;
+    position: relative;
+    z-index: 1;
+    background-color: var(--dark-background-color);
+    color: var(--text-color);
     width: 100%;
-    border: 1px solid var(--light-color);
+    margin-bottom: 10px;
     cursor: pointer;
 }
 
-.device-profile-card button:hover {
-    background-color: var(--light-color);
-    color: var(--light-text-color);
+.device-profile button:hover {
+    text-shadow: 0 0 5px var(--text-color);
 }
 
-.device-profile-card button:disabled {
+.device-profile button:disabled {
     opacity: 0.7;
     cursor: wait;
 }

@@ -76,7 +76,8 @@ function App() {
             <UserSettings activeUser={activeUser} onLogout={handleLogout} />
           </div>
           <div className="app-content">
-            <Routes>
+            <div className="app-route-content">
+              <Routes>
           <Route path="/" element={
               <>
                 <PlantList />
@@ -122,7 +123,8 @@ function App() {
            <Route path="*" element={
             <NotFoundPage/>
           } />
-            </Routes>
+              </Routes>
+            </div>
           </div>
         </div>
         </AlertProvider>

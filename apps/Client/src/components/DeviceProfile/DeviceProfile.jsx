@@ -67,23 +67,23 @@ function DeviceProfile({ device }) {
   };
 
   return (
-    <div className="device-profile-card">
-      <div className="device-profile-header" onClick={() => navigate(`/device/${device?.id ?? 'default'}`)} style={{ cursor: 'pointer' }}>
-        <h3>{name}</h3>
-        <StatusDot status={isOn ? 'green' : 'gray'} size="medium" />
-      </div>
-      <p>Typ: {deviceKind}</p>
-      <p>Cel: {targetParameter || (isLightDevice ? 'light' : 'pump')}</p>
-      {Array.isArray(device?.sensorFields) && device.sensorFields.length > 0 ? (
-        <p>Czujniki: {device.sensorFields.join(', ')}</p>
-      ) : null}
-      {device?.externalDeviceId ? <p>Telemetry ID: {device.externalDeviceId}</p> : null}
-      {Array.isArray(device?.plants) && device.plants.length > 0 ? (
-        <p>Rośliny: {device.plants.map((plant) => plant.name).join(', ')}</p>
-      ) : (
-        <p>Rośliny: brak</p>
-      )}
-
+    <div className="device-profile">
+      <div className="device-profile-body">
+        <div onClick={() => navigate(`/device/${device?.id ?? 'default'}`)} style={{ cursor: 'pointer' }}>
+          <div className="device-profile-header">
+            <h3>{name}</h3>
+            <StatusDot status={isOn ? 'green' : 'gray'} size="small" />
+          </div>
+          <p>Cel: {targetParameter || (isLightDevice ? 'light' : 'pump')}</p>
+          {Array.isArray(device?.sensorFields) && device.sensorFields.length > 0 ? (
+          <p>Czujniki: {device.sensorFields.join(', ')}</p>
+          ) : null}
+          {Array.isArray(device?.plants) && device.plants.length > 0 ? (
+          <p>Rośliny: {device.plants.map((plant) => plant.name).join(', ')}</p>
+          ) : (
+          <p>Rośliny: brak</p>
+          )}
+        </div>
       {!isSensorOnly ? (
         <>
           <label className="device-profile-slider-label" htmlFor={`duration-${device?.id ?? 'default'}`}>
@@ -104,7 +104,7 @@ function DeviceProfile({ device }) {
           </button>
         </>
       ) : null}
-      {feedback ? <p className="device-profile-feedback">{feedback}</p> : null}
+      </div>
     </div>
   );
 }
