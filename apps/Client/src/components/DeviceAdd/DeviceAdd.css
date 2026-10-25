@@ -13,7 +13,7 @@
 }
 
 .info-item {
-    background-color: var(--dark-color);
+    background-color: var(--dark-background-color);
     padding: 15px;
     border-radius: 10px;
     display: flex;
@@ -22,7 +22,7 @@
 }
 
 .info-item label {
-    color: var(--background-color);
+    color: var(--text-color);
     font-weight: 600;
     font-size: 0.95em;
 }
@@ -30,8 +30,8 @@
 .info-item input,
 .info-item select {
     padding: 10px;
-    border: none;
-    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     font-size: 1em;
 }
 
@@ -53,17 +53,11 @@
 }
 
 .plant-checkbox {
-    background-color: var(--dark-color);
-    color: var(--background-color);
+    background-color: var(--dark-background-color);
+    color: var(--text-color);
     border-radius: 10px;
     padding: 12px;
     display: flex;
     gap: 10px;
     align-items: center;
-}
-
-.add-button {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.2em;
 }

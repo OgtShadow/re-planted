@@ -18,6 +18,7 @@ import NotFoundPage from './components/InfoPages/NotFoundPage/NotFoundPage'
 import { AlertHistory, AlertCenter } from './components/Alerts/AlertCenter'
 import { AlertProvider } from './components/Alerts/AlertProvider'
 import UserSettings from './components/UserSettings/UserSettings'
+import ThemeToggle from './components/ThemeToggle/ThemeToggle'
 
 function App() {
   const [activeUser, setActiveUser] = useState(null)
@@ -73,6 +74,7 @@ function App() {
         <div className="app-layout">
           <Nav />
           <div className="app-toolbar">
+            <ThemeToggle />
             <AlertCenter />
             <UserSettings activeUser={activeUser} onLogout={handleLogout} />
           </div>

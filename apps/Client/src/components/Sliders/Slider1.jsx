@@ -20,7 +20,7 @@ function Slider1({ text, value, onChange, max, min }) {
         min={min || 0}
         max={max || 100}
         aria-label="Default" 
-        valueLabelDisplay="auto" 
+        valueLabelDisplay="on" 
         onChange={handleChange}
       />
     </Box>

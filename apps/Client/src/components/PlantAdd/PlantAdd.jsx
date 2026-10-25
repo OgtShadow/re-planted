@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import connectionManager, { userPlantsEndpoint } from "../../connectionManager";
 import "./PlantAdd.css";
 import defaultPlantImage from '../../resources/plant.jpg';
 
 function PlantAdd() {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [species, setSpecies] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -40,8 +42,27 @@ function PlantAdd() {
 
   return ( 
 <div className="plant-add-container">
+  <button
+    type="button"
+    className="button-secondary back-button"
+    onClick={() => navigate("/")}
+  >
+    &larr; Back to List
+  </button>
   <h1> Create Plant</h1>
   <div className="plant-add-info-grid">
+    <div className="plant-add-info-item info-item">
+      <label htmlFor="plant-image">Zdjęcie rośliny</label>
+      <input
+        id="plant-image"
+        type="file"
+        accept="image/*"
+        onChange={handleImageChange}
+      />
+      <div className="plant-image-preview">
+        <img src={imageUrl || defaultPlantImage} alt="Podgląd rośliny" />
+      </div>
+    </div>
     <div className="plant-add-info-section">
     <div className="plant-add-info-item info-item">
       <input
@@ -59,26 +80,14 @@ function PlantAdd() {
         onChange={(e) => setSpecies(e.target.value)}
       />
     </div>
+    <div className="add-actions">
+      <button className="add-button" onClick={handleCreatePlant}>
+        Dodaj roślinę
+      </button>
     </div>
-    <div className="plant-add-info-item info-item">
-      <label htmlFor="plant-image">Zdjęcie rośliny</label>
-      <input
-        id="plant-image"
-        type="file"
-        accept="image/*"
-        onChange={handleImageChange}
-      />
-      <div className="plant-image-preview">
-        <img src={imageUrl || defaultPlantImage} alt="Podgląd rośliny" />
-      </div>
+    <p>{response}</p>
     </div>
   </div>
-  <div className="add-actions">
-    <button className="button-primary add-plant-button" onClick={handleCreatePlant}>
-      Dodaj roślinę
-    </button>
-  </div>
-  <p>{response}</p>
 </div>      
   );
 }

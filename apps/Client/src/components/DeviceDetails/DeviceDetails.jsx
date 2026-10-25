@@ -152,33 +152,33 @@ function DeviceDetails() {
             </div>
 
             <div className="device-info-grid">
-                <div className="info-item">
+                <div className="device-info-item">
                     <h3>Typ:</h3>
                     <p className="value">{device.deviceKind || 'actuator'}</p>
                 </div>
                 {!isSensorDevice ? (
-                    <div className="info-item">
+                    <div className="device-info-item">
                         <h3>Parameter:</h3>
                         <p className="value">{device.targetParameter}</p>
                     </div>
                 ) : null}
-                <div className="info-item">
+                <div className="device-info-item">
                     <h3>Czujniki:</h3>
                     <p className="value">{Array.isArray(device.sensorFields) && device.sensorFields.length > 0 ? device.sensorFields.join(', ') : 'brak'}</p>
                 </div>
-                <div className="info-item">
+                <div className="device-info-item">
                     <h3>Telemetry ID:</h3>
                     <p className="value">{device.externalDeviceId || 'brak'}</p>
                 </div>
                 {!isSensorDevice ? (
-                    <div className="info-item">
+                    <div className="device-info-item">
                         <h3>Effect Strength:</h3>
                         <p className="value">{device.effectStrength}</p>
                     </div>
                 ) : null}
             </div>
 
-            <div className="info-item">
+            <div className="device-info-item">
                 <h3>Przypisane rośliny</h3>
                 {Array.isArray(device.plants) && device.plants.length > 0 ? (
                     <ul className="relation-list">
@@ -207,7 +207,7 @@ function DeviceDetails() {
                 {assignMessage ? <p>{assignMessage}</p> : null}
             </div>
             {!isSensorDevice ? (
-                <section className="info-item" aria-labelledby="manual-control-title">
+                <section className="device-info-item manual-control" aria-labelledby="manual-control-title">
                     <div>
                         <h3>Sterowanie ręczne</h3>
                     </div>
@@ -227,7 +227,7 @@ function DeviceDetails() {
                     {!device.isEnabled ? <p className="manual-safety-note">Sterowanie zablokowane, ponieważ urządzenie jest wyłączone.</p> : null}
                 </section>
             ) : null}
-            <div className="edit-device-container">
+            <div className="device-edit-actions">
             <button className="button-primary edit-device-button" onClick={() => setIsEditing(true)}>Edit Device</button>
             </div>
 

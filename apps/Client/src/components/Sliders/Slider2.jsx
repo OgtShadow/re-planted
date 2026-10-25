@@ -23,7 +23,7 @@ function Slider2({ text, value, onChange, min, max }) {
           getAriaLabel={() => text}
           value={value || [0, 100]}
           onChange={handleChange}
-          valueLabelDisplay="auto"
+          valueLabelDisplay="on"
           getAriaValueText={valuetext}
           min={min || 0}
           max={max || 100}

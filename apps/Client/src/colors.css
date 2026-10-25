@@ -14,6 +14,7 @@
 .dark-mode {
     --background-color: #222;
     --dark-background-color: #2d3124;
+    --border-color: #cadf92;
     --dark-color: #1C352D;
     --accent-color-dark: #F5C9B0;
     --accent-color-light: #291305;
