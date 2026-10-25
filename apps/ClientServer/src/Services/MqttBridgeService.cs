@@ -107,6 +107,10 @@ public sealed class MqttBridgeService : BackgroundService, IMqttBridgeService, I
         }
 
         var normalizedCommand = string.IsNullOrWhiteSpace(command) ? "pump" : command.Trim().ToLowerInvariant();
+        if (string.Equals(normalizedCommand, "light", StringComparison.OrdinalIgnoreCase))
+        {
+            normalizedCommand = "lamp";
+        }
         var isPump = string.Equals(normalizedCommand, "pump", StringComparison.OrdinalIgnoreCase);
 
         if (durationMs < 0 || (isPump && state && durationMs == 0))

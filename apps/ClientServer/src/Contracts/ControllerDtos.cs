@@ -7,7 +7,11 @@ public sealed record ControllerPlantParametersDto(
     int HumidityMax,
     int LightHoursPerDay,
     int TemperatureMin,
-    int TemperatureMax);
+    int TemperatureMax,
+    int SoilMoistureMin = 300,
+    int SoilMoistureMax = 700,
+    TimeSpan? LightScheduleStart = null,
+    TimeSpan? LightScheduleEnd = null);
 
 /// <summary>Represents a single actuator device assigned to a plant.</summary>
 public sealed record ControllerDeviceDto(
@@ -27,7 +31,8 @@ public sealed record ControllerPlantDto(
     string Name,
     string Species,
     ControllerPlantParametersDto Parameters,
-    IReadOnlyList<ControllerDeviceDto> Devices);
+    IReadOnlyList<ControllerDeviceDto> Devices,
+    DateTime? LastWateredUtc = null);
 
 /// <summary>Represents the synchronized topology for one ClientId.</summary>
 public sealed record ControllerTopologyDto(

@@ -31,7 +31,8 @@ public static class AlertEndpoints
             if (request.PlantId <= 0 ||
                 parameter is null ||
                 !(string.Equals(parameter, "temperature", StringComparison.OrdinalIgnoreCase) ||
-                  string.Equals(parameter, "humidity", StringComparison.OrdinalIgnoreCase)) ||
+                                    string.Equals(parameter, "humidity", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(parameter, "soilMoisture", StringComparison.OrdinalIgnoreCase)) ||
                 !double.IsFinite(request.Value) ||
                 !double.IsFinite(request.Min) ||
                 !double.IsFinite(request.Max) ||
@@ -46,7 +47,12 @@ public static class AlertEndpoints
 
             var normalizedParameter = parameter.ToLowerInvariant();
             var sourceKey = $"plant-range:{plant.Id}:{normalizedParameter}";
-            var valueLabel = normalizedParameter == "temperature" ? "°C" : "%";
+            var valueLabel = normalizedParameter switch
+            {
+                "temperature" => "°C",
+                "humidity" => "%",
+                _ => " (skala czujnika 0-1000)"
+            };
             var sensorLabel = string.IsNullOrWhiteSpace(request.SensorDeviceId) ? string.Empty : $" Czujnik: {request.SensorDeviceId}.";
 
             await alertService.CreateIfActiveMissingAsync(

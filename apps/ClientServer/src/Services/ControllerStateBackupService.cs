@@ -8,6 +8,7 @@ public sealed class ControllerStateBackupSnapshot
     public List<ClientServer.Contracts.ControllerTopologyDto> Topologies { get; set; } = new();
     public List<ClientServer.Contracts.ControllerTelemetryDto> Telemetry { get; set; } = new();
     public List<ClientServer.Contracts.ControllerConfigurationSnapshot> Configurations { get; set; } = new();
+    public Dictionary<int, DateOnly> WateringSkippedDates { get; set; } = new();
 }
 
 public sealed class ControllerStateBackupService : BackgroundService

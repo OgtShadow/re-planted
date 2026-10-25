@@ -6,6 +6,7 @@ public sealed class MainServerApiOptions
 
     public string BaseUrl { get; set; } = "http://localhost:8080";
     public string PlantsPath { get; set; } = "/api/users/{clientId}/plants";
+    public string PlantWateredPath { get; set; } = "/api/users/{clientId}/plants/{plantId}/watered";
     public string ParameterRangeAlertPath { get; set; } = "/api/users/{clientId}/alerts/parameter-range";
 }
 

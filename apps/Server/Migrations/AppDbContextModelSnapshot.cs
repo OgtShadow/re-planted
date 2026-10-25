@@ -469,6 +469,25 @@ namespace Server.Migrations
                                 .HasForeignKey("ParametersId");
                         });
 
+                    b.OwnsOne("RePlanted.Server.Models.Range", "SoilMoisture", b1 =>
+                        {
+                            b1.Property<int>("ParametersId")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Max")
+                                .HasColumnType("integer");
+
+                            b1.Property<int>("Min")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("ParametersId");
+
+                            b1.ToTable("Parameters");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ParametersId");
+                        });
+
                     b.OwnsOne("RePlanted.Server.Models.Range", "Temperature", b1 =>
                         {
                             b1.Property<int>("ParametersId")
@@ -489,6 +508,9 @@ namespace Server.Migrations
                         });
 
                     b.Navigation("Humidity")
+                        .IsRequired();
+
+                    b.Navigation("SoilMoisture")
                         .IsRequired();
 
                     b.Navigation("Temperature")

@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Parameters>(entity =>
         {
             entity.OwnsOne(p => p.Humidity);
+            entity.OwnsOne(p => p.SoilMoisture);
             entity.OwnsOne(p => p.Temperature);
         });
 

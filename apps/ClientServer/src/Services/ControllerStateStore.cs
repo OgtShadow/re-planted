@@ -12,6 +12,8 @@ public interface IControllerStateStore
     void UpdateTopology(int clientId, ControllerTopologyDto topology);
     void UpdateConfiguration(ControllerConfigurationSnapshot configuration);
     void UpdateTelemetry(int clientId, ControllerTelemetryDto telemetry);
+    IReadOnlyDictionary<int, DateOnly> GetWateringSkippedDates();
+    void MarkWateringSkipped(int plantId, DateOnly date);
     ControllerStateBackupSnapshot GetSnapshot();
     void RestoreSnapshot(ControllerStateBackupSnapshot snapshot);
 }
@@ -23,6 +25,7 @@ public sealed class ControllerStateStore : IControllerStateStore
     private readonly Dictionary<int, ControllerConfigurationSnapshot> _configurations = new();
     private readonly Dictionary<int, ControllerTelemetryDto> _telemetrySnapshots = new();
     private readonly Dictionary<int, PumpControlStateMachine> _machines = new();
+    private readonly Dictionary<int, DateOnly> _wateringSkippedDates = new();
 
     public ControllerTopologyDto? GetTopology(int clientId)
     {
@@ -96,6 +99,22 @@ public sealed class ControllerStateStore : IControllerStateStore
         }
     }
 
+    public IReadOnlyDictionary<int, DateOnly> GetWateringSkippedDates()
+    {
+        lock (_gate)
+        {
+            return new Dictionary<int, DateOnly>(_wateringSkippedDates);
+        }
+    }
+
+    public void MarkWateringSkipped(int plantId, DateOnly date)
+    {
+        lock (_gate)
+        {
+            _wateringSkippedDates[plantId] = date;
+        }
+    }
+
     public ControllerStateBackupSnapshot GetSnapshot()
     {
         lock (_gate)
@@ -105,7 +124,8 @@ public sealed class ControllerStateStore : IControllerStateStore
                 SavedAtUtc = DateTime.UtcNow,
                 Topologies = _topologies.Values.ToList(),
                 Telemetry = _telemetrySnapshots.Values.ToList(),
-                Configurations = _configurations.Values.ToList()
+                Configurations = _configurations.Values.ToList(),
+                WateringSkippedDates = new Dictionary<int, DateOnly>(_wateringSkippedDates)
             };
         }
     }
@@ -117,6 +137,7 @@ public sealed class ControllerStateStore : IControllerStateStore
             _topologies.Clear();
             _configurations.Clear();
             _telemetrySnapshots.Clear();
+            _wateringSkippedDates.Clear();
 
             foreach (var topology in snapshot.Topologies)
             {
@@ -132,6 +153,11 @@ public sealed class ControllerStateStore : IControllerStateStore
             foreach (var telemetry in snapshot.Telemetry)
             {
                 _telemetrySnapshots[telemetry.ClientId] = telemetry;
+            }
+
+            foreach (var skippedDate in snapshot.WateringSkippedDates)
+            {
+                _wateringSkippedDates[skippedDate.Key] = skippedDate.Value;
             }
         }
     }

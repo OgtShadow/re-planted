@@ -116,8 +116,11 @@ public static class PlantEndpoints
             {
                 plant.Parameters.Temperature = updatedPlant.Parameters.Temperature;
                 plant.Parameters.Humidity = updatedPlant.Parameters.Humidity;
+                plant.Parameters.SoilMoisture = updatedPlant.Parameters.SoilMoisture;
                 plant.Parameters.WateringIntervalDays = updatedPlant.Parameters.WateringIntervalDays;
                 plant.Parameters.LightHoursPerDay = updatedPlant.Parameters.LightHoursPerDay;
+                plant.Parameters.LightScheduleStart = updatedPlant.Parameters.LightScheduleStart;
+                plant.Parameters.LightScheduleEnd = updatedPlant.Parameters.LightScheduleEnd;
             }
             else if (updatedPlant.Parameters != null)
             {
@@ -132,6 +135,26 @@ public static class PlantEndpoints
             .WithSummary("Update user plant")
             .WithDescription("Updates plant data only when the plant belongs to the specified user.")
             .Accepts<UpsertPlantRequest>("application/json")
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        plants.MapPost("/{id:int}/watered", async (int userId, int id, ClaimsPrincipal principal, AppDbContext db, IHubContext<PlantHub> hubContext) =>
+        {
+            if (!IsRequestUserAuthorized(principal, userId))
+            {
+                return Results.Forbid();
+            }
+
+            var plant = await db.Plants.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+            if (plant is null) return Results.NotFound();
+
+            plant.Water();
+            await db.SaveChangesAsync();
+            await hubContext.Clients.Group(UserHubAuthorization.GroupName(userId)).SendAsync("PlantsUpdated");
+
+            return Results.Ok(new { plant.Id, plant.LastWatered });
+        })
+            .WithSummary("Record an automatic watering event")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 

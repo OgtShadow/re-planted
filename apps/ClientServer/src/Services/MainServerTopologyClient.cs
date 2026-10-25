@@ -11,6 +11,7 @@ public interface IMainServerTopologyClient
     Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken);
     Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken);
     Task ReportParameterRangeIssueAsync(int clientId, ParameterRangeIssue issue, CancellationToken cancellationToken);
+    Task MarkPlantWateredAsync(int clientId, int plantId, CancellationToken cancellationToken);
 }
 
 public sealed class MainServerTopologyClient : IMainServerTopologyClient
@@ -87,6 +88,28 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         }
     }
 
+    public async Task MarkPlantWateredAsync(int clientId, int plantId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = _options.PlantWateredPath
+                .Replace("{clientId}", clientId.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{plantId}", plantId.ToString(), StringComparison.OrdinalIgnoreCase);
+            using var request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _jwtTokenProvider.CreateClientToken(clientId));
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Nie udało się zapisać podlania rośliny {PlantId}. Kod: {StatusCode}", plantId, response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Nie udało się zapisać podlania rośliny {PlantId}.", plantId);
+        }
+    }
+
     public async Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken)
     {
         try
@@ -132,7 +155,11 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
                 plant.Parameters?.Humidity?.Max ?? 100,
                 plant.Parameters?.LightHoursPerDay ?? 0,
                 plant.Parameters?.Temperature?.Min ?? 0,
-                plant.Parameters?.Temperature?.Max ?? 100),
+                plant.Parameters?.Temperature?.Max ?? 100,
+                plant.Parameters?.SoilMoisture?.Min ?? 300,
+                plant.Parameters?.SoilMoisture?.Max ?? 700,
+                plant.Parameters?.LightScheduleStart,
+                plant.Parameters?.LightScheduleEnd),
             (plant.Devices ?? []).Select(device => new ControllerDeviceDto(
                 device.Id,
                 string.IsNullOrWhiteSpace(device.Name) ? $"Urządzenie {device.Id}" : device.Name,
@@ -142,7 +169,8 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
                 device.ExternalDeviceId ?? string.Empty,
                 device.EffectType ?? string.Empty,
                 device.EffectStrength,
-                device.IsEnabled)).ToList());
+                device.IsEnabled)).ToList(),
+            plant.LastWatered);
     }
 
     private sealed record PlantDto(
@@ -150,13 +178,17 @@ public sealed class MainServerTopologyClient : IMainServerTopologyClient
         string Name,
         string Species,
         PlantParametersDto? Parameters,
-        List<DeviceDto>? Devices);
+        List<DeviceDto>? Devices,
+        DateTime? LastWatered);
 
     private sealed record PlantParametersDto(
         int WateringIntervalDays,
         RangeDto? Humidity,
         int LightHoursPerDay,
-        RangeDto? Temperature);
+        RangeDto? Temperature,
+        RangeDto? SoilMoisture,
+        TimeSpan? LightScheduleStart,
+        TimeSpan? LightScheduleEnd);
 
     private sealed record RangeDto(int Min, int Max);
 

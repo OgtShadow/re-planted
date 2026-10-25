@@ -87,6 +87,15 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         var downloadedConfiguration = await _topologyClient.GetConfigurationAsync(clientId, cancellationToken);
         if (downloadedConfiguration is not null)
         {
+            var existingConfiguration = _stateStore.GetConfiguration(clientId);
+            if (existingConfiguration is not null)
+            {
+                downloadedConfiguration = downloadedConfiguration with
+                {
+                    Topology = RetainLatestWateringTimestamps(downloadedConfiguration.Topology, existingConfiguration.Topology)
+                };
+            }
+
             _stateStore.UpdateConfiguration(downloadedConfiguration);
         }
 
@@ -98,6 +107,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         }
 
         var nowUtc = DateTime.UtcNow;
+        var nowLocal = DateTime.Now;
         var configurationExpired = configuration is null || configuration.ExpiresAtUtc <= nowUtc;
         var automationAllowed = configuration is not null &&
             (!configurationExpired || (_offlineOptions.Enabled && _offlineOptions.ContinueWithExpiredSnapshot));
@@ -148,8 +158,17 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             var evaluation = _automationEngine.Evaluate(
                 currentTopology,
                 telemetry,
+                nowUtc,
+                nowLocal,
+                _stateStore.GetWateringSkippedDates(),
                 _options.PumpRunSeconds,
                 _options.MaxPumpRunSeconds);
+            var localDate = DateOnly.FromDateTime(nowLocal);
+            foreach (var skippedPlantId in evaluation.WateringSkippedPlantIds)
+            {
+                _stateStore.MarkWateringSkipped(skippedPlantId, localDate);
+            }
+
             var activeActionPrefixes = evaluation.OutOfRangeKeys
                 .Select(key => $"{clientId}:{key}:")
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -183,6 +202,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
                 }
 
                 var isPumpAction = action.State && string.Equals(action.Command, "pump", StringComparison.OrdinalIgnoreCase);
+                var isSoilWateringAction = isPumpAction && string.Equals(action.Parameter, "soilMoisture", StringComparison.OrdinalIgnoreCase);
                 if (isPumpAction && pumpStateMachine.IsInSoak(nowUtc))
                 {
                     continue;
@@ -225,8 +245,26 @@ public sealed class IoTControllerBackgroundService : BackgroundService
                     action.Command,
                     action.ActuatorExternalDeviceId);
 
-                if (isPumpAction)
+                if (isSoilWateringAction)
                 {
+                    var wateredTopology = currentTopology with
+                    {
+                        Plants = currentTopology.Plants
+                            .Select(plant => plant.Id == action.PlantId ? plant with { LastWateredUtc = nowUtc } : plant)
+                            .ToList()
+                    };
+                    currentTopology = wateredTopology;
+                    if (configuration is not null)
+                    {
+                        configuration = configuration with { Topology = wateredTopology };
+                        _stateStore.UpdateConfiguration(configuration);
+                    }
+                    else
+                    {
+                        _stateStore.UpdateTopology(clientId, wateredTopology);
+                    }
+
+                    await _topologyClient.MarkPlantWateredAsync(clientId, action.PlantId, cancellationToken);
                     pumpStateMachine.BeginWatering(action.PlantName);
                     pumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
                     break;
@@ -288,6 +326,28 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             if (payload.WaterLevel.HasValue) fields.Add("waterLevelCm");
             return fields;
             }
+
+        private static ControllerTopologyDto RetainLatestWateringTimestamps(
+            ControllerTopologyDto downloadedTopology,
+            ControllerTopologyDto existingTopology)
+        {
+            var existingWateringTimes = existingTopology.Plants.ToDictionary(plant => plant.Id, plant => plant.LastWateredUtc);
+            var plants = downloadedTopology.Plants
+                .Select(plant =>
+                {
+                    if (!existingWateringTimes.TryGetValue(plant.Id, out var existingWateredUtc) ||
+                        existingWateredUtc is null ||
+                        plant.LastWateredUtc >= existingWateredUtc)
+                    {
+                        return plant;
+                    }
+
+                    return plant with { LastWateredUtc = existingWateredUtc };
+                })
+                .ToList();
+
+            return downloadedTopology with { Plants = plants };
+        }
 
     private IReadOnlyList<int> ResolveClientIds()
     {

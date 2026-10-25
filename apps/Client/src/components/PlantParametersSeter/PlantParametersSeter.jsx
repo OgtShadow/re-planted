@@ -25,6 +25,17 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
         if (setPlant) {setPlant(newPlant);}
     };
 
+    const handleSoilMoistureChange = (newValue) => {
+        const newPlant = { ...plant };
+        if (!newPlant.parameters) newPlant.parameters = {};
+        if (!newPlant.parameters.soilMoisture) newPlant.parameters.soilMoisture = {};
+
+        newPlant.parameters.soilMoisture.min = newValue[0];
+        newPlant.parameters.soilMoisture.max = newValue[1];
+
+        if (setPlant) {setPlant(newPlant);}
+    };
+
     const handleLightHoursChange = (newValue) => {
         const newPlant = { ...plant };
         if (!newPlant.parameters) newPlant.parameters = {};
@@ -71,6 +82,11 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
         plant?.parameters?.humidity?.max ?? 100
     ];
 
+    const soilMoistureVal = [
+        plant?.parameters?.soilMoisture?.min ?? 300,
+        plant?.parameters?.soilMoisture?.max ?? 700
+    ];
+
     const lightVal = plant?.parameters?.lightHoursPerDay ?? 12;
 
     const wateringVal = plant?.parameters?.wateringIntervalDays ?? 7;
@@ -98,6 +114,14 @@ const PlantParametersSeter = ({ plant, setPlant }) => {
                     onChange={handleHumidityChange}
                     min={0}
                     max={100}
+                />
+
+                <Slider2
+                    text="Zakres wilgotności gleby (skala czujnika 0-1000)"
+                    value={soilMoistureVal}
+                    onChange={handleSoilMoistureChange}
+                    min={0}
+                    max={1000}
                 />
                 
                 <Slider1

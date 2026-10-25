@@ -7,6 +7,7 @@ public class Parameters
     public int Id { get; set; }
     public int WateringIntervalDays { get; set; }
     public Range Humidity { get; set; }
+    public Range SoilMoisture { get; set; }
     public int LightHoursPerDay { get; set; }
     public Range Temperature { get; set; }
 
@@ -18,6 +19,7 @@ public class Parameters
     {
         WateringIntervalDays = 0;
         Humidity = new Range(0, 100);
+        SoilMoisture = new Range(300, 700);
         LightHoursPerDay = 0;
         Temperature = new Range(0, 100);
     }
@@ -26,6 +28,7 @@ public class Parameters
     {
         WateringIntervalDays = 3;
         Humidity = new Range(30, 70);
+        SoilMoisture = new Range(300, 700);
         LightHoursPerDay = 6;
         Temperature = new Range(15, 25);
     }
@@ -34,6 +37,7 @@ public class Parameters
     {
         WateringIntervalDays = wateringIntervalDays;
         Humidity = humidity;
+        SoilMoisture = new Range(300, 700);
         LightHoursPerDay = lightHoursPerDay;
         Temperature = temperature;
     }

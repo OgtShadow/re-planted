@@ -1,6 +1,6 @@
 # ClientServer: tryb offline i snapshot konfiguracji
 
-`ClientServer` jest lokalnym kontrolerem IoT. Do sterowania urządzeniami używa lokalnej telemetrii i MQTT, a z `Server` pobiera rośliny, ich zakresy parametrów oraz przypisane urządzenia. Utrata połączenia z `Server` nie przerywa pracy kontrolera, o ile istnieje ważny lokalny snapshot konfiguracji.
+`ClientServer` jest lokalnym kontrolerem IoT. Do sterowania urządzeniami używa lokalnej telemetrii i MQTT, a z `Server` pobiera rośliny, zakresy parametrów i czas ostatniego podlewania. Automatycznie planuje podlewanie według `WateringIntervalDays`, wymusza je przy zbyt suchej glebie, pomija je do końca dnia przy zbyt mokrej glebie i steruje światłem według `LightHoursPerDay` oraz okna godzinowego. Utrata połączenia z `Server` nie przerywa pracy kontrolera, o ile istnieje ważny lokalny snapshot konfiguracji.
 
 ## Synchronizacja konfiguracji
 
@@ -20,9 +20,9 @@ Ważność ustawia `OfflineMode:SnapshotValidityMinutes` (domyślnie 1440 minut,
 - `Version` - wersję SHA-256 konfiguracji,
 - `FetchedAtUtc` - czas poprawnego pobrania,
 - `ExpiresAtUtc` - czas końca ważności,
-- `Topology` - rośliny, ich zakresy temperatury i wilgotności oraz przypisane urządzenia.
+- `Topology` - rośliny, zakresy temperatury, wilgotności powietrza i gleby, przypisane urządzenia, `LastWatered` oraz parametry harmonogramu światła.
 
-Świeży snapshot jest używany normalnie. Kontroler porównuje temperaturę i wilgotność z zakresami rośliny, a gdy wartość jest poza zakresem, uruchamia przypisany, włączony aktuator o zgodnym parametrze i kierunku działania. Jeśli nie ma kompatybilnego aktuatora, zgłasza alert do `Server`; aktywny alert jest deduplikowany.
+Świeży snapshot jest używany normalnie. Kontroler podlewa według interwału, wymusza podlewanie przy zbyt suchej glebie, a po zbyt mokrym odczycie pomija podlewanie do końca lokalnego dnia. Lampa działa przez skonfigurowaną liczbę godzin dziennie w dozwolonym oknie. Wyjście parametrów poza zakres bez kompatybilnego aktuatora generuje alert do `Server`; aktywny alert jest deduplikowany.
 
 Po wygaśnięciu snapshotu domyślnie włącza się bezpieczny tryb degradacji: telemetria i lokalny MQTT nadal działają, lecz automatyczne korekty nie są wykonywane. Można wymusić dalsze używanie wygasłej konfiguracji przez `OfflineMode:ContinueWithExpiredSnapshot=true`. `OfflineMode:Enabled=false` wyłącza używanie wygasłych snapshotów, ale nie wyłącza automatyzacji na świeżej konfiguracji.
 

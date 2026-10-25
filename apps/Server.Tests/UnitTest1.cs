@@ -86,9 +86,10 @@ public sealed class OfflineControllerTests
     [Fact]
     public void ReportsOutOfRangeParameterWhenNoCompatibleActuatorExists()
     {
+        var now = DateTime.UtcNow;
         var topology = new ControllerTopologyDto(
             1,
-            DateTime.UtcNow,
+            now,
             [new ControllerPlantDto(
                 10,
                 "Monstera",
@@ -97,12 +98,179 @@ public sealed class OfflineControllerTests
                 [new ControllerDeviceDto(30, "Sensor", "sensor", "", ["temperature"], "sensor-1", "", 0, true)])]);
         var telemetry = new ControllerTelemetryDto("sensor-1", 20, 100, 500, 10, false, false, DateTime.UtcNow, 1, "Idle", null, null, DateTime.UtcNow);
 
-        var result = new ParameterAutomationEngine().Evaluate(topology, telemetry, 2, 30);
+        var result = new ParameterAutomationEngine().Evaluate(
+            topology,
+            telemetry,
+            now,
+            now,
+            new Dictionary<int, DateOnly>(),
+            2,
+            30);
 
         Assert.Empty(result.Actions);
         var issue = Assert.Single(result.UnhandledRanges);
         Assert.Equal("temperature", issue.Parameter);
         Assert.Equal(10, issue.Value);
+    }
+
+    [Fact]
+    public void DrySoilTriggersWateringBeforeScheduledInterval()
+    {
+        var now = DateTime.UtcNow;
+        var topology = CreateSoilTopology(now, now, [
+            new ControllerDeviceDto(30, "Sensor", "sensor", "", ["soilMoistureAnalog"], "sensor-1", "", 0, true),
+            new ControllerDeviceDto(40, "Pump", "actuator", "soilMoisture", [], "pump-1", "increase", 10, true)
+        ]);
+        var telemetry = CreateSoilTelemetry(now, 200);
+
+        var result = new ParameterAutomationEngine().Evaluate(
+            topology,
+            telemetry,
+            now,
+            now,
+            new Dictionary<int, DateOnly>(),
+            2,
+            30);
+
+        var action = Assert.Single(result.Actions);
+        Assert.Equal("pump", action.Command);
+        Assert.True(action.State);
+        Assert.Equal(10, action.DurationSeconds);
+    }
+
+    [Fact]
+    public void WetSoilSkipsScheduledWateringForTheRestOfTheDay()
+    {
+        var now = DateTime.UtcNow;
+        var topology = CreateSoilTopology(now, now.AddDays(-4), [
+            new ControllerDeviceDto(30, "Sensor", "sensor", "", ["soilMoistureAnalog"], "sensor-1", "", 0, true),
+            new ControllerDeviceDto(40, "Pump", "actuator", "soilMoisture", [], "pump-1", "increase", 10, true)
+        ]);
+        var engine = new ParameterAutomationEngine();
+
+        var wetResult = engine.Evaluate(
+            topology,
+            CreateSoilTelemetry(now, 800),
+            now,
+            now,
+            new Dictionary<int, DateOnly>(),
+            2,
+            30);
+        var normalResult = engine.Evaluate(
+            topology,
+            CreateSoilTelemetry(now, 500),
+            now,
+            now,
+            new Dictionary<int, DateOnly> { [10] = DateOnly.FromDateTime(now) },
+            2,
+            30);
+        var dryAfterWetResult = engine.Evaluate(
+            topology,
+            CreateSoilTelemetry(now, 200),
+            now,
+            now,
+            new Dictionary<int, DateOnly> { [10] = DateOnly.FromDateTime(now) },
+            2,
+            30);
+
+        Assert.Empty(wetResult.Actions);
+        Assert.Contains(10, wetResult.WateringSkippedPlantIds);
+        Assert.Empty(normalResult.Actions);
+        Assert.Empty(dryAfterWetResult.Actions);
+    }
+
+    [Fact]
+    public void InRangeSoilUsesWateringIntervalAndConfiguredDailyLightHours()
+    {
+        var nowUtc = DateTime.UtcNow;
+        var nowLocal = new DateTime(2026, 10, 25, 9, 0, 0, DateTimeKind.Local);
+        var topology = CreateSoilTopology(nowUtc, nowUtc.AddDays(-4), [
+            new ControllerDeviceDto(30, "Sensor", "sensor", "", ["soilMoistureAnalog"], "sensor-1", "", 0, true),
+            new ControllerDeviceDto(40, "Pump", "actuator", "soilMoisture", [], "pump-1", "increase", 10, true),
+            new ControllerDeviceDto(50, "Lamp", "actuator", "light", [], "lamp-1", "set", 1, true)
+        ], lightScheduleStart: TimeSpan.FromHours(6), lightScheduleEnd: TimeSpan.FromHours(20));
+        var result = new ParameterAutomationEngine().Evaluate(
+            topology,
+            CreateSoilTelemetry(nowUtc, 500, lampState: false),
+            nowUtc,
+            nowLocal,
+            new Dictionary<int, DateOnly>(),
+            2,
+            30);
+
+        Assert.Contains(result.Actions, action => action.Command == "pump" && action.DurationSeconds == 2);
+        Assert.Contains(result.Actions, action => action.Command == "lamp" && action.State);
+    }
+
+    [Fact]
+    public async Task SuccessfulSoilWateringUpdatesPlantTimestampOnServerAndLocally()
+    {
+        const int clientId = 1;
+        var now = DateTime.UtcNow;
+        var topology = CreateSoilTopology(now, now.AddDays(-4), [
+            new ControllerDeviceDto(30, "Sensor", "sensor", "", ["soilMoistureAnalog"], "sensor-1", "", 0, true),
+            new ControllerDeviceDto(40, "Pump", "actuator", "soilMoisture", [], "pump-1", "increase", 10, true)
+        ]);
+        var stateStore = new ControllerStateStore();
+        stateStore.UpdateConfiguration(new ControllerConfigurationSnapshot(
+            clientId,
+            "snapshot-version",
+            now,
+            now.AddMinutes(30),
+            topology));
+        var mainServer = new CapturingMainServerClient();
+        var commandPublished = new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new IoTControllerBackgroundService(
+            mainServer,
+            new FixedTelemetryClient(CreateSoilTelemetry(now, 500)),
+            new CapturingMqttBridge(commandPublished),
+            new ParameterAutomationEngine(),
+            new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions
+            {
+                MaxPumpRunSeconds = 30,
+                MaxTelemetryAgeSeconds = 30,
+                LowWaterThresholdCm = 2
+            })),
+            stateStore,
+            new CapturingTelemetryPublisher(),
+            Options.Create(new IoTControllerOptions { ClientIds = [clientId], PollingIntervalSeconds = 5, SoakTimeSeconds = 10 }),
+            Options.Create(new OfflineModeOptions { Enabled = true }),
+            NullLogger<IoTControllerBackgroundService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        var command = await commandPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var wateredPlantId = await mainServer.WateredPlantId.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal("pump", command.Command);
+        Assert.Equal(10, wateredPlantId);
+        Assert.True(stateStore.GetTopology(clientId)!.Plants.Single().LastWateredUtc > now);
+    }
+
+    private static ControllerTopologyDto CreateSoilTopology(
+        DateTime syncedAtUtc,
+        DateTime? lastWateredUtc,
+        IReadOnlyList<ControllerDeviceDto> devices,
+        TimeSpan? lightScheduleStart = null,
+        TimeSpan? lightScheduleEnd = null)
+    {
+        return new ControllerTopologyDto(
+            1,
+            syncedAtUtc,
+            [new ControllerPlantDto(
+                10,
+                "Monstera",
+                "Monstera deliciosa",
+                new ControllerPlantParametersDto(3, 40, 70, 8, 18, 28, 300, 700, lightScheduleStart, lightScheduleEnd),
+                devices,
+                lastWateredUtc)]);
+    }
+
+    private static ControllerTelemetryDto CreateSoilTelemetry(DateTime timestampUtc, int soilMoisture, bool lampState = false)
+    {
+        return new ControllerTelemetryDto(
+            "sensor-1", soilMoisture, 220, 500, 10, false, lampState, timestampUtc, 1, "Idle", null, null, timestampUtc,
+            ["soilMoistureAnalog", "temperature", "humidity"]);
     }
 
     [Fact]
@@ -308,14 +476,21 @@ public sealed class OfflineControllerTests
         public Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerTopologyDto?>(null);
         public Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerConfigurationSnapshot?>(null);
         public Task ReportParameterRangeIssueAsync(int clientId, ParameterRangeIssue issue, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task MarkPlantWateredAsync(int clientId, int plantId, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class CapturingMainServerClient : IMainServerTopologyClient
     {
         public TaskCompletionSource<ParameterRangeIssue> ReportedIssue { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<int> WateredPlantId { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerTopologyDto?>(null);
         public Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerConfigurationSnapshot?>(null);
+        public Task MarkPlantWateredAsync(int clientId, int plantId, CancellationToken cancellationToken)
+        {
+            WateredPlantId.TrySetResult(plantId);
+            return Task.CompletedTask;
+        }
         public Task ReportParameterRangeIssueAsync(int clientId, ParameterRangeIssue issue, CancellationToken cancellationToken)
         {
             ReportedIssue.TrySetResult(issue);
