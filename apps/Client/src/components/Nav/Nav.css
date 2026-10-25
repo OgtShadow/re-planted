@@ -12,7 +12,7 @@
 
 .nav a {
     display: block;
-    color: var(--background-color);
+    color: #EEE;
     background-color: var(--dark-color);
     text-decoration: none;
     font-weight: 800;
@@ -20,7 +20,7 @@
 }
 
 .nav a:hover {
-    color: var(--background-color);
+    color: #EEE;
     background-color: var(--dark-color);
     text-decoration: none;
     font-weight: 800;
@@ -36,14 +36,14 @@
 }
 
 .nav-header a {
-    color: var(--background-color);
+    color: #EEE;
     text-decoration: none;
     font-weight: 800;
     font-size: 1.9rem;
 }
 
 .nav-header a:hover {
-    color: var(--background-color);
+    color: #EEE;
     text-decoration: none;
     font-weight: 800;
     font-size: 1.9rem;
@@ -61,7 +61,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--background-color);
+    color: #EEE;
     background-color: var(--dark-color);
     text-decoration: none;
     text-align: center;
@@ -95,7 +95,7 @@
 
 .user-label {
     overflow: hidden;
-    color: var(--background-color);
+    color: #EEE;
     font-size: 0.95rem;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -107,13 +107,13 @@
 
 .user-label:hover {
     overflow: hidden;
-    color: var(--background-color);
+    color: #EEE;
     font-size: 0.95rem;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
-    text-shadow: 0px 0px 6px var(--background-color);
+    text-shadow: 0px 0px 6px #EEE;
     transition: all 0.3s ease;
     font-weight: 800;
 }
@@ -138,14 +138,14 @@
 }
 
 .user-options-title {
-    color: var(--background-color);
+    color: #EEE;
     font-size: 0.8rem;
     font-weight: 600;
 }
 
 .logout-button {
     width: 100%;
-    border: 1px solid var(--background-color);
+    border: 1px solid #EEE;
     font-size: 0.8rem;
 }
 
