@@ -41,8 +41,7 @@ public sealed record ControllerConfigurationSnapshot(
     string Version,
     DateTime FetchedAtUtc,
     DateTime ExpiresAtUtc,
-    ControllerTopologyDto Topology,
-    IReadOnlyList<ControllerAutomationRuleDto> Rules);
+    ControllerTopologyDto Topology);
 
 /// <summary>Represents the latest aggregated telemetry snapshot produced by the IoT Controller.</summary>
 public sealed record ControllerTelemetryDto(
@@ -58,7 +57,8 @@ public sealed record ControllerTelemetryDto(
     string ControllerState,
     string? ActivePlantName,
     string? WarningMessage,
-    DateTime LastSyncUtc);
+    DateTime LastSyncUtc,
+    IReadOnlyList<string>? AvailableSensorFields = null);
 
 /// <summary>Represents the runtime status of the IoT Controller for a given client.</summary>
 public sealed record ControllerStatusDto(
@@ -103,29 +103,6 @@ public sealed record ActuatorCommandRequest(
     string Command,
     bool State,
     int DurationMs);
-
-/// <summary>Represents a persistent automation rule synchronized from the main server.</summary>
-public sealed record ControllerAutomationRuleDto(
-    int Id,
-    int PlantId,
-    string PlantName,
-    int SensorDeviceId,
-    string SensorField,
-    string Condition,
-    double Threshold,
-    int ActuatorDeviceId,
-    string ActuatorExternalDeviceId,
-    string ActuatorCommand,
-    string ActuatorEffectType,
-    double ActuatorEffectStrength,
-    string Action,
-    int DurationSeconds,
-    TimeSpan? ScheduleStartTime,
-    TimeSpan? ScheduleEndTime,
-    int Priority,
-    int CooldownMinutes,
-    string Status,
-    DateTime? LastTriggeredUtc);
 
 /// <summary>Handshake payload sent by an ESP32 node on first contact with the discovery topic.</summary>
 public sealed record DeviceRegistrationRequest(

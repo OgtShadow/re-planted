@@ -93,7 +93,7 @@ public sealed class IoTControllerController : ControllerBase
         if (configuration is null)
         {
             _logger.LogWarning("Nie udało się zsynchronizować konfiguracji dla klienta {ClientId}.", clientId);
-            return StatusCode(StatusCodes.Status502BadGateway, new { response = "Nie udało się zsynchronizować topologii i reguł z głównym serwerem." });
+            return StatusCode(StatusCodes.Status502BadGateway, new { response = "Nie udało się zsynchronizować topologii i parametrów roślin z głównym serwerem." });
         }
 
         _stateStore.UpdateConfiguration(configuration);
@@ -118,7 +118,7 @@ public sealed class IoTControllerController : ControllerBase
             configuration.Version,
             configuration.FetchedAtUtc,
             configuration.ExpiresAtUtc,
-            configuration.Rules.Count,
+            MonitoredPlants = configuration.Topology.Plants.Count,
             Offline = isExpired,
             AutomationEnabled = !isExpired
         });

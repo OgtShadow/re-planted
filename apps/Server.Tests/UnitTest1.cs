@@ -21,35 +21,16 @@ public sealed class OfflineControllerTests
                 "Monstera",
                 "Monstera deliciosa",
                 new ControllerPlantParametersDto(2, 40, 70, 8, 18, 28),
-                [])]);
-        var rule = new ControllerAutomationRuleDto(
-            20,
-            10,
-            "Monstera",
-            30,
-            "SoilMoistureAnalog",
-            "LessThan",
-            50,
-            40,
-            "pump-1",
-            "pump",
-            "water",
-            1,
-            "TurnOn",
-            2,
-            null,
-            null,
-            1,
-            0,
-            "Enabled",
-            null);
+                [
+                    new ControllerDeviceDto(30, "Sensor", "sensor", "", ["humidity"], "sensor-1", "", 0, true),
+                    new ControllerDeviceDto(40, "Pump", "actuator", "humidity", [], "pump-1", "increase", 5, true)
+                ])]);
         stateStore.UpdateConfiguration(new ControllerConfigurationSnapshot(
             clientId,
             "snapshot-version",
             DateTime.UtcNow.AddMinutes(-1),
             DateTime.UtcNow.AddMinutes(30),
-            topology,
-            [rule]));
+            topology));
 
         var service = new IoTControllerBackgroundService(
             new OfflineMainServerClient(),
@@ -57,7 +38,7 @@ public sealed class OfflineControllerTests
                 "sensor-1",
                 20,
                 22,
-                50,
+                300,
                 10,
                 false,
                 false,
@@ -68,7 +49,7 @@ public sealed class OfflineControllerTests
                 null,
                 DateTime.UtcNow)),
             new CapturingMqttBridge(commandPublished),
-            new AutomationRuleEngine(),
+            new ParameterAutomationEngine(),
             new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions
             {
                 MaxPumpRunSeconds = 30,
@@ -103,6 +84,72 @@ public sealed class OfflineControllerTests
     }
 
     [Fact]
+    public void ReportsOutOfRangeParameterWhenNoCompatibleActuatorExists()
+    {
+        var topology = new ControllerTopologyDto(
+            1,
+            DateTime.UtcNow,
+            [new ControllerPlantDto(
+                10,
+                "Monstera",
+                "Monstera deliciosa",
+                new ControllerPlantParametersDto(2, 40, 70, 8, 18, 28),
+                [new ControllerDeviceDto(30, "Sensor", "sensor", "", ["temperature"], "sensor-1", "", 0, true)])]);
+        var telemetry = new ControllerTelemetryDto("sensor-1", 20, 100, 500, 10, false, false, DateTime.UtcNow, 1, "Idle", null, null, DateTime.UtcNow);
+
+        var result = new ParameterAutomationEngine().Evaluate(topology, telemetry, 2, 30);
+
+        Assert.Empty(result.Actions);
+        var issue = Assert.Single(result.UnhandledRanges);
+        Assert.Equal("temperature", issue.Parameter);
+        Assert.Equal(10, issue.Value);
+    }
+
+    [Fact]
+    public async Task ControllerReportsUnhandledRangeToMainServer()
+    {
+        const int clientId = 1;
+        var now = DateTime.UtcNow;
+        var topology = new ControllerTopologyDto(
+            clientId,
+            now,
+            [new ControllerPlantDto(
+                10,
+                "Monstera",
+                "Monstera deliciosa",
+                new ControllerPlantParametersDto(2, 40, 70, 8, 18, 28),
+                [new ControllerDeviceDto(30, "Sensor", "sensor", "", ["temperature"], "sensor-1", "", 0, true)])]);
+        var stateStore = new ControllerStateStore();
+        stateStore.UpdateConfiguration(new ControllerConfigurationSnapshot(
+            clientId,
+            "snapshot-version",
+            now,
+            now.AddMinutes(30),
+            topology));
+        var mainServer = new CapturingMainServerClient();
+        var service = new IoTControllerBackgroundService(
+            mainServer,
+            new FixedTelemetryClient(new ControllerTelemetryDto(
+                "sensor-1", 20, 100, 500, 10, false, false, now, clientId, "Idle", null, null, now)),
+            new CapturingMqttBridge(new TaskCompletionSource<PublishedCommand>(TaskCreationOptions.RunContinuationsAsynchronously)),
+            new ParameterAutomationEngine(),
+            new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions())),
+            stateStore,
+            new CapturingTelemetryPublisher(),
+            Options.Create(new IoTControllerOptions { ClientIds = [clientId], PollingIntervalSeconds = 5 }),
+            Options.Create(new OfflineModeOptions { Enabled = true }),
+            NullLogger<IoTControllerBackgroundService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        var reportedIssue = await mainServer.ReportedIssue.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(10, reportedIssue.PlantId);
+        Assert.Equal("temperature", reportedIssue.Parameter);
+        Assert.Equal(10, reportedIssue.Value);
+    }
+
+    [Fact]
     public void PumpSafetyGuardClampsMaximumDurationAndBlocksLowWater()
     {
         var stateStore = new ControllerStateStore();
@@ -132,7 +179,7 @@ public sealed class OfflineControllerTests
             new OfflineMainServerClient(),
             new HungTelemetryClient(),
             new CapturingMqttBridge(commandPublished),
-            new AutomationRuleEngine(),
+            new ParameterAutomationEngine(),
             new PumpSafetyGuard(stateStore, Options.Create(new IoTControllerOptions { TelemetryTimeoutSeconds = 1 })),
             stateStore,
             new CapturingTelemetryPublisher(),
@@ -259,9 +306,21 @@ public sealed class OfflineControllerTests
     private sealed class OfflineMainServerClient : IMainServerTopologyClient
     {
         public Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerTopologyDto?>(null);
-        public Task<IReadOnlyList<ControllerAutomationRuleDto>?> GetAutomationRulesAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ControllerAutomationRuleDto>?>(null);
         public Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerConfigurationSnapshot?>(null);
-        public Task NotifyRuleTriggeredAsync(int clientId, int ruleId, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task ReportParameterRangeIssueAsync(int clientId, ParameterRangeIssue issue, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class CapturingMainServerClient : IMainServerTopologyClient
+    {
+        public TaskCompletionSource<ParameterRangeIssue> ReportedIssue { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<ControllerTopologyDto?> GetTopologyAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerTopologyDto?>(null);
+        public Task<ControllerConfigurationSnapshot?> GetConfigurationAsync(int clientId, CancellationToken cancellationToken) => Task.FromResult<ControllerConfigurationSnapshot?>(null);
+        public Task ReportParameterRangeIssueAsync(int clientId, ParameterRangeIssue issue, CancellationToken cancellationToken)
+        {
+            ReportedIssue.TrySetResult(issue);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FixedTelemetryClient : IMockDeviceClient

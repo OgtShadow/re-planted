@@ -8,20 +8,22 @@ public sealed class IoTControllerBackgroundService : BackgroundService
     private readonly IMainServerTopologyClient _topologyClient;
     private readonly IMockDeviceClient _mockDeviceClient;
     private readonly IMqttBridgeService _mqttBridgeService;
-    private readonly IAutomationRuleEngine _ruleEngine;
+    private readonly IParameterAutomationEngine _automationEngine;
     private readonly IPumpSafetyGuard _pumpSafetyGuard;
     private readonly IControllerStateStore _stateStore;
     private readonly IControllerTelemetryPublisher _telemetryPublisher;
     private readonly IoTControllerOptions _options;
     private readonly OfflineModeOptions _offlineOptions;
     private readonly ILogger<IoTControllerBackgroundService> _logger;
+    private readonly Dictionary<string, DateTime> _lastActuatorActionUtc = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DateTime> _lastRangeAlertUtc = new(StringComparer.OrdinalIgnoreCase);
     private bool _reportedEmptyClientSet;
 
     public IoTControllerBackgroundService(
         IMainServerTopologyClient topologyClient,
         IMockDeviceClient mockDeviceClient,
         IMqttBridgeService mqttBridgeService,
-        IAutomationRuleEngine ruleEngine,
+        IParameterAutomationEngine automationEngine,
         IPumpSafetyGuard pumpSafetyGuard,
         IControllerStateStore stateStore,
         IControllerTelemetryPublisher telemetryPublisher,
@@ -32,7 +34,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         _topologyClient = topologyClient;
         _mockDeviceClient = mockDeviceClient;
         _mqttBridgeService = mqttBridgeService;
-        _ruleEngine = ruleEngine;
+        _automationEngine = automationEngine;
         _pumpSafetyGuard = pumpSafetyGuard;
         _stateStore = stateStore;
         _telemetryPublisher = telemetryPublisher;
@@ -97,7 +99,7 @@ public sealed class IoTControllerBackgroundService : BackgroundService
 
         var nowUtc = DateTime.UtcNow;
         var configurationExpired = configuration is null || configuration.ExpiresAtUtc <= nowUtc;
-        var offlineAutomationAllowed = configuration is not null &&
+        var automationAllowed = configuration is not null &&
             (!configurationExpired || (_offlineOptions.Enabled && _offlineOptions.ContinueWithExpiredSnapshot));
 
         var pumpStateMachine = _stateStore.GetPumpStateMachine(clientId);
@@ -137,25 +139,63 @@ public sealed class IoTControllerBackgroundService : BackgroundService
         string? activePlantName = null;
         var warningMessage = pumpStateMachine.WarningMessage;
 
-        var rules = offlineAutomationAllowed ? configuration!.Rules : [];
         if (configurationExpired)
         {
             warningMessage ??= "Konfiguracja automatyzacji wygasła. Sterowanie automatyczne jest w trybie bezpiecznej degradacji.";
         }
-        if (rules.Count > 0 && !pumpStateMachine.IsInSoak(nowUtc))
+        if (automationAllowed)
         {
-            var decisions = _ruleEngine.Evaluate(rules, telemetry, nowUtc);
-            foreach (var decision in decisions)
+            var evaluation = _automationEngine.Evaluate(
+                currentTopology,
+                telemetry,
+                _options.PumpRunSeconds,
+                _options.MaxPumpRunSeconds);
+            var activeActionPrefixes = evaluation.OutOfRangeKeys
+                .Select(key => $"{clientId}:{key}:")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var staleKey in _lastActuatorActionUtc.Keys
+                         .Where(key => key.StartsWith($"{clientId}:", StringComparison.OrdinalIgnoreCase) &&
+                             !activeActionPrefixes.Any(prefix => key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                         .ToList())
             {
-                var isPumpAction = decision.State && string.Equals(decision.Command, "pump", StringComparison.OrdinalIgnoreCase);
-                var durationMs = Math.Max(1, decision.DurationSeconds) * 1000;
+                _lastActuatorActionUtc.Remove(staleKey);
+            }
+
+            foreach (var issue in evaluation.UnhandledRanges)
+            {
+                var alertKey = $"{clientId}:{issue.PlantId}:{issue.Parameter}";
+                if (_lastRangeAlertUtc.TryGetValue(alertKey, out var lastAlertUtc) && nowUtc - lastAlertUtc < TimeSpan.FromMinutes(1))
+                {
+                    continue;
+                }
+
+                await _topologyClient.ReportParameterRangeIssueAsync(clientId, issue, cancellationToken);
+                _lastRangeAlertUtc[alertKey] = nowUtc;
+            }
+
+            foreach (var action in evaluation.Actions)
+            {
+                var actionKey = $"{clientId}:{action.PlantId}:{action.Parameter}:{action.ActuatorDeviceId}";
+                if (_lastActuatorActionUtc.TryGetValue(actionKey, out var lastActionUtc) && nowUtc - lastActionUtc < TimeSpan.FromSeconds(Math.Max(30, _options.PollingIntervalSeconds * 2)))
+                {
+                    continue;
+                }
+
+                var isPumpAction = action.State && string.Equals(action.Command, "pump", StringComparison.OrdinalIgnoreCase);
+                if (isPumpAction && pumpStateMachine.IsInSoak(nowUtc))
+                {
+                    continue;
+                }
+
+                var durationMs = Math.Max(0, action.DurationSeconds) * 1000;
                 if (isPumpAction)
                 {
                     var safety = _pumpSafetyGuard.ValidateStart(clientId, durationMs, telemetry);
                     if (!safety.Allowed)
                     {
                         warningMessage = safety.RejectionReason;
-                        _logger.LogWarning("Zablokowano automatyczne uruchomienie pompy dla reguły {RuleId}: {Reason}", decision.Rule.Id, safety.RejectionReason);
+                        _logger.LogWarning("Zablokowano automatyczne uruchomienie pompy dla rośliny {PlantName}: {Reason}", action.PlantName, safety.RejectionReason);
                         pumpStateMachine.MarkBlocked(safety.RejectionReason ?? "Pompa zablokowana przez zabezpieczenie.");
                         continue;
                     }
@@ -164,32 +204,36 @@ public sealed class IoTControllerBackgroundService : BackgroundService
                 }
 
                 var published = await _mqttBridgeService.PublishActuatorCommandAsync(
-                    decision.ActuatorExternalDeviceId,
-                    decision.Command,
-                    decision.State,
+                    action.ActuatorExternalDeviceId,
+                    action.Command,
+                    action.State,
                     durationMs,
                     cancellationToken);
 
                 if (!published)
                 {
-                    _logger.LogWarning("Nie udało się wykonać reguły {RuleId} dla rośliny {PlantName}.", decision.Rule.Id, decision.Rule.PlantName);
+                    _logger.LogWarning("Nie udało się sterować parametrem {Parameter} aktuatora {ActuatorId} dla rośliny {PlantName}.", action.Parameter, action.ActuatorExternalDeviceId, action.PlantName);
                     continue;
                 }
 
-                await _topologyClient.NotifyRuleTriggeredAsync(clientId, decision.Rule.Id, cancellationToken);
-                activePlantName = decision.Rule.PlantName;
+                _lastActuatorActionUtc[actionKey] = nowUtc;
+                activePlantName = action.PlantName;
                 _logger.LogInformation(
-                    "Wykonano regułę {RuleId}: {Command} na urządzeniu {ActuatorId} dla rośliny {PlantName}.",
-                    decision.Rule.Id,
-                    decision.Command,
-                    decision.ActuatorExternalDeviceId,
-                    decision.Rule.PlantName);
+                    "Skorygowano parametr {Parameter} rośliny {PlantName} komendą {Command} na urządzeniu {ActuatorId}.",
+                    action.Parameter,
+                    action.PlantName,
+                    action.Command,
+                    action.ActuatorExternalDeviceId);
 
                 if (isPumpAction)
                 {
-                    pumpStateMachine.BeginWatering(decision.Rule.PlantName);
+                    pumpStateMachine.BeginWatering(action.PlantName);
                     pumpStateMachine.BeginSoak(nowUtc, TimeSpan.FromSeconds(Math.Clamp(_options.SoakTimeSeconds, 10, 600)));
                     break;
+                }
+                if (!action.State && string.Equals(action.Command, "pump", StringComparison.OrdinalIgnoreCase))
+                {
+                    pumpStateMachine.MarkIdle();
                 }
             }
         }
@@ -230,8 +274,20 @@ public sealed class IoTControllerBackgroundService : BackgroundService
             pumpStateMachine.Phase.ToString(),
             null,
             pumpStateMachine.WarningMessage,
-            DateTime.UtcNow);
+                DateTime.UtcNow,
+                GetAvailableSensorFields(payload));
     }
+
+            private static IReadOnlyList<string> GetAvailableSensorFields(TelemetryPayload payload)
+            {
+            var fields = new List<string>();
+            if (payload.SoilMoisture.HasValue) fields.Add("soilMoistureAnalog");
+            if (payload.LightLevel.HasValue) fields.Add("lightIsDark");
+            if (payload.Temperature.HasValue) fields.Add("temperature");
+            if (payload.Humidity.HasValue) fields.Add("humidity");
+            if (payload.WaterLevel.HasValue) fields.Add("waterLevelCm");
+            return fields;
+            }
 
     private IReadOnlyList<int> ResolveClientIds()
     {

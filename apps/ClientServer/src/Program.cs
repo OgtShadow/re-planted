@@ -39,7 +39,7 @@ try
 
 	builder.Services.AddSingleton<IJwtTokenProvider, JwtTokenProvider>();
 	builder.Services.AddSingleton<IControllerStateStore, ControllerStateStore>();
-	builder.Services.AddSingleton<IAutomationRuleEngine, AutomationRuleEngine>();
+	builder.Services.AddSingleton<IParameterAutomationEngine, ParameterAutomationEngine>();
 	builder.Services.AddSingleton<IPumpSafetyGuard, PumpSafetyGuard>();
 	builder.Services.AddSingleton<IControllerTelemetryPublisher, ControllerTelemetryPublisher>();
 	builder.Services.AddSingleton<IDeviceRegistrationStore, DeviceRegistrationStore>();

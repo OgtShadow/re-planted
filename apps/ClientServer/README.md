@@ -1,19 +1,16 @@
 # ClientServer: tryb offline i snapshot konfiguracji
 
-`ClientServer` jest lokalnym kontrolerem IoT. Do sterowania urządzeniami używa lokalnej telemetrii i MQTT, a z `Server` pobiera topologię roślin oraz reguły automatyzacji. Utrata połączenia z `Server` nie przerywa pracy kontrolera, o ile istnieje ważny lokalny snapshot konfiguracji.
+`ClientServer` jest lokalnym kontrolerem IoT. Do sterowania urządzeniami używa lokalnej telemetrii i MQTT, a z `Server` pobiera rośliny, ich zakresy parametrów oraz przypisane urządzenia. Utrata połączenia z `Server` nie przerywa pracy kontrolera, o ile istnieje ważny lokalny snapshot konfiguracji.
 
 ## Synchronizacja konfiguracji
 
 Dla każdego identyfikatora z `IoTController:ClientIds` cykl kontrolera wykonuje:
 
-1. Pobiera topologię roślin z `MainServerApi:PlantsPath`.
-2. Pobiera reguły z `MainServerApi:AutomationRulesPath`.
-3. Mapuje odpowiedzi do lokalnych kontraktów `ControllerTopologyDto` i `ControllerAutomationRuleDto`.
-4. Jeżeli oba żądania zakończą się powodzeniem, tworzy jeden `ControllerConfigurationSnapshot`.
-5. Oblicza `Version` jako SHA-256 z serializacji topologii i reguł.
-6. Zapisuje cały snapshot w pamięci procesu i w kolejnym backupie na dysku.
+1. Pobiera topologię roślin z `MainServerApi:PlantsPath`, razem z parametrami oraz przypisanymi czujnikami i aktuatorami.
+2. Tworzy jeden `ControllerConfigurationSnapshot` i oblicza `Version` jako SHA-256 z topologii.
+3. Zapisuje snapshot w pamięci procesu i w kolejnym backupie na dysku.
 
-Jeżeli pobranie topologii albo reguł się nie powiedzie, synchronizacja jest odrzucana w całości. Ostatnia poprawna konfiguracja pozostaje nienaruszona; pusta odpowiedź lub błąd serwera nie nadpisuje reguł.
+Jeżeli pobranie topologii się nie powiedzie, synchronizacja jest odrzucana w całości. Ostatnia poprawna konfiguracja pozostaje nienaruszona.
 
 ## Ważność snapshotu
 
@@ -23,12 +20,11 @@ Ważność ustawia `OfflineMode:SnapshotValidityMinutes` (domyślnie 1440 minut,
 - `Version` - wersję SHA-256 konfiguracji,
 - `FetchedAtUtc` - czas poprawnego pobrania,
 - `ExpiresAtUtc` - czas końca ważności,
-- `Topology` - rośliny i przypisane urządzenia,
-- `Rules` - reguły automatyzacji.
+- `Topology` - rośliny, ich zakresy temperatury i wilgotności oraz przypisane urządzenia.
 
-Świeży snapshot jest używany normalnie. Po utracie `Server` kontroler nadal odczytuje telemetrię, ocenia zapisane reguły i publikuje komendy przez MQTT. Próba zgłoszenia wykonania reguły do `Server` jest wtedy nieskuteczna, ale nie blokuje lokalnej komendy.
+Świeży snapshot jest używany normalnie. Kontroler porównuje temperaturę i wilgotność z zakresami rośliny, a gdy wartość jest poza zakresem, uruchamia przypisany, włączony aktuator o zgodnym parametrze i kierunku działania. Jeśli nie ma kompatybilnego aktuatora, zgłasza alert do `Server`; aktywny alert jest deduplikowany.
 
-Po wygaśnięciu snapshotu domyślnie włącza się bezpieczny tryb degradacji: telemetria i lokalny MQTT nadal działają, lecz reguły automatyczne nie są wykonywane. Można wymusić dalsze używanie wygasłej konfiguracji przez `OfflineMode:ContinueWithExpiredSnapshot=true`, ale powinno to być stosowane tylko świadomie. `OfflineMode:Enabled=false` wyłącza używanie wygasłych snapshotów, nie wyłącza automatyzacji na świeżej konfiguracji.
+Po wygaśnięciu snapshotu domyślnie włącza się bezpieczny tryb degradacji: telemetria i lokalny MQTT nadal działają, lecz automatyczne korekty nie są wykonywane. Można wymusić dalsze używanie wygasłej konfiguracji przez `OfflineMode:ContinueWithExpiredSnapshot=true`. `OfflineMode:Enabled=false` wyłącza używanie wygasłych snapshotów, ale nie wyłącza automatyzacji na świeżej konfiguracji.
 
 ## Zapisywanie i odtwarzanie
 
@@ -68,8 +64,7 @@ Przykładowy fragment pliku:
       "version": "...sha256...",
       "fetchedAtUtc": "2026-09-08T11:55:00Z",
       "expiresAtUtc": "2026-09-09T11:55:00Z",
-      "topology": {},
-      "rules": []
+      "topology": {}
     }
   ]
 }
@@ -83,30 +78,29 @@ Bieżący stan snapshotu można sprawdzić przez:
 GET /api/client-server/controllers/{clientId}/configuration
 ```
 
-Endpoint zwraca wersję, czas pobrania, czas wygaśnięcia, liczbę reguł oraz informację, czy automatyzacja jest jeszcze aktywna. Synchronizację ręczną można wymusić przez:
+Endpoint zwraca wersję, czas pobrania, czas wygaśnięcia, liczbę monitorowanych roślin oraz informację, czy automatyzacja jest jeszcze aktywna. Synchronizację ręczną można wymusić przez:
 
 ```text
 POST /api/client-server/controllers/{clientId}/sync
 ```
 
-Ręczna synchronizacja również wymaga poprawnego pobrania topologii i reguł; w razie błędu istniejący snapshot pozostaje zachowany.
+Ręczna synchronizacja wymaga poprawnego pobrania topologii; w razie błędu istniejący snapshot pozostaje zachowany.
 
 ## Ochrona pliku
 
-Snapshot zawiera konfigurację urządzeń i reguły, dlatego katalog `data` powinien mieć prawa dostępowe ograniczone do procesu `ClientServer`. W środowisku Docker należy przechowywać go na prywatnym, trwałym wolumenie i nie publikować pliku `controller-state.json` w repozytorium.
+Snapshot zawiera konfigurację urządzeń, dlatego katalog `data` powinien mieć prawa dostępowe ograniczone do procesu `ClientServer`. W środowisku Docker należy przechowywać go na prywatnym, trwałym wolumenie i nie publikować pliku `controller-state.json` w repozytorium.
 
 ## Test działania bez głównego Servera
 
-Test `UsesLastValidSnapshotAndPublishesCommandWhenMainServerIsOffline` znajduje się w [apps/Server.Tests/UnitTest1.cs](../Server.Tests/UnitTest1.cs). Jest to test cyklu `IoTControllerBackgroundService` z prawdziwym silnikiem reguł, ale z kontrolowanymi adapterami urządzeń.
+Test `UsesLastValidSnapshotAndPublishesCommandWhenMainServerIsOffline` znajduje się w [apps/Server.Tests/UnitTest1.cs](../Server.Tests/UnitTest1.cs). Testuje cykl `IoTControllerBackgroundService` na zapisanym zakresie rośliny i kontrolowanych adapterach urządzeń.
 
 Scenariusz testu:
 
-1. Do `ControllerStateStore` zostaje wpisany ważny snapshot zawierający roślinę i aktywną regułę podlewania.
-2. Fikcyjny klient głównego Servera zwraca `null` dla topologii, reguł i konfiguracji, czyli symuluje odłączenie sieci WAN.
-3. Fikcyjny klient telemetrii zwraca wilgotność gleby poniżej progu oraz bezpieczny poziom wody.
-4. Uruchamiany jest prawdziwy `IoTControllerBackgroundService`.
-5. Test czeka na publikację komendy przez adapter MQTT.
-6. Sprawdzane są identyfikator urządzenia, komenda `pump`, stan `true` i czas działania `2000 ms`.
+1. Do `ControllerStateStore` zostaje wpisany ważny snapshot rośliny z zakresem wilgotności i przypisanym czujnikiem oraz pompą.
+2. Fikcyjny klient głównego Servera zwraca `null` dla konfiguracji, symulując chwilowy brak sieci.
+3. Telemetria zwraca wilgotność poniżej dolnej granicy oraz bezpieczny poziom wody.
+4. `IoTControllerBackgroundService` porównuje odczyt z zakresem i publikuje komendę przez adapter MQTT.
+5. Test sprawdza urządzenie, komendę `pump`, stan `true` i czas działania `2000 ms`.
 
 Uruchomienie testu:
 
@@ -114,11 +108,11 @@ Uruchomienie testu:
 dotnet test apps/Server.Tests/Server.Tests.csproj --filter UsesLastValidSnapshotAndPublishesCommandWhenMainServerIsOffline
 ```
 
-Sukces oznacza, że brak odpowiedzi głównego Servera nie usuwa lokalnej konfiguracji i że kontroler nadal wykonuje przeznaczoną regułę przez MQTT. Test nie wymaga uruchomionego Servera, PostgreSQL, brokera MQTT ani fizycznego ESP32. Nie zastępuje testu sprzętowego, ale weryfikuje najważniejszy kontrakt offline pomiędzy snapshotem, telemetrią, silnikiem reguł i adapterem komend.
+Sukces oznacza, że brak odpowiedzi głównego Servera nie usuwa lokalnej konfiguracji i że kontroler nadal sam podejmuje decyzję na podstawie zakresu. Test nie wymaga uruchomionego Servera, PostgreSQL, brokera MQTT ani fizycznego ESP32.
 
 ## Zabezpieczenia pompy w ClientServer
 
-`ClientServer` stosuje `PumpSafetyGuard` przed każdą komendą uruchamiającą pompę, zarówno z reguły automatycznej, jak i z endpointu ręcznego. Dostępne zabezpieczenia:
+`ClientServer` stosuje `PumpSafetyGuard` przed każdą automatyczną komendą uruchamiającą pompę oraz endpointem ręcznym. Dostępne zabezpieczenia:
 
 - `IoTController:MaxPumpRunSeconds` ogranicza maksymalny czas komendy; domyślnie do 30 sekund.
 - `IoTController:LowWaterThresholdCm` blokuje uruchomienie przy zbyt niskim poziomie wody.
